@@ -246,7 +246,7 @@ export async function POST(request: Request) {
             'Authorization': `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            model: llmModel, // Use the original llmModel which is like "deepseek/chat" or "deepseek/reasoner"
+            model: llmModel.startsWith('deepseek/') ? llmModel.substring('deepseek/'.length) : llmModel,
             messages: [{ role: "user", content: fullPrompt }],
             temperature: 0,
             stream: false, // Explicitly disable streaming as per assumptions
