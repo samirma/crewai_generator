@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  web:
+    build:
+      context: ./crewai-web-ui # Path to the Next.js app
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development # Or 'production' for production builds
+    # Mount the source code for development (optional, good for local dev)
+    # For production, you'd typically not mount the source
+    volumes:
+      - ./crewai-web-ui:/app
+      - /app/node_modules # Anonymous volume to prevent host node_modules from overwriting container's
+      - /app/.next
