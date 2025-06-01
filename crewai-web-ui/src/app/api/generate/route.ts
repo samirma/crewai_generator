@@ -154,7 +154,9 @@ export async function POST(request: Request) {
     fullPrompt = `${metaPrompt}${basePromptInstruction}`;
 
 
-    if (currentModelId.startsWith('gemini') || currentModelId === "gemini-pro" || currentModelId === "gemini-1.0-pro" || currentModelId === "gemini-1.5-pro-latest") {
+    // Note: currentModelId is already lowercased.
+    // The llmModel variable (original casing) is used for the actual API call.
+    if (currentModelId.startsWith('gemini')) {
       // GEMINI Handling
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
@@ -224,69 +226,68 @@ export async function POST(request: Request) {
         console.error(`Error calling Gemini API or executing script for model ${llmModel}:`, apiError);
         return NextResponse.json({ error: apiError instanceof Error ? apiError.message : String(apiError) }, { status: 500 });
       }
-    } else if (currentModelId.startsWith('openai/') || currentModelId === 'chatgpt') {
-      // OPENAI (ChatGPT) Handling
-      const apiKey = process.env.OPENAI_API_KEY;
+    // Removed OpenAI handling block
+    } else if (currentModelId.startsWith('deepseek/')) {
+      // DEEPSEEK Handling
+      const apiKey = process.env.DEEPSEEK_API_KEY;
       if (!apiKey) {
-        console.error("OPENAI_API_KEY is not set for model:", llmModel);
-        return NextResponse.json({ error: "OpenAI API key is not configured." }, { status: 500 });
+        console.error("DEEPSEEK_API_KEY is not set for model:", llmModel);
+        return NextResponse.json({ error: "DEEPSEEK_API_KEY is not configured for this model." }, { status: 500 });
       }
 
-      // Determine the actual OpenAI model ID to use
-      // For a generic 'chatgpt' or 'openai/chatgpt', we might default to gpt-3.5-turbo
-      // If a more specific ID like 'openai/gpt-4' is passed, use that.
-      let openaiModelId = "gpt-3.5-turbo"; // Default
-      if (currentModelId.startsWith('openai/')) {
-        openaiModelId = currentModelId.substring('openai/'.length);
-      }
-      // Add more specific model mappings if needed, e.g. if UI sends "chatgpt" but we want "gpt-4"
-      // For now, llmModel (original case) might be "ChatGPT (Placeholder)" -> use default
-      // or if it was "openai/gpt-4" -> use "gpt-4"
-
-      console.log(`Using OpenAI model ID: ${openaiModelId} for request: ${llmModel}`);
+      console.log(`Using DeepSeek model ID: ${llmModel} for request.`);
 
       try {
-        console.log("Calling OpenAI API...");
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        console.log("Calling DeepSeek API...");
+        const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            model: openaiModelId,
+            model: llmModel, // Use the original llmModel which is like "deepseek/chat" or "deepseek/reasoner"
             messages: [{ role: "user", content: fullPrompt }],
-            temperature: 0, // CRITICAL
+            temperature: 0,
+            stream: false, // Explicitly disable streaming as per assumptions
           }),
         });
+        console.log("DeepSeek API call completed.");
 
         if (!response.ok) {
           const errorData = await response.json();
-          console.error("OpenAI API Error Data:", errorData);
-          throw new Error(errorData.error?.message || `OpenAI API request failed: ${response.status}`);
+          console.error("DeepSeek API Error Data:", errorData);
+          throw new Error(errorData.error?.message || `DeepSeek API request failed: ${response.status} ${response.statusText}`);
         }
-        const data = await response.json();
-        let generatedScript = data.choices[0]?.message?.content || "";
-        console.log("Raw generated script from OpenAI:", generatedScript);
 
+        const data = await response.json();
+        let generatedScript = data.choices?.[0]?.message?.content;
+
+        if (!generatedScript) {
+          console.error("DeepSeek API call successful but response format is unexpected or content is missing.", data);
+          throw new Error("DeepSeek API Error: No content generated or unexpected response structure.");
+        }
+        console.log("Raw generated script from DeepSeek:", generatedScript);
+
+        // Common script post-processing (e.g., extracting from markdown)
         if (generatedScript.includes('```python')) {
           const pythonCodeBlockRegex = /```python\n([\s\S]*?)\n```/;
           const match = generatedScript.match(pythonCodeBlockRegex);
           if (match && match[1]) {
-            console.log("Extracted Python code from markdown block for OpenAI.");
+            console.log("Extracted Python code from markdown block for DeepSeek.");
             generatedScript = match[1];
           }
-        } else if (generatedScript.startsWith('```')) { // Sometimes it might just be ``` script ```
-            const pythonCodeBlockRegex = /```\n([\s\S]*?)\n```/;
+        } else if (generatedScript.startsWith('```') && generatedScript.endsWith('```')) {
+            const pythonCodeBlockRegex = /```\n?([\s\S]*?)\n?```/;
             const match = generatedScript.match(pythonCodeBlockRegex);
             if (match && match[1]) {
-                console.log("Extracted Python code from simple ``` block for OpenAI.");
-                generatedScript = match[1];
+                console.log("Extracted Python code from simple ``` block for DeepSeek.");
+                generatedScript = match[1].trim();
             }
         }
 
 
-        console.log("Attempting to execute generated script in Docker (OpenAI)...");
+        console.log("Attempting to execute generated script in Docker (DeepSeek)...");
         const { stdout, stderr } = await executePythonScript(generatedScript);
         const phasedOutputs = parsePhasedOutput(stdout);
 
@@ -297,25 +298,9 @@ export async function POST(request: Request) {
         });
 
       } catch (apiError) {
-        console.error(`Error calling OpenAI API or executing script for model ${llmModel}:`, apiError);
+        console.error(`Error calling DeepSeek API or executing script for model ${llmModel}:`, apiError);
         return NextResponse.json({ error: apiError instanceof Error ? apiError.message : String(apiError) }, { status: 500 });
       }
-    } else if (currentModelId.startsWith('deepseek')) {
-      // DEEPSEEK Handling (Placeholder)
-      const apiKey = process.env.DEEPSEEK_API_KEY;
-      if (!apiKey) {
-        console.error("DEEPSEEK_API_KEY is not set for model:", llmModel);
-        return NextResponse.json({ error: "DeepSeek API key is not configured. This model is not yet fully implemented." }, { status: 501 });
-      }
-      // TODO: Implement DeepSeek API call here
-      // 1. Construct prompt (fullPrompt is already available)
-      // 2. Make API call to DeepSeek (ensure temperature 0)
-      // 3. Extract script
-      // 4. Post-process script (markdown extraction if needed)
-      // 5. Execute script and parse phased outputs
-      console.warn(`DeepSeek model (${llmModel}) selected, but full implementation is pending.`);
-      return NextResponse.json({ error: `DeepSeek model (${llmModel}) support is not yet fully implemented.` }, { status: 501 });
-
     } else {
       // Fallback for other/unhandled models
       console.log(`Falling back to mock response for unhandled model ${llmModel}.`);
