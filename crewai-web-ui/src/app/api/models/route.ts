@@ -18,16 +18,14 @@ export async function GET() {
     // { id: "chatgpt", name: "ChatGPT (Placeholder)" }, // OpenAI/ChatGPT removed
     // { id: "deepseek", name: "DeepSeek (Placeholder)" } // Replaced with specific models below
     { id: "deepseek-chat", name: "DeepSeek (Chat)" },
-    { id: "deepseek-coder", name: "DeepSeek (Coder)" }
+    { id: "deepseek-reasoner", name: "DeepSeek (Reasoner)" }
   ];
   allModels = [...baseModels];
 
   // 2. Gemini Models (currently hardcoded, as no list API in Google AI SDK for Node.js)
   // Use the exact model names that the GoogleGenerativeAI SDK expects for the 'model' parameter.
   const geminiModelIds = [
-    "gemini-pro",             // Standard Gemini Pro, still relevant
-    "gemini-1.5-pro-latest",  // Latest Pro model
-    "gemini-1.5-flash-latest" // Latest Flash model
+    "gemini-1.5-flash-preview-0514"
   ];
 
   const geminiModels: Model[] = geminiModelIds.map(id => {

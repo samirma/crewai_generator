@@ -115,18 +115,18 @@ export default function Home() {
   };
 
   return (
-    <main className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-8 text-center">CrewAI Web Interface</h1>
+    <main className="container mx-auto p-6 md:p-8 max-w-4xl">
+      <h1 className="text-3xl font-bold mb-10 text-center text-slate-700">CrewAI Web Interface</h1>
 
-      <div className="mb-6">
-        <label htmlFor="initialInstruction" className="block text-lg font-medium mb-2">
+      <div className="input-section mb-6"> {/* Using custom class from globals.css for consistent spacing if needed, or just mb-6 */}
+        <label htmlFor="initialInstruction" className="block text-md font-semibold mb-2 text-slate-600">
           Initial Instruction Input
         </label>
         <textarea
           id="initialInstruction"
           name="initialInstruction"
           rows={4}
-          className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+          className="w-full" /* Tailwind classes removed as global styles will apply. Added bg-white for explicit background. */
           placeholder="Enter your initial instructions here..."
           value={initialInput}
           onChange={(e) => setInitialInput(e.target.value)}
@@ -134,14 +134,14 @@ export default function Home() {
         ></textarea>
       </div>
 
-      <div className="mb-6">
-        <label htmlFor="llmModelSelect" className="block text-lg font-medium mb-2">
+      <div className="input-section mb-6">
+        <label htmlFor="llmModelSelect" className="block text-md font-semibold mb-2 text-slate-600">
           LLM Model Selection
         </label>
         <select
           id="llmModelSelect"
           name="llmModelSelect"
-          className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+          className="w-full" /* Tailwind classes removed, bg-white for explicit background */
           value={llmModel}
           onChange={(e) => setLlmModel(e.target.value)}
           disabled={isLoading || modelsLoading || modelsError !== ""}
@@ -165,7 +165,7 @@ export default function Home() {
       <div className="mb-6">
         <button
           type="button"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold p-3 rounded-md shadow-md transition duration-150 ease-in-out disabled:opacity-50"
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold p-3 rounded-md shadow-md transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
           onClick={handleSubmit}
           disabled={isLoading || modelsLoading || !llmModel}
         >
@@ -173,57 +173,51 @@ export default function Home() {
         </button>
       </div>
 
-      <div className="my-4 flex items-center">
+      <div className="mb-6 flex items-center p-3 border border-slate-200 rounded-lg shadow-sm bg-white">
         <input
           type="checkbox"
           id="advancedModeToggle"
           checked={advancedMode}
           onChange={(e) => setAdvancedMode(e.target.checked)}
-          className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+          className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mr-3"
         />
-        <label htmlFor="advancedModeToggle" className="ml-2 block text-sm text-gray-900">
+        <label htmlFor="advancedModeToggle" className="block text-sm font-medium text-slate-700 select-none">
           Advanced/Developer Mode (Show Phased Outputs)
         </label>
       </div>
 
       {error && (
-        <div className="mb-6 p-3 border border-red-400 bg-red-100 text-red-700 rounded-md">
-          <p className="font-semibold">Error:</p>
+        <div className="mb-6 p-4 border border-red-400 bg-red-100 text-red-700 rounded-md shadow"> {/* Slightly more padding and shadow */}
+          <p className="font-bold text-lg mb-1">Error:</p> {/* Made "Error:" more prominent */}
           <p>{error}</p>
         </div>
       )}
 
-      <div className="mb-6">
-        <label htmlFor="generatedScript" className="block text-lg font-medium mb-2">
+      <div className="mb-6 p-4 border border-slate-200 rounded-lg shadow-sm bg-white">
+        <label htmlFor="generatedScript" className="block text-md font-semibold mb-2 text-slate-600">
           Generated Python Script
         </label>
-        <pre
-          id="generatedScript"
-          className="w-full p-3 border border-gray-300 rounded-md bg-gray-50 overflow-auto whitespace-pre-wrap min-h-[150px]"
-        >
+        <pre id="generatedScript" className="w-full min-h-[150px]"> {/* Global pre style applies */}
           {generatedScript || "Python script output will appear here"}
         </pre>
       </div>
 
-      <div>
-        <label htmlFor="scriptOutput" className="block text-lg font-medium mb-2">
+      <div className="mb-6 p-4 border border-slate-200 rounded-lg shadow-sm bg-white"> {/* Added mb-6 for spacing before phased output */}
+        <label htmlFor="scriptOutput" className="block text-md font-semibold mb-2 text-slate-600">
           Script Execution Output
         </label>
-        <pre
-          id="scriptOutput"
-          className="w-full p-3 border border-gray-300 rounded-md bg-gray-50 overflow-auto whitespace-pre-wrap min-h-[150px]"
-        >
+        <pre id="scriptOutput" className="w-full min-h-[150px]"> {/* Global pre style applies */}
           {executionOutput || "Script execution output will appear here"}
         </pre>
       </div>
 
       {advancedMode && phasedOutputs.length > 0 && (
-        <div className="mt-6">
-          <h2 className="text-xl font-semibold mb-3">Phased Task Outputs:</h2>
+        <div className="mt-8 pt-6 border-t border-slate-300">
+          <h2 className="text-xl font-semibold mb-4 text-slate-700">Phased Task Outputs:</h2>
           {phasedOutputs.map((phase, index) => (
-            <div key={index} className="mb-4 p-4 border border-gray-200 rounded-lg bg-slate-50 shadow">
-              <h3 className="text-lg font-medium text-gray-800 mb-1">Task: {phase.taskName}</h3>
-              <pre className="w-full p-3 border border-gray-300 rounded-md bg-gray-100 overflow-auto whitespace-pre-wrap min-h-[100px]">
+            <div key={index} className="mb-6 p-4 border border-slate-200 rounded-lg shadow bg-slate-50">
+              <h3 className="text-lg font-medium text-slate-600 mb-2">Task: {phase.taskName}</h3>
+              <pre className="w-full min-h-[100px]"> {/* Global pre style applies */}
                 {phase.output || "No output for this phase."}
               </pre>
             </div>

@@ -224,7 +224,7 @@ export async function POST(request: Request) {
         console.error(`Error calling Gemini API or executing script for model ${llmModel}:`, apiError);
         return NextResponse.json({ error: apiError instanceof Error ? apiError.message : String(apiError) }, { status: 500 });
       }
-    } else if (currentModelId.startsWith('deepseek')) { // e.g. "deepseek-chat", "deepseek-coder"
+    } else if (currentModelId === 'deepseek-chat' || currentModelId === 'deepseek-reasoner') {
       const apiKey = process.env.DEEPSEEK_API_KEY;
       if (!apiKey) {
         console.error("DEEPSEEK_API_KEY is not set for model:", llmModel);
