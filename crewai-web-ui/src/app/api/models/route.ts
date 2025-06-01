@@ -33,9 +33,13 @@ export async function GET() {
         }
       } else {
         console.warn(`Failed to fetch Ollama models. Status: ${response.status}, Body: ${await response.text()}`);
+        // Add specific error model entry if fetch was not ok
+        allModels.push({ id: "ollama/error", name: "Ollama (API Error - Check Connection/URL)" });
       }
     } catch (error) {
       console.error("Error fetching Ollama models:", error);
+      // Add specific error model entry if any other error occurred during fetch
+      allModels.push({ id: "ollama/error", name: "Ollama (API Error - Check Connection/URL)" });
     }
   } else {
     // Optionally, add a placeholder if OLLAMA_API_BASE_URL is not set

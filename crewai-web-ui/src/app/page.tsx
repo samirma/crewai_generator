@@ -17,6 +17,9 @@ export default function Home() {
   const [llmModel, setLlmModel] = useState<string>(""); // Will be set after fetching models
   const [generatedScript, setGeneratedScript] = useState<string>("");
   const [executionOutput, setExecutionOutput] = useState<string>("");
+  const [scriptRunOutput, setScriptRunOutput] = useState<string>(""); // New state for direct script execution
+  const [isExecutingScript, setIsExecutingScript] = useState<boolean>(false); // New state for "Run Script" button loading
+  const [scriptExecutionError, setScriptExecutionError] = useState<string>(""); // New state for direct script execution errors
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [availableModels, setAvailableModels] = useState<Model[]>([]);
@@ -39,7 +42,7 @@ export default function Home() {
         setAvailableModels(models);
         if (models.length > 0) {
           // Filter out non-selectable models before determining the default
-          const selectableModels = models.filter(model => model.id !== 'ollama/not-configured');
+          const selectableModels = models.filter(model => model.id !== 'ollama/not-configured' && model.id !== 'ollama/error');
 
           if (selectableModels.length > 0) {
             // Prioritize the new Gemini model, then the first selectable model
@@ -113,6 +116,43 @@ export default function Home() {
     }
   };
 
+  const handleExecuteScript = async () => {
+    if (!generatedScript) {
+      setScriptExecutionError("No script to execute.");
+      return;
+    }
+    setIsExecutingScript(true);
+    setScriptExecutionError("");
+    setScriptRunOutput("");
+
+    try {
+      const response = await fetch('/api/execute', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ script: generatedScript }), // Send generatedScript as "script"
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `API request failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      setScriptRunOutput(data.output); // Assuming the API returns { output: "..." }
+    } catch (err) {
+      console.error("Error executing script:", err);
+      if (err instanceof Error) {
+        setScriptExecutionError(err.message);
+      } else {
+        setScriptExecutionError("An unknown error occurred while executing the script.");
+      }
+    } finally {
+      setIsExecutingScript(false);
+    }
+  };
+
   return (
     <main className="container mx-auto p-6 md:p-8">
       <h1 className="text-3xl md:text-4xl font-bold mb-10 text-center text-slate-700 dark:text-slate-200">CrewAI Web Interface</h1>
@@ -152,7 +192,7 @@ export default function Home() {
             <option
               key={model.id}
               value={model.id}
-              disabled={model.id === 'ollama/not-configured'}
+              disabled={model.id === 'ollama/not-configured' || model.id === 'ollama/error'}
             >
               {model.name}
             </option>
@@ -192,6 +232,13 @@ export default function Home() {
         </div>
       )}
 
+      {scriptExecutionError && (
+        <div className="mb-8 p-4 border border-red-400 bg-red-100 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-500/50 dark:text-red-400">
+          <p className="font-semibold">Script Execution Error:</p>
+          <p>{scriptExecutionError}</p>
+        </div>
+      )}
+
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         <div>
           <label htmlFor="generatedScript" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
@@ -203,6 +250,14 @@ export default function Home() {
           >
             {generatedScript || "Python script output will appear here"}
           </pre>
+          <button
+            type="button"
+            onClick={handleExecuteScript}
+            disabled={!generatedScript || isExecutingScript}
+            className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2.5 rounded-md shadow-md transition duration-150 ease-in-out disabled:opacity-50 focus:ring-4 focus:ring-green-300 focus:outline-none dark:focus:ring-green-800"
+          >
+            {isExecutingScript ? 'Executing Script...' : 'Run Script'}
+          </button>
         </div>
 
         <div>
@@ -213,7 +268,7 @@ export default function Home() {
             id="scriptOutput"
             className="w-full p-4 border border-slate-200 rounded-md bg-slate-50 shadow-sm overflow-auto whitespace-pre-wrap min-h-[160px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
           >
-            {executionOutput || "Script execution output will appear here"}
+            {scriptRunOutput || "Script execution output will appear here"}
           </pre>
         </div>
       </div>

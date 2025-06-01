@@ -13,6 +13,7 @@
     "@types/dockerode": "^3.3.39",
     "dockerode": "^4.0.6",
     "next": "15.3.3",
+    "openai": "^4.47.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
