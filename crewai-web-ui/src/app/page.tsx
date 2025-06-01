@@ -2,19 +2,84 @@
 
 import { useState, useEffect } from 'react';
 
+interface Model {
+  id: string;
+  name: string;
+}
+
+interface PhasedOutput {
+  taskName: string;
+  output: string;
+}
+
 export default function Home() {
   const [initialInput, setInitialInput] = useState<string>("");
-  const [llmModel, setLlmModel] = useState<string>("gemini"); // Default LLM
+  const [llmModel, setLlmModel] = useState<string>(""); // Will be set after fetching models
   const [generatedScript, setGeneratedScript] = useState<string>("");
   const [executionOutput, setExecutionOutput] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [availableModels, setAvailableModels] = useState<Model[]>([]);
+  const [modelsLoading, setModelsLoading] = useState<boolean>(true);
+  const [modelsError, setModelsError] = useState<string>("");
+  const [advancedMode, setAdvancedMode] = useState<boolean>(false);
+  const [phasedOutputs, setPhasedOutputs] = useState<PhasedOutput[]>([]);
+
+  useEffect(() => {
+    const fetchModels = async () => {
+      setModelsLoading(true);
+      setModelsError("");
+      try {
+        const response = await fetch('/api/models');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to fetch models: ${response.status}`);
+        }
+        const models: Model[] = await response.json();
+        setAvailableModels(models);
+        if (models.length > 0) {
+          // Filter out non-selectable models before determining the default
+          const selectableModels = models.filter(model => model.id !== 'ollama/not-configured');
+
+          if (selectableModels.length > 0) {
+            // Prioritize "gemini-pro", then first selectable model
+            const geminiProModel = selectableModels.find(model => model.id === "gemini-pro");
+            if (geminiProModel) {
+              setLlmModel(geminiProModel.id);
+            } else {
+              setLlmModel(selectableModels[0].id);
+            }
+          } else {
+            // If no selectable models, set llmModel to empty or handle accordingly
+            setLlmModel("");
+          }
+        } else {
+          setLlmModel(""); // No models available
+        }
+      } catch (err) {
+        console.error("Error fetching models:", err);
+        if (err instanceof Error) {
+          setModelsError(err.message);
+        } else {
+          setModelsError("An unknown error occurred while fetching models.");
+        }
+      } finally {
+        setModelsLoading(false);
+      }
+    };
+    fetchModels();
+  }, []);
 
   const handleSubmit = async () => {
+    if (!llmModel) {
+      setError("Please select an LLM model.");
+      return;
+    }
     setIsLoading(true);
     setError("");
     setGeneratedScript("");
     setExecutionOutput("");
+    setPhasedOutputs([]); // Clear previous phased outputs
 
     try {
       const response = await fetch('/api/generate', {
@@ -33,6 +98,9 @@ export default function Home() {
       const data = await response.json();
       setGeneratedScript(data.generatedScript);
       setExecutionOutput(data.executionOutput);
+      if (data.phasedOutputs) {
+        setPhasedOutputs(data.phasedOutputs);
+      }
 
     } catch (err) {
       console.error("Error calling API:", err);
@@ -76,14 +144,22 @@ export default function Home() {
           className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white"
           value={llmModel}
           onChange={(e) => setLlmModel(e.target.value)}
-          disabled={isLoading}
+          disabled={isLoading || modelsLoading || modelsError !== ""}
         >
-          <option value="gemini">Gemini</option>
-          <option value="chatgpt">ChatGPT</option>
-          <option value="deepseek">DeepSeek</option>
-          <option value="ollama/llama2">Ollama Llama2</option>
-          {/* Add more models as needed */}
+          {modelsLoading && <option value="">Loading models...</option>}
+          {modelsError && <option value="">Error loading models</option>}
+          {!modelsLoading && !modelsError && availableModels.length === 0 && <option value="">No models available</option>}
+          {!modelsLoading && !modelsError && availableModels.map(model => (
+            <option
+              key={model.id}
+              value={model.id}
+              disabled={model.id === 'ollama/not-configured'}
+            >
+              {model.name}
+            </option>
+          ))}
         </select>
+        {modelsError && <p className="text-sm text-red-600 mt-1">{modelsError}</p>}
       </div>
 
       <div className="mb-6">
@@ -91,10 +167,23 @@ export default function Home() {
           type="button"
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold p-3 rounded-md shadow-md transition duration-150 ease-in-out disabled:opacity-50"
           onClick={handleSubmit}
-          disabled={isLoading}
+          disabled={isLoading || modelsLoading || !llmModel}
         >
-          {isLoading ? 'Generating...' : 'Run'}
+          {isLoading ? 'Generating...' : (modelsLoading ? 'Loading models...' : 'Run')}
         </button>
+      </div>
+
+      <div className="my-4 flex items-center">
+        <input
+          type="checkbox"
+          id="advancedModeToggle"
+          checked={advancedMode}
+          onChange={(e) => setAdvancedMode(e.target.checked)}
+          className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+        />
+        <label htmlFor="advancedModeToggle" className="ml-2 block text-sm text-gray-900">
+          Advanced/Developer Mode (Show Phased Outputs)
+        </label>
       </div>
 
       {error && (
@@ -127,6 +216,20 @@ export default function Home() {
           {executionOutput || "Script execution output will appear here"}
         </pre>
       </div>
+
+      {advancedMode && phasedOutputs.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-xl font-semibold mb-3">Phased Task Outputs:</h2>
+          {phasedOutputs.map((phase, index) => (
+            <div key={index} className="mb-4 p-4 border border-gray-200 rounded-lg bg-slate-50 shadow">
+              <h3 className="text-lg font-medium text-gray-800 mb-1">Task: {phase.taskName}</h3>
+              <pre className="w-full p-3 border border-gray-300 rounded-md bg-gray-100 overflow-auto whitespace-pre-wrap min-h-[100px]">
+                {phase.output || "No output for this phase."}
+              </pre>
+            </div>
+          ))}
+        </div>
+      )}
     </main>
   );
 }

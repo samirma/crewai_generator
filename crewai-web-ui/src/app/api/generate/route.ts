@@ -107,6 +107,26 @@ async function executePythonScript(scriptContent: string): Promise<{ stdout: str
   return { stdout, stderr };
 }
 
+interface PhasedOutput {
+  taskName: string;
+  output: string;
+}
+
+function parsePhasedOutput(scriptStdout: string): PhasedOutput[] {
+  const outputs: PhasedOutput[] = [];
+  // Regex to capture task name and the output until the next marker or end of string.
+  // Ensures taskName is captured from the marker.
+  // Output is everything between the current marker and the next, or EOF.
+  const regex = /### CREWAI_TASK_OUTPUT_MARKER: (.*?) ###\r?\n([\s\S]*?)(?=### CREWAI_TASK_OUTPUT_MARKER:|$)/g;
+  let match;
+  while ((match = regex.exec(scriptStdout)) !== null) {
+    outputs.push({
+      taskName: match[1].trim(),
+      output: match[2].trim(),
+    });
+  }
+  return outputs;
+}
 
 // Main API Handler
 export async function POST(request: Request) {
@@ -116,26 +136,35 @@ export async function POST(request: Request) {
 
     console.log(`Received input: "${initialInput}" for LLM: ${llmModel}`);
 
-    if (llmModel.toLowerCase() === 'gemini') {
+    // Standardize llmModel to lower case for consistent checks
+    const currentModelId = llmModel.toLowerCase();
+    let metaPrompt = ""; // To store content of crewai_reference.md
+    let fullPrompt = "";   // To store the combined prompt for the LLM
+
+    try {
+      metaPrompt = await fs.readFile(path.join(process.cwd(), 'crewai_reference.md'), 'utf-8');
+    } catch (fileError) {
+      console.error("Error reading crewai_reference.md:", fileError);
+      return NextResponse.json({ error: "Could not load the meta-prompt. Check server logs." }, { status: 500 });
+    }
+
+    // Construct the core part of the prompt, common across models
+    // Specific instructions for phased output markers are crucial.
+    const basePromptInstruction = `\n\nUser Instruction: ${initialInput}\n\nGenerate the Python script for CrewAI based on this. Ensure each task's output is clearly marked with '### CREWAI_TASK_OUTPUT_MARKER: <task_name> ###' on a new line, followed by the task's output on subsequent lines.`;
+    fullPrompt = `${metaPrompt}${basePromptInstruction}`;
+
+
+    if (currentModelId.startsWith('gemini') || currentModelId === "gemini-pro" || currentModelId === "gemini-1.0-pro" || currentModelId === "gemini-1.5-pro-latest") {
+      // GEMINI Handling
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
-        console.error("GEMINI_API_KEY is not set.");
+        console.error("GEMINI_API_KEY is not set for model:", llmModel);
         return NextResponse.json({ error: "GEMINI_API_KEY is not configured." }, { status: 500 });
       }
 
-      const filePath = path.join(process.cwd(), 'crewai_reference.md');
-      let metaPrompt = "";
-      try {
-        metaPrompt = await fs.readFile(filePath, 'utf-8');
-      } catch (fileError) {
-        console.error("Error reading crewai_reference.md:", fileError);
-        console.error("Current working directory (process.cwd()):", process.cwd());
-        return NextResponse.json({ error: "Could not load the meta-prompt. Check server logs for details." }, { status: 500 });
-      }
-
-      const fullPrompt = `${metaPrompt}\n\nUser Instruction: ${initialInput}\n\nGenerate the Python script based on this.`;
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      // Use the original llmModel string which has the correct casing for the API
+      const model = genAI.getGenerativeModel({ model: llmModel });
       const safetySettings = [
         { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
         { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
@@ -148,6 +177,9 @@ export async function POST(request: Request) {
         const result = await model.generateContent({
           contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
           safetySettings,
+          generationConfig: {
+            temperature: 0,
+          },
         });
         console.log("Gemini API call completed.");
 
@@ -159,60 +191,145 @@ export async function POST(request: Request) {
             let generatedScript = result.response.candidates[0].content.parts[0].text;
             console.log("Raw generated script from Gemini:", generatedScript);
 
-            if (!generatedScript.trim().startsWith("def ") && !generatedScript.trim().startsWith("import ") && !generatedScript.trim().startsWith("#") && !generatedScript.trim().startsWith("print") && !generatedScript.trim().startsWith("\"\"\"")  && !generatedScript.trim().startsWith("'''")) {
-                console.warn("Gemini response might not be Python code, attempting to extract from markdown block.");
-                const pythonCodeBlockRegex = /```python\n([\s\S]*?)\n```/;
-                const match = generatedScript.match(pythonCodeBlockRegex);
-                if (match && match[1]) {
-                    console.log("Extracted Python code from markdown block.");
-                    generatedScript = match[1];
-                } else {
-                    console.warn("Could not extract Python code from markdown block. Using raw output.");
-                }
+            // Common script post-processing (e.g., extracting from markdown)
+            if (generatedScript.includes('```python')) {
+              const pythonCodeBlockRegex = /```python\n([\s\S]*?)\n```/;
+              const match = generatedScript.match(pythonCodeBlockRegex);
+              if (match && match[1]) {
+                console.log("Extracted Python code from markdown block for Gemini.");
+                generatedScript = match[1];
+              }
             }
 
-            console.log("Attempting to execute generated script in Docker...");
+            console.log("Attempting to execute generated script in Docker (Gemini)...");
             const { stdout, stderr } = await executePythonScript(generatedScript);
-            console.log("Script execution finished. Returning response.");
+            const phasedOutputs = parsePhasedOutput(stdout);
 
             return NextResponse.json({
-                generatedScript: generatedScript,
+                generatedScript,
                 executionOutput: `STDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`,
+                phasedOutputs,
             });
 
         } else {
+          // Handle cases where Gemini response structure is not as expected
           console.error("Gemini API call successful but response format is unexpected or content is missing.");
           let detailedError = "No content generated or unexpected response structure.";
           if (result.response && result.response.promptFeedback) {
             detailedError += ` Prompt feedback: ${JSON.stringify(result.response.promptFeedback)}`;
-            console.error("Prompt Feedback:", result.response.promptFeedback);
-          } else {
-            console.error("Full Gemini Response (or lack thereof):", JSON.stringify(result.response, null, 2));
           }
           return NextResponse.json({ error: `Gemini API Error: ${detailedError}` }, { status: 500 });
         }
-
       } catch (apiError) {
-        console.error("Error calling Gemini API or executing script:", apiError);
-        let errorMessage = "Failed to generate or execute script.";
-        if (apiError instanceof Error) {
-            errorMessage = apiError.message;
-        }
-        return NextResponse.json({ error: errorMessage }, { status: 500 });
+        console.error(`Error calling Gemini API or executing script for model ${llmModel}:`, apiError);
+        return NextResponse.json({ error: apiError instanceof Error ? apiError.message : String(apiError) }, { status: 500 });
+      }
+    } else if (currentModelId.startsWith('openai/') || currentModelId === 'chatgpt') {
+      // OPENAI (ChatGPT) Handling
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        console.error("OPENAI_API_KEY is not set for model:", llmModel);
+        return NextResponse.json({ error: "OpenAI API key is not configured." }, { status: 500 });
       }
 
+      // Determine the actual OpenAI model ID to use
+      // For a generic 'chatgpt' or 'openai/chatgpt', we might default to gpt-3.5-turbo
+      // If a more specific ID like 'openai/gpt-4' is passed, use that.
+      let openaiModelId = "gpt-3.5-turbo"; // Default
+      if (currentModelId.startsWith('openai/')) {
+        openaiModelId = currentModelId.substring('openai/'.length);
+      }
+      // Add more specific model mappings if needed, e.g. if UI sends "chatgpt" but we want "gpt-4"
+      // For now, llmModel (original case) might be "ChatGPT (Placeholder)" -> use default
+      // or if it was "openai/gpt-4" -> use "gpt-4"
+
+      console.log(`Using OpenAI model ID: ${openaiModelId} for request: ${llmModel}`);
+
+      try {
+        console.log("Calling OpenAI API...");
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: openaiModelId,
+            messages: [{ role: "user", content: fullPrompt }],
+            temperature: 0, // CRITICAL
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("OpenAI API Error Data:", errorData);
+          throw new Error(errorData.error?.message || `OpenAI API request failed: ${response.status}`);
+        }
+        const data = await response.json();
+        let generatedScript = data.choices[0]?.message?.content || "";
+        console.log("Raw generated script from OpenAI:", generatedScript);
+
+        if (generatedScript.includes('```python')) {
+          const pythonCodeBlockRegex = /```python\n([\s\S]*?)\n```/;
+          const match = generatedScript.match(pythonCodeBlockRegex);
+          if (match && match[1]) {
+            console.log("Extracted Python code from markdown block for OpenAI.");
+            generatedScript = match[1];
+          }
+        } else if (generatedScript.startsWith('```')) { // Sometimes it might just be ``` script ```
+            const pythonCodeBlockRegex = /```\n([\s\S]*?)\n```/;
+            const match = generatedScript.match(pythonCodeBlockRegex);
+            if (match && match[1]) {
+                console.log("Extracted Python code from simple ``` block for OpenAI.");
+                generatedScript = match[1];
+            }
+        }
+
+
+        console.log("Attempting to execute generated script in Docker (OpenAI)...");
+        const { stdout, stderr } = await executePythonScript(generatedScript);
+        const phasedOutputs = parsePhasedOutput(stdout);
+
+        return NextResponse.json({
+          generatedScript,
+          executionOutput: `STDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`,
+          phasedOutputs,
+        });
+
+      } catch (apiError) {
+        console.error(`Error calling OpenAI API or executing script for model ${llmModel}:`, apiError);
+        return NextResponse.json({ error: apiError instanceof Error ? apiError.message : String(apiError) }, { status: 500 });
+      }
+    } else if (currentModelId.startsWith('deepseek')) {
+      // DEEPSEEK Handling (Placeholder)
+      const apiKey = process.env.DEEPSEEK_API_KEY;
+      if (!apiKey) {
+        console.error("DEEPSEEK_API_KEY is not set for model:", llmModel);
+        return NextResponse.json({ error: "DeepSeek API key is not configured. This model is not yet fully implemented." }, { status: 501 });
+      }
+      // TODO: Implement DeepSeek API call here
+      // 1. Construct prompt (fullPrompt is already available)
+      // 2. Make API call to DeepSeek (ensure temperature 0)
+      // 3. Extract script
+      // 4. Post-process script (markdown extraction if needed)
+      // 5. Execute script and parse phased outputs
+      console.warn(`DeepSeek model (${llmModel}) selected, but full implementation is pending.`);
+      return NextResponse.json({ error: `DeepSeek model (${llmModel}) support is not yet fully implemented.` }, { status: 501 });
+
     } else {
-      // Fallback for other models
-      console.log(`Falling back to mock response for model ${llmModel}.`);
-      const mockPythonScript = `# Mock Python script for ${llmModel}\n# Input: ${initialInput}\nprint("Hello from mock Python script!")`;
+      // Fallback for other/unhandled models
+      console.log(`Falling back to mock response for unhandled model ${llmModel}.`);
+      const mockPythonScript = `# Mock Python script for ${llmModel}\n# Input: ${initialInput}\nprint("Hello from mock Python script!")\n\n### CREWAI_TASK_OUTPUT_MARKER: Mock Task 1 ###\nOutput of Mock Task 1\n### CREWAI_TASK_OUTPUT_MARKER: Mock Task 2 ###\nOutput of Mock Task 2`;
       const { stdout, stderr } = await executePythonScript(mockPythonScript);
+      const phasedOutputs = parsePhasedOutput(stdout);
       return NextResponse.json({
         generatedScript: mockPythonScript,
         executionOutput: `STDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`,
+        phasedOutputs: phasedOutputs,
       });
     }
 
-  } catch (error) {
+  } catch (error) { // Catch-all for errors during request processing or unknown issues
     console.error("Error in API route:", error);
     let errorMessage = "An unknown error occurred in API route.";
     if (error instanceof Error) {

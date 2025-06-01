@@ -210,6 +210,14 @@
 
 **Script Structure & Content Requirements:**
 
+**Phased Execution and Task Delineation:**
+*   **Structure for Phased Execution:** Structure the generated Python script so that each agent's task is a clearly defined block or function. The script should be adaptable to allow overriding the LLM used by each agent and the specific input for each task. Ensure the script prints the result or output of each task before proceeding to the next, possibly using a special marker or by returning intermediate outputs.
+*   **Task Specification:** For each task, clearly delineate (e.g., using comments or a specific structure within the script):
+    *   The agent responsible for the task.
+    *   The specific tools the agent is expected to use for this task.
+    *   The expected output format or structure for the task.
+*   **Customization Hooks:** Design the script (especially agent and task definitions) so that parameters like the LLM model for an agent or the input for a task can be easily modified or overridden. This might involve defining them in a way that they can be adjusted before the `crew.kickoff()` call or by structuring tasks as functions that accept these parameters.
+
 **Environment Setup (Order is CRITICAL):**
 ```python
 import os
