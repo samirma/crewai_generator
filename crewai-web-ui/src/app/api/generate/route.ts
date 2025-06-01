@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
+import OpenAI from 'openai'; // Added for DeepSeek
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
@@ -228,46 +229,37 @@ export async function POST(request: Request) {
       }
     // Removed OpenAI handling block
     } else if (currentModelId.startsWith('deepseek/')) {
-      // DEEPSEEK Handling
-      const apiKey = process.env.DEEPSEEK_API_KEY;
-      if (!apiKey) {
+      // DEEPSEEK Handling - Now using OpenAI SDK
+      const deepSeekApiKey = process.env.DEEPSEEK_API_KEY;
+      if (!deepSeekApiKey) {
         console.error("DEEPSEEK_API_KEY is not set for model:", llmModel);
         return NextResponse.json({ error: "DEEPSEEK_API_KEY is not configured for this model." }, { status: 500 });
       }
 
-      console.log(`Using DeepSeek model ID: ${llmModel} for request.`);
+      const openai = new OpenAI({
+        baseURL: 'https://api.deepseek.com/v1',
+        apiKey: deepSeekApiKey,
+      });
+
+      console.log(`Using DeepSeek model ID: ${llmModel} for request via OpenAI SDK.`);
 
       try {
-        console.log("Calling DeepSeek API...");
-        const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model: llmModel.startsWith('deepseek/') ? llmModel.substring('deepseek/'.length) : llmModel,
-            messages: [{ role: "user", content: fullPrompt }],
-            temperature: 0,
-            stream: false, // Explicitly disable streaming as per assumptions
-          }),
+        console.log("Calling DeepSeek API via OpenAI SDK...");
+        const completion = await openai.chat.completions.create({
+          model: llmModel.substring('deepseek/'.length), // Extract model name, e.g., "deepseek-chat"
+          messages: [{ role: "user", content: fullPrompt }],
+          temperature: 0,
+          stream: false,
         });
-        console.log("DeepSeek API call completed.");
+        console.log("DeepSeek API call completed via OpenAI SDK.");
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error("DeepSeek API Error Data:", errorData);
-          throw new Error(errorData.error?.message || `DeepSeek API request failed: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        let generatedScript = data.choices?.[0]?.message?.content;
+        let generatedScript = completion.choices?.[0]?.message?.content;
 
         if (!generatedScript) {
-          console.error("DeepSeek API call successful but response format is unexpected or content is missing.", data);
-          throw new Error("DeepSeek API Error: No content generated or unexpected response structure.");
+          console.error("DeepSeek API call via OpenAI SDK successful but response format is unexpected or content is missing.", completion);
+          throw new Error("DeepSeek API Error (OpenAI SDK): No content generated or unexpected response structure.");
         }
-        console.log("Raw generated script from DeepSeek:", generatedScript);
+        console.log("Raw generated script from DeepSeek (OpenAI SDK):", generatedScript);
 
         // Common script post-processing (e.g., extracting from markdown)
         if (generatedScript.includes('```python')) {
@@ -287,7 +279,7 @@ export async function POST(request: Request) {
         }
 
 
-        console.log("Attempting to execute generated script in Docker (DeepSeek)...");
+        console.log("Attempting to execute generated script in Docker (DeepSeek via OpenAI SDK)...");
         const { stdout, stderr } = await executePythonScript(generatedScript);
         const phasedOutputs = parsePhasedOutput(stdout);
 
@@ -298,7 +290,7 @@ export async function POST(request: Request) {
         });
 
       } catch (apiError) {
-        console.error(`Error calling DeepSeek API or executing script for model ${llmModel}:`, apiError);
+        console.error(`Error calling DeepSeek API via OpenAI SDK or executing script for model ${llmModel}:`, apiError);
         return NextResponse.json({ error: apiError instanceof Error ? apiError.message : String(apiError) }, { status: 500 });
       }
     } else {
