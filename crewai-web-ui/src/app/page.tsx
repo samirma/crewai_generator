@@ -42,7 +42,7 @@ export default function Home() {
         setAvailableModels(models);
         if (models.length > 0) {
           // Filter out non-selectable models before determining the default
-          const selectableModels = models.filter(model => model.id !== 'ollama/not-configured' && model.id !== 'ollama/error');
+          const selectableModels = models;
 
           if (selectableModels.length > 0) {
             // Prioritize the new Gemini model, then the first selectable model
@@ -192,7 +192,6 @@ export default function Home() {
             <option
               key={model.id}
               value={model.id}
-              disabled={model.id === 'ollama/not-configured' || model.id === 'ollama/error'}
             >
               {model.name}
             </option>
