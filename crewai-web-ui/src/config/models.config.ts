@@ -6,19 +6,14 @@ export interface ModelConfig {
 
 export const staticModels: ModelConfig[] = [
   // DeepSeek Models
-  { id: "deepseek/chat", name: "deepseek-chat" },
-  { id: "deepseek/reasoner", name: "deepseek-reasoner" },
+  { id: "deepseek/deepseek-chat", name: "deepseek-chat" },
+  { id: "deepseek/deepseek-coder", name: "deepseek-coder" },
 
   // Gemini Models
   // Using the exact model IDs the GoogleGenerativeAI SDK expects.
   // Names are made more human-readable.
   {
-    id: "gemini-1.5-flash-preview-05-20", // Actual ID for API
-    name: "Gemini 1.5 Flash Preview 05 20" // Human-readable name
+    id: "gemini-2.5-flash-preview-05-20", // Actual ID for API
+    name: "Gemini 2.5 Flash Preview 05-20" // Human-readable name
   },
-  // Example for another Gemini model if it were static:
-  // {
-  //   id: "gemini-1.5-pro-latest",
-  //   name: "Gemini 1.5 Pro (Latest)"
-  // },
 ];
