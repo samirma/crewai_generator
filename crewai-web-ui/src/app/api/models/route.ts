@@ -19,12 +19,9 @@ export async function GET() {
         const data = await response.json();
         if (data.models && Array.isArray(data.models)) {
           const ollamaFetchedModels: ModelConfig[] = data.models.map((model: any) => {
-            const modelNameParts = model.name.split(':');
-            const baseName = modelNameParts[0];
-            const tag = modelNameParts[1] || 'latest';
             return {
               id: `ollama/${model.name}`, // Prefix with ollama/ to namespace
-              name: `Ollama ${baseName.charAt(0).toUpperCase() + baseName.slice(1)} (${tag})`
+              name: `Ollama ${model.name}`
             };
           });
           allModels = [...allModels, ...ollamaFetchedModels];
@@ -36,13 +33,14 @@ export async function GET() {
         // Add specific error model entry if fetch was not ok
         allModels.push({ id: "ollama/error", name: "Ollama (API Error - Check Connection/URL)" });
       }
-    } catch (error) {
-      console.error("Error fetching Ollama models:", error);
+    } catch (error: any) {
+      console.error("Error fetching Ollama models:", error.message, error.stack);
       // Add specific error model entry if any other error occurred during fetch
       allModels.push({ id: "ollama/error", name: "Ollama (API Error - Check Connection/URL)" });
     }
   } else {
     // Optionally, add a placeholder if OLLAMA_API_BASE_URL is not set
+    console.warn("OLLAMA_API_BASE_URL environment variable is not defined. Ollama models will not be fetched.");
     allModels.push({ id: "ollama/not-configured", name: "Ollama (Not Configured)" });
   }
 

@@ -155,7 +155,7 @@ export default function Home() {
 
   return (
     <main className="container mx-auto p-6 md:p-8">
-      <h1 className="text-3xl md:text-4xl font-bold mb-10 text-center text-slate-700 dark:text-slate-200">CrewAI Web Interface</h1>
+      <h1 className="text-3xl md:text-4xl font-bold mb-10 text-center text-slate-700 dark:text-slate-200">CrewAI Studio</h1>
 
       <div className="mb-8">
         <label htmlFor="initialInstruction" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
@@ -212,19 +212,6 @@ export default function Home() {
         </button>
       </div>
 
-      <div className="my-6 flex items-center">
-        <input
-          type="checkbox"
-          id="advancedModeToggle"
-          checked={advancedMode}
-          onChange={(e) => setAdvancedMode(e.target.checked)}
-          className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 dark:border-slate-600 dark:focus:ring-indigo-600 dark:focus:ring-offset-gray-800 dark:bg-slate-700"
-        />
-        <label htmlFor="advancedModeToggle" className="ml-2 block text-sm text-slate-600 dark:text-slate-400">
-          Advanced/Developer Mode (Show Phased Outputs)
-        </label>
-      </div>
-
       {error && (
         <div className="mb-8 p-4 border border-red-400 bg-red-100 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-500/50 dark:text-red-400">
           <p className="font-semibold">Error:</p>
@@ -240,6 +227,17 @@ export default function Home() {
       )}
 
       <div className="grid md:grid-cols-2 gap-6 mb-8">
+        <div>
+          <label htmlFor="scriptOutput" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
+            Script Execution Output
+          </label>
+          <pre
+            id="scriptOutput"
+            className="w-full p-4 border border-slate-200 rounded-md bg-slate-50 shadow-sm overflow-auto whitespace-pre-wrap min-h-[160px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+          >
+            {scriptRunOutput || "Script execution output will appear here"}
+          </pre>
+        </div>
         <div>
           <label htmlFor="generatedScript" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
             Generated Python Script
@@ -259,63 +257,7 @@ export default function Home() {
             {isExecutingScript ? 'Executing Script...' : 'Run Script'}
           </button>
         </div>
-
-        <div>
-          <label htmlFor="scriptOutput" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
-            Script Execution Output
-          </label>
-          <pre
-            id="scriptOutput"
-            className="w-full p-4 border border-slate-200 rounded-md bg-slate-50 shadow-sm overflow-auto whitespace-pre-wrap min-h-[160px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
-          >
-            {scriptRunOutput || "Script execution output will appear here"}
-          </pre>
-        </div>
       </div>
-
-      {advancedMode && phasedOutputs.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-xl md:text-2xl font-semibold mb-4 text-slate-700 dark:text-slate-200">Phased Task Outputs:</h2>
-          {phasedOutputs.map((phase, index) => (
-            <div key={index} className="mb-6 p-4 border border-slate-200 rounded-lg bg-slate-50 shadow dark:bg-slate-800 dark:border-slate-700">
-              <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200 mb-2">Task: {phase.taskName}</h3>
-              <pre className="w-full p-3 border border-slate-300 rounded-md bg-slate-100 overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-700/50 dark:border-slate-600 dark:text-slate-300">
-                {phase.output || "No output for this phase."}
-              </pre>
-              {/* New button and input section for phase interaction */}
-              {advancedMode && (
-                <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 flex items-center space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => console.log(`'Edit/Retry Phase' for '${phase.taskName}' clicked (not implemented)`)}
-                    className="px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70"
-                    title="Feature not yet implemented"
-                    // disabled // Using onClick for console log, but visually can be styled as disabled
-                  >
-                    Edit/Retry Phase
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => console.log(`'Select LLM for Phase' for '${phase.taskName}' clicked (not implemented)`)}
-                    className="px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70"
-                    title="Feature not yet implemented"
-                    // disabled
-                  >
-                    Select LLM for Phase
-                  </button>
-                  <input
-                    type="text"
-                    placeholder="Custom input for phase (not implemented)"
-                    className="flex-grow p-1 text-xs border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-slate-200 sm:text-xs disabled:opacity-70"
-                    disabled // Mark as disabled for now
-                    title="Feature not yet implemented"
-                  />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
     </main>
   );
 }
