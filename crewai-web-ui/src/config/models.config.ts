@@ -16,8 +16,4 @@ export const staticModels: ModelConfig[] = [
     id: "gemini-2.5-flash-preview-05-20", // Actual ID for API
     name: "Gemini 2.5 Flash Preview 05-20" // Human-readable name
   },
-  {
-    id: "gemini-1.5-pro-latest",
-    name: "Gemini 1.5 Pro (Latest)"
-  },
 ];
