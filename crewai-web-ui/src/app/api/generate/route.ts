@@ -293,6 +293,74 @@ export async function POST(request: Request) {
         console.error(`Error calling DeepSeek API via OpenAI SDK or executing script for model ${llmModel}:`, apiError);
         return NextResponse.json({ error: apiError instanceof Error ? apiError.message : String(apiError) }, { status: 500 });
       }
+    } else if (currentModelId.startsWith('ollama/')) {
+      // OLLAMA Handling
+      const ollamaApiBaseUrl = process.env.OLLAMA_API_BASE_URL;
+      if (!ollamaApiBaseUrl) {
+        console.error("OLLAMA_API_BASE_URL is not configured.");
+        return NextResponse.json({ error: "OLLAMA_API_BASE_URL is not configured." }, { status: 500 });
+      }
+
+      const ollamaModelName = llmModel.substring('ollama/'.length);
+      console.log(`Calling Ollama API for model: ${ollamaModelName} at base URL: ${ollamaApiBaseUrl}`);
+
+      try {
+        const response = await fetch(`${ollamaApiBaseUrl}/api/generate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: ollamaModelName,
+            prompt: fullPrompt,
+            stream: false, // Explicitly set stream to false as per common Ollama usage for single responses
+          }),
+        });
+
+        if (!response.ok) {
+          const errorBody = await response.text();
+          console.error(`Ollama API request failed: ${response.status} ${response.statusText}`, errorBody);
+          return NextResponse.json({ error: `Ollama API request failed: ${response.statusText}` }, { status: response.status });
+        }
+
+        const ollamaData = await response.json();
+        let generatedScript = ollamaData.response; // Ollama typically returns the full response in 'response'
+        console.log("Raw generated script from Ollama:", generatedScript);
+
+        // Common script post-processing (e.g., extracting from markdown)
+        // Try standard Python block first
+        if (generatedScript.includes('```python')) {
+          const pythonCodeBlockRegex = /```python\n([\s\S]*?)\n```/;
+          const match = generatedScript.match(pythonCodeBlockRegex);
+          if (match && match[1]) {
+            console.log("Extracted Python code from ```python block for Ollama.");
+            generatedScript = match[1];
+          }
+        } else if (generatedScript.startsWith('```') && generatedScript.endsWith('```')) {
+          // Fallback to generic ``` block if ```python is not found
+          const pythonCodeBlockRegex = /```\n?([\s\S]*?)\n?```/;
+          const match = generatedScript.match(pythonCodeBlockRegex);
+          if (match && match[1]) {
+            console.log("Extracted Python code from simple ``` block for Ollama.");
+            generatedScript = match[1].trim(); // Trim to remove potential leading/trailing newlines
+          }
+        }
+        // If no markdown block is found, use the script as is.
+
+        console.log("Attempting to execute generated script in Docker (Ollama)...");
+        const { stdout, stderr } = await executePythonScript(generatedScript);
+        const phasedOutputs = parsePhasedOutput(stdout);
+
+        return NextResponse.json({
+          generatedScript,
+          executionOutput: `STDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`,
+          phasedOutputs,
+        });
+
+      } catch (apiError) {
+        console.error(`Error calling Ollama API or executing script for model ${llmModel}:`, apiError);
+        return NextResponse.json({ error: apiError instanceof Error ? apiError.message : String(apiError) }, { status: 500 });
+      }
     } else {
       // Fallback for other/unhandled models
       console.log(`Falling back to mock response for unhandled model ${llmModel}.`);
