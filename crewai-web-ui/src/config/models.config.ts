@@ -19,15 +19,19 @@ export const staticModels: ModelConfig[] = [
 ];
 
 export async function getOllamaModels(): Promise<ModelConfig[]> {
+  // Define fetchUrl here so it's accessible in the catch block for logging
+  let fetchUrl = '';
   try {
-    const response = await fetch("http://localhost:11434/api/tags");
+    const baseUrl = process.env.OLLAMA_API_BASE_URL || 'http://localhost:11434';
+    fetchUrl = `${baseUrl.replace(/\/$/, '')}/api/tags`; // Ensure no double slashes if baseUrl ends with /
+    const response = await fetch(fetchUrl);
     if (!response.ok) {
-      console.error("Failed to fetch Ollama models:", response.statusText);
+      console.error("Failed to fetch Ollama models:", response.statusText, `(URL: ${fetchUrl})`);
       return [];
     }
     const data = await response.json();
     if (!data.models || !Array.isArray(data.models)) {
-      console.error("Unexpected Ollama API response structure:", data);
+      console.error("Unexpected Ollama API response structure:", data, `(URL: ${fetchUrl})`);
       return [];
     }
     return data.models.map((model: any) => ({
@@ -35,7 +39,8 @@ export async function getOllamaModels(): Promise<ModelConfig[]> {
       name: model.name, // Consider removing :latest or other tags here if needed
     }));
   } catch (error) {
-    console.error("Error fetching Ollama models:", error);
+    // Now fetchUrl is accessible here
+    console.error("Error fetching Ollama models:", error, fetchUrl ? `(Attempted URL: ${fetchUrl})` : "(URL not determined)");
     return [];
   }
 }

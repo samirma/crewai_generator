@@ -182,11 +182,7 @@ async function interactWithLLM(
     }
     console.log("Raw LLM response from DeepSeek (OpenAI SDK):", llmResponseText);
   } else if (currentModelId.startsWith('ollama/')) {
-    const ollamaApiBaseUrl = process.env.OLLAMA_API_BASE_URL;
-    if (!ollamaApiBaseUrl) {
-      console.error("OLLAMA_API_BASE_URL is not configured.");
-      throw new Error("OLLAMA_API_BASE_URL is not configured.");
-    }
+    const ollamaApiBaseUrl = process.env.OLLAMA_API_BASE_URL || 'http://localhost:11434';
     const ollamaModelName = llmModel.substring('ollama/'.length);
     console.log(`Calling Ollama API for model: ${ollamaModelName} at base URL: ${ollamaApiBaseUrl}`);
     const response = await fetch(`${ollamaApiBaseUrl}/api/generate`, {
