@@ -119,11 +119,17 @@ export async function POST(request: Request) {
       runPhase,        // 1, 2, or 3 for advanced mode
       phase1_prompt,   // Optional custom prompt for phase 1
       phase2_prompt,   // Optional custom prompt for phase 2
-      phase3_prompt    // Optional custom prompt for phase 3
+      phase3_prompt,   // Optional custom prompt for phase 3
+      previous_full_prompt, // Used in advanced mode for phases 2 and 3
+      phase1_source_indicator, // Optional: 'custom' or filename
+      phase2_source_indicator, // Optional: 'custom' or filename
+      phase3_source_indicator  // Optional: 'custom' or filename
     } = body;
 
+    // General request logging (excluding potentially very long prompt texts)
     console.log(`Received request: mode='${mode}', runPhase='${runPhase}', llmModel='${llmModel}'`);
     if (initialInput) console.log(`Initial input received (length: ${initialInput.length})`);
+    // Specific prompt source logging will be handled within simple/advanced blocks
 
 
     // Standardize llmModel to lower case for consistent checks
@@ -143,7 +149,7 @@ export async function POST(request: Request) {
     };
 
     if (mode === 'simple') {
-      console.log("Processing in 'simple' mode.");
+      console.log("Processing in 'simple' mode. Generating using phase 1(phase1_blueprint_prompt.md) + phase 2(phase2_architecture_prompt.md) + phase 3(phase3_script_prompt.md)");
       const phase1Content = await readPromptFile('phase1_blueprint_prompt.md');
       const phase2Content = await readPromptFile('phase2_architecture_prompt.md');
       const phase3Content = await readPromptFile('phase3_script_prompt.md');
@@ -154,26 +160,53 @@ export async function POST(request: Request) {
       fullPrompt = `${metaPrompt}${basePromptInstruction}`;
 
     } else if (mode === 'advanced') {
-      console.log(`Processing in 'advanced' mode, phase: ${runPhase}.`);
-      let promptContent = "";
-      let phaseSpecificInput = initialInput; // In advanced mode, initialInput carries the output of the PREVIOUS phase.
+      // Advanced mode logging
+      const defaultPhase1FileName = "phase1_blueprint_prompt.md";
+      const defaultPhase2FileName = "phase2_architecture_prompt.md";
+      const defaultPhase3FileName = "phase3_script_prompt.md";
+      let logMessageForAdvanced = "";
 
       if (runPhase === 1) {
-        promptContent = phase1_prompt && phase1_prompt.trim() !== '' ? phase1_prompt : await readPromptFile('phase1_blueprint_prompt.md');
-        // For Phase 1, initialInput is the original user instruction.
-        // The phase1_blueprint_prompt.md expects "User-provided 'Initial Instruction Input'"
-        fullPrompt = `${promptContent}\n\nUser Instruction: ${initialInput}\n\n`;
+          const phase1IsCustomText = phase1_prompt && phase1_prompt.trim() !== '';
+          const p1EffectiveSource = phase1_source_indicator || (phase1IsCustomText ? "custom" : defaultPhase1FileName);
+          logMessageForAdvanced = `Processing in 'advanced' mode, phase: 1. Generating using Phase 1(${p1EffectiveSource})`;
       } else if (runPhase === 2) {
-        promptContent = phase2_prompt && phase2_prompt.trim() !== '' ? phase2_prompt : await readPromptFile('phase2_architecture_prompt.md');
-        // For Phase 2, initialInput is the Blueprint from Phase 1.
-        // The phase2_architecture_prompt.md expects the "complete 'Blueprint' document" as its input.
-        // We provide the blueprint (initialInput for this phase) directly. The prompt should instruct the LLM how to use it.
-        fullPrompt = `${promptContent}\n\nBlueprint:\n${phaseSpecificInput}\n\n`;
+          const p1EffectiveSource = phase1_source_indicator || "custom";
+          const phase2IsCustomText = phase2_prompt && phase2_prompt.trim() !== '';
+          const p2EffectiveSource = phase2_source_indicator || (phase2IsCustomText ? "custom" : defaultPhase2FileName);
+          logMessageForAdvanced = `Processing in 'advanced' mode, phase: 2. Generating using Phase 1(${p1EffectiveSource}) + Phase 2(${p2EffectiveSource})`;
       } else if (runPhase === 3) {
-        promptContent = phase3_prompt && phase3_prompt.trim() !== '' ? phase3_prompt : await readPromptFile('phase3_script_prompt.md');
-        // For Phase 3, initialInput is the Architecture Plan from Phase 2.
-        // The phase3_script_prompt.md expects the "complete 'Design-Crew-Architecture-Plan' document" as its input.
-        fullPrompt = `${promptContent}\n\nDesign-Crew-Architecture-Plan:\n${phaseSpecificInput}\n\n`;
+          const p1EffectiveSource = phase1_source_indicator || "custom";
+          const p2EffectiveSource = phase2_source_indicator || "custom";
+          const phase3IsCustomText = phase3_prompt && phase3_prompt.trim() !== '';
+          const p3EffectiveSource = phase3_source_indicator || (phase3IsCustomText ? "custom" : defaultPhase3FileName);
+          logMessageForAdvanced = `Processing in 'advanced' mode, phase: 3. Generating using Phase 1(${p1EffectiveSource}) + Phase 2(${p2EffectiveSource}) + Phase 3(${p3EffectiveSource})`;
+      }
+
+      if (logMessageForAdvanced) {
+          console.log(logMessageForAdvanced);
+      } else {
+          // Fallback log if phase is not 1, 2, or 3, though validation should catch this.
+          console.log(`Processing in 'advanced' mode, phase: ${runPhase} (Log message construction error or invalid phase)`);
+      }
+
+      let currentPhasePromptTemplate = "";
+      // initialInput in advanced mode carries the output of the PREVIOUS phase, or original user input for phase 1.
+
+      if (runPhase === 1) {
+        currentPhasePromptTemplate = phase1_prompt && phase1_prompt.trim() !== '' ? phase1_prompt : await readPromptFile('phase1_blueprint_prompt.md');
+        // For Phase 1, initialInput is the original user instruction.
+        fullPrompt = `${currentPhasePromptTemplate}\n\nUser Instruction: ${initialInput}\n\n`;
+      } else if (runPhase === 2) {
+        const prevFullPrompt = body.previous_full_prompt || "";
+        currentPhasePromptTemplate = phase2_prompt && phase2_prompt.trim() !== '' ? phase2_prompt : await readPromptFile('phase2_architecture_prompt.md');
+        // initialInput for runPhase 2 is the output of phase 1 (Blueprint).
+        fullPrompt = `${prevFullPrompt}\n\n${currentPhasePromptTemplate}\n\nBlueprint:\n${initialInput}\n\n`;
+      } else if (runPhase === 3) {
+        const prevFullPrompt = body.previous_full_prompt || "";
+        currentPhasePromptTemplate = phase3_prompt && phase3_prompt.trim() !== '' ? phase3_prompt : await readPromptFile('phase3_script_prompt.md');
+        // initialInput for runPhase 3 is the output of phase 2 (Architecture Plan).
+        fullPrompt = `${prevFullPrompt}\n\n${currentPhasePromptTemplate}\n\nDesign-Crew-Architecture-Plan:\n${initialInput}\n\n`;
       } else {
         return NextResponse.json({ error: "Invalid 'runPhase' for advanced mode. Must be 1, 2, or 3." }, { status: 400 });
       }
@@ -221,7 +254,7 @@ export async function POST(request: Request) {
             console.log("Raw LLM response from Gemini:", llmResponseText);
 
             if (mode === 'advanced' && (runPhase === 1 || runPhase === 2)) {
-              return NextResponse.json({ phase: runPhase, output: llmResponseText });
+              return NextResponse.json({ phase: runPhase, output: llmResponseText, fullPrompt: fullPrompt });
             }
 
             // Proceed to script extraction and execution for simple mode or phase 3 of advanced mode
@@ -237,9 +270,9 @@ export async function POST(request: Request) {
 
             // Script execution removed from here
             if (mode === 'simple') {
-              return NextResponse.json({ generatedScript });
+              return NextResponse.json({ generatedScript, fullPrompt: fullPrompt });
             } else { // Advanced mode, phase 3
-              return NextResponse.json({ generatedScript, phase: 3 });
+              return NextResponse.json({ generatedScript, phase: 3, fullPrompt: fullPrompt });
             }
 
         } else {
@@ -289,7 +322,7 @@ export async function POST(request: Request) {
         console.log("Raw LLM response from DeepSeek (OpenAI SDK):", llmResponseText);
 
         if (mode === 'advanced' && (runPhase === 1 || runPhase === 2)) {
-          return NextResponse.json({ phase: runPhase, output: llmResponseText });
+          return NextResponse.json({ phase: runPhase, output: llmResponseText, fullPrompt: fullPrompt });
         }
 
         let generatedScript = llmResponseText;
@@ -312,9 +345,9 @@ export async function POST(request: Request) {
 
         // Script execution removed from here
         if (mode === 'simple') {
-          return NextResponse.json({ generatedScript });
+          return NextResponse.json({ generatedScript, fullPrompt: fullPrompt });
         } else { // Advanced mode, phase 3
-          return NextResponse.json({ generatedScript, phase: 3 });
+          return NextResponse.json({ generatedScript, phase: 3, fullPrompt: fullPrompt });
         }
 
       } catch (apiError) {
@@ -356,7 +389,7 @@ export async function POST(request: Request) {
         console.log("Raw LLM response from Ollama:", llmResponseText);
 
         if (mode === 'advanced' && (runPhase === 1 || runPhase === 2)) {
-          return NextResponse.json({ phase: runPhase, output: llmResponseText });
+          return NextResponse.json({ phase: runPhase, output: llmResponseText, fullPrompt: fullPrompt });
         }
 
         let generatedScript = llmResponseText;
@@ -379,9 +412,9 @@ export async function POST(request: Request) {
 
         // Script execution removed from here
         if (mode === 'simple') {
-          return NextResponse.json({ generatedScript });
+          return NextResponse.json({ generatedScript, fullPrompt: fullPrompt });
         } else { // Advanced mode, phase 3
-          return NextResponse.json({ generatedScript, phase: 3 });
+          return NextResponse.json({ generatedScript, phase: 3, fullPrompt: fullPrompt });
         }
 
       } catch (apiError) {
@@ -403,9 +436,9 @@ export async function POST(request: Request) {
       const mockPythonScript = `# Mock Python script for ${llmModel}\n# Mode: ${mode}, Phase: ${runPhase}\n# Input: ${initialInput}\nprint("Hello from mock Python script for unhandled model!")`;
       // Script execution removed from here
       if (mode === 'simple') {
-        return NextResponse.json({ generatedScript: mockPythonScript });
+        return NextResponse.json({ generatedScript: mockPythonScript, fullPrompt: fullPrompt });
       } else { // Advanced mode, phase 3
-        return NextResponse.json({ generatedScript: mockPythonScript, phase: 3 });
+        return NextResponse.json({ generatedScript: mockPythonScript, phase: 3, fullPrompt: fullPrompt });
       }
     }
 
