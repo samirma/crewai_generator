@@ -120,71 +120,31 @@ const readPromptFile = async (fileName: string): Promise<string> => {
 
 // Helper function to construct the full prompt
 async function constructPrompt(
-  mode: string,
-  runPhase: number | null,
-  initialInput: string, // User's primary input for the current step/mode
-  phase1_prompt_text: string | null, // Custom text for phase 1 prompt
-  phase2_prompt_text: string | null, // Custom text for phase 2 prompt
-  phase3_prompt_text: string | null, // Custom text for phase 3 prompt
-  originalInitialInput: string | null, // Original user input (for advanced phases 2 & 3)
-  phase1PromptOutputText: string | null, // Output text from phase 1 (used as input for phase 2 prompt template)
-  phase2PromptOutputText: string | null  // Output text from phase 2 (used as input for phase 3 prompt template)
+  mode: string, // To decide if the extra simple mode instruction is needed
+  userInput: string, // User's primary input.
+  phaseTexts: string[], // Ordered list of prompt texts for the current phase(s)
+  // runPhase: number | null // Potentially keep if specific phase logic is needed, otherwise remove.
+                         // For now, assuming mode and the content of phaseTexts is enough.
 ): Promise<string> {
-  let fullPrompt = "";
+  console.log(`Constructing prompt with mode: '${mode}', userInput length: ${userInput.length}, phaseTexts count: ${phaseTexts.length}`);
 
+  // 1. Join the phaseTexts array with \n\n as a separator.
+  const joinedPhaseTexts = phaseTexts.join("\n\n");
+
+  // 2. Construct the user instruction string.
+  const userInstruction = `\n\nUser Instruction: @@@${userInput}@@@`;
+
+  let fullPrompt = `${joinedPhaseTexts}${userInstruction}`;
+
+  // 3. For 'simple' mode, append an additional instruction.
   if (mode === 'simple') {
-    console.log("Constructing prompt for 'simple' mode.");
-    const phase1Content = await readPromptFile('phase1_blueprint_prompt.md');
-    const phase2Content = await readPromptFile('phase2_architecture_prompt.md');
-    const phase3Content = await readPromptFile('phase3_script_prompt.md');
-    const metaPrompt = `${phase1Content}\n\n${phase2Content}\n\n${phase3Content}`;
-    const basePromptInstruction = `\n\nUser Instruction: @@@${initialInput}@@@\n\nGenerate the Python script for CrewAI based on this. Ensure each task's output is clearly marked with '### CREWAI_TASK_OUTPUT_MARKER: <task_name> ###' on a new line, followed by the task's output on subsequent lines.`;
-    fullPrompt = `${metaPrompt}${basePromptInstruction}`;
-  } else if (mode === 'advanced') {
-    let currentPhasePromptTemplate = "";
-    if (runPhase === 1) {
-      currentPhasePromptTemplate = phase1_prompt_text && phase1_prompt_text.trim() !== '' ? phase1_prompt_text : await readPromptFile('phase1_blueprint_prompt.md');
-      // For Phase 1, initialInput is the original user instruction.
-      fullPrompt = `User Instruction: @@@${initialInput}@@@\n\n${currentPhasePromptTemplate}`;
-    } else if (runPhase === 2) {
-      currentPhasePromptTemplate = phase2_prompt_text && phase2_prompt_text.trim() !== '' ? phase2_prompt_text : await readPromptFile('phase2_architecture_prompt.md');
-      if (!originalInitialInput || !phase1PromptOutputText) {
-        console.error("Missing originalInitialInput or phase1PromptOutputText for phase 2 prompt construction in constructPrompt");
-        throw new Error("Internal server error: Missing required inputs for phase 2 prompt construction.");
-      }
-      // initialInput for runPhase 2 (payload.initialInput) is the output of phase 1 (Blueprint).
-      // The main prompt structure is original user input + phase 1 prompt text + phase 2 prompt template.
-      // phase1PromptOutputText is the text of the prompt used in phase 1, not its output.
-      // The actual output of Phase 1 is passed as `initialInput` to the POST request for Phase 2,
-      // but for constructing the cumulative prompt, we need the *text of the Phase 1 prompt itself*.
-      // Let's adjust the parameters for constructPrompt for clarity later if needed.
-      // For now, assuming phase1PromptOutputText is the *text content of the phase 1 prompt*
-      // and originalInitialInput is the *very first user input*.
-      fullPrompt = `User Instruction: @@@${originalInitialInput}@@@\n\n${phase1PromptOutputText}\n\n${currentPhasePromptTemplate}`;
-      // Optional: Append the blueprint (output of phase 1, which is 'initialInput' for this phase) if the LLM needs it explicitly.
-      // fullPrompt += `\n\nBlueprint (Output of Phase 1):\n${initialInput}`;
-
-    } else if (runPhase === 3) {
-      currentPhasePromptTemplate = phase3_prompt_text && phase3_prompt_text.trim() !== '' ? phase3_prompt_text : await readPromptFile('phase3_script_prompt.md');
-      if (!originalInitialInput || !phase1PromptOutputText || !phase2PromptOutputText) {
-        console.error("Missing originalInitialInput, phase1PromptOutputText, or phase2PromptOutputText for phase 3 prompt construction in constructPrompt");
-        throw new Error("Internal server error: Missing required inputs for phase 3 prompt construction.");
-      }
-      // initialInput for runPhase 3 (payload.initialInput) is the output of phase 2 (Architecture Plan).
-      // The main prompt structure is original user input + phase 1 prompt text + phase 2 prompt text + phase 3 prompt template.
-      fullPrompt = `User Instruction: @@@${originalInitialInput}@@@\n\n${phase1PromptOutputText}\n\n${phase2PromptOutputText}\n\n${currentPhasePromptTemplate}`;
-      // Optional: Append the architecture plan (output of phase 2, which is 'initialInput' for this phase) if the LLM needs it explicitly.
-      // fullPrompt += `\n\nArchitecture Plan (Output of Phase 2):\n${initialInput}`;
-    } else {
-      // This case should ideally be caught before calling constructPrompt
-      console.error(`Invalid 'runPhase' (${runPhase}) for advanced mode in constructPrompt.`);
-      throw new Error("Invalid 'runPhase' for advanced mode. Must be 1, 2, or 3.");
-    }
-  } else {
-    // This case should ideally be caught before calling constructPrompt
-    console.error(`Invalid 'mode' (${mode}) in constructPrompt.`);
-    throw new Error("Invalid 'mode'. Must be 'simple' or 'advanced'.");
+    const simpleModeInstruction = `\n\nGenerate the Python script for CrewAI based on this. Ensure each task's output is clearly marked with '### CREWAI_TASK_OUTPUT_MARKER: <task_name> ###' on a new line, followed by the task's output on subsequent lines.`;
+    fullPrompt += simpleModeInstruction;
+    console.log("Appended simple mode specific instruction.");
   }
+
+  // 4. The final prompt is ready.
+  // console.log("Constructed full prompt:", fullPrompt); // Potentially very long, log with caution or only parts.
   return fullPrompt;
 }
 
@@ -365,21 +325,56 @@ export async function POST(request: Request) {
     }
 
     // Construct the full prompt using the helper function
-    // Note: The parameters phase1PromptText and phase2PromptText passed to constructPrompt
-    // are the *text of the prompts used in previous phases*, not the LLM output of those phases.
-    // The `initialInput` to `constructPrompt` is the direct input for the current phase (e.g. user's text for Phase 1, or Phase 1's output for Phase 2's thinking process)
-    const fullPrompt = await constructPrompt(
-      mode,
-      runPhase,
-      initialInput,
-      phase1_prompt, // Custom text for phase 1 prompt (if any)
-      phase2_prompt, // Custom text for phase 2 prompt (if any)
-      phase3_prompt, // Custom text for phase 3 prompt (if any)
-      originalInitialInput, // The very first user input for multi-stage advanced prompts
-      phase1PromptText,     // The actual prompt text used in phase 1 (for advanced phase 2 & 3)
-      phase2PromptText      // The actual prompt text used in phase 2 (for advanced phase 3)
-    );
+    // Determine userInstructionInput and prepare phaseTextsForPrompt
+    let userInstructionInput: string;
+    let phaseTextsForPrompt: string[] = [];
 
+    if (mode === 'simple') {
+      userInstructionInput = initialInput;
+      const phase1Content = await readPromptFile('phase1_blueprint_prompt.md');
+      const phase2Content = await readPromptFile('phase2_architecture_prompt.md');
+      const phase3Content = await readPromptFile('phase3_script_prompt.md');
+      phaseTextsForPrompt = [phase1Content, phase2Content, phase3Content];
+      console.log("Prepared inputs for 'simple' mode.");
+    } else if (mode === 'advanced') {
+      if (runPhase === 1) {
+        userInstructionInput = initialInput;
+        const currentPhasePromptTemplate = phase1_prompt && phase1_prompt.trim() !== '' ? phase1_prompt : await readPromptFile('phase1_blueprint_prompt.md');
+        phaseTextsForPrompt = [currentPhasePromptTemplate];
+        console.log("Prepared inputs for 'advanced' mode, phase 1.");
+      } else if (runPhase === 2) {
+        if (!originalInitialInput || !phase1PromptText || !initialInput) {
+          console.error("Missing originalInitialInput, phase1PromptText, or initialInput (phase 1 output) for advanced phase 2.");
+          return NextResponse.json({ error: "Internal server error: Missing required inputs for phase 2." }, { status: 500 });
+        }
+        userInstructionInput = originalInitialInput;
+        const p1Text = phase1PromptText; // Text of the prompt used in phase 1
+        const currentPhasePromptTemplate = phase2_prompt && phase2_prompt.trim() !== '' ? phase2_prompt : await readPromptFile('phase2_architecture_prompt.md');
+        const phase1Output = initialInput; // Output from phase 1
+        phaseTextsForPrompt = [p1Text, currentPhasePromptTemplate, phase1Output];
+        console.log("Prepared inputs for 'advanced' mode, phase 2, including phase 1 output.");
+      } else if (runPhase === 3) {
+        if (!originalInitialInput || !phase1PromptText || !phase2PromptText || !initialInput) {
+          console.error("Missing originalInitialInput, phase texts, or initialInput (phase 2 output) for advanced phase 3.");
+          return NextResponse.json({ error: "Internal server error: Missing required inputs for phase 3." }, { status: 500 });
+        }
+        userInstructionInput = originalInitialInput;
+        const p1Text = phase1PromptText; // Text of the prompt used in phase 1
+        const p2Text = phase2PromptText; // Text of the prompt used in phase 2
+        const currentPhasePromptTemplate = phase3_prompt && phase3_prompt.trim() !== '' ? phase3_prompt : await readPromptFile('phase3_script_prompt.md');
+        const phase2Output = initialInput; // Output from phase 2
+        phaseTextsForPrompt = [p1Text, p2Text, currentPhasePromptTemplate, phase2Output];
+        console.log("Prepared inputs for 'advanced' mode, phase 3, including phase 2 output.");
+      } else {
+        console.error("Internal error: Unhandled runPhase in 'advanced' mode despite validation.");
+        return NextResponse.json({ error: "Internal server error: Unhandled phase." }, { status: 500 });
+      }
+    } else {
+      console.error("Internal error: Unhandled mode despite validation.");
+      return NextResponse.json({ error: "Internal server error: Unhandled mode." }, { status: 500 });
+    }
+
+    const fullPrompt = await constructPrompt(mode, userInstructionInput, phaseTextsForPrompt);
 
     // Logging for advanced mode based on source indicators (can be refined or moved into constructPrompt if preferred)
     if (mode === 'advanced') {
