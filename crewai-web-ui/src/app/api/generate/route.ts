@@ -302,10 +302,7 @@ export async function POST(request: Request) {
       // previous_full_prompt, // No longer used directly for construction, but available if needed for logging.
       phase1_source_indicator, // Optional: 'custom' or filename
       phase2_source_indicator, // Optional: 'custom' or filename
-      phase3_source_indicator,  // Optional: 'custom' or filename
-      originalInitialInput, // For advanced mode phases 2 & 3. This is the first input by the user in the sequence.
-      phase1PromptText,     // For advanced mode phase 2 & 3. This is the *text of the prompt used in phase 1*.
-      phase2PromptText      // For advanced mode phase 3. This is the *text of the prompt used in phase 2*.
+      phase3_source_indicator  // Optional: 'custom' or filename
     } = body;
 
     // General request logging (excluding potentially very long prompt texts)
@@ -338,33 +335,35 @@ export async function POST(request: Request) {
       console.log("Prepared inputs for 'simple' mode.");
     } else if (mode === 'advanced') {
       if (runPhase === 1) {
+        if (!initialInput) {
+          console.error("Missing initialInput for advanced phase 1.");
+          return NextResponse.json({ error: "Internal server error: Missing initialInput for phase 1." }, { status: 500 });
+        }
         userInstructionInput = initialInput;
         const currentPhasePromptTemplate = phase1_prompt && phase1_prompt.trim() !== '' ? phase1_prompt : await readPromptFile('phase1_blueprint_prompt.md');
         phaseTextsForPrompt = [currentPhasePromptTemplate];
         console.log("Prepared inputs for 'advanced' mode, phase 1.");
       } else if (runPhase === 2) {
-        if (!originalInitialInput || !phase1PromptText || !initialInput) {
-          console.error("Missing originalInitialInput, phase1PromptText, or initialInput (phase 1 output) for advanced phase 2.");
-          return NextResponse.json({ error: "Internal server error: Missing required inputs for phase 2." }, { status: 500 });
+        if (!initialInput) { // phase1_prompt is optional, will use default if not provided
+          console.error("Missing initialInput for advanced phase 2.");
+          return NextResponse.json({ error: "Internal server error: Missing initialInput for phase 2." }, { status: 500 });
         }
-        userInstructionInput = originalInitialInput;
-        const p1Text = phase1PromptText; // Text of the prompt used in phase 1
+        userInstructionInput = initialInput;
+        const p1Template = phase1_prompt && phase1_prompt.trim() !== '' ? phase1_prompt : await readPromptFile('phase1_blueprint_prompt.md');
         const currentPhasePromptTemplate = phase2_prompt && phase2_prompt.trim() !== '' ? phase2_prompt : await readPromptFile('phase2_architecture_prompt.md');
-        const phase1Output = initialInput; // Output from phase 1
-        phaseTextsForPrompt = [p1Text, currentPhasePromptTemplate, phase1Output];
-        console.log("Prepared inputs for 'advanced' mode, phase 2, including phase 1 output.");
+        phaseTextsForPrompt = [p1Template, currentPhasePromptTemplate];
+        console.log("Prepared inputs for 'advanced' mode, phase 2.");
       } else if (runPhase === 3) {
-        if (!originalInitialInput || !phase1PromptText || !phase2PromptText || !initialInput) {
-          console.error("Missing originalInitialInput, phase texts, or initialInput (phase 2 output) for advanced phase 3.");
-          return NextResponse.json({ error: "Internal server error: Missing required inputs for phase 3." }, { status: 500 });
+        if (!initialInput) { // phase1_prompt and phase2_prompt are optional, will use defaults
+          console.error("Missing initialInput for advanced phase 3.");
+          return NextResponse.json({ error: "Internal server error: Missing initialInput for phase 3." }, { status: 500 });
         }
-        userInstructionInput = originalInitialInput;
-        const p1Text = phase1PromptText; // Text of the prompt used in phase 1
-        const p2Text = phase2PromptText; // Text of the prompt used in phase 2
+        userInstructionInput = initialInput;
+        const p1Template = phase1_prompt && phase1_prompt.trim() !== '' ? phase1_prompt : await readPromptFile('phase1_blueprint_prompt.md');
+        const p2Template = phase2_prompt && phase2_prompt.trim() !== '' ? phase2_prompt : await readPromptFile('phase2_architecture_prompt.md');
         const currentPhasePromptTemplate = phase3_prompt && phase3_prompt.trim() !== '' ? phase3_prompt : await readPromptFile('phase3_script_prompt.md');
-        const phase2Output = initialInput; // Output from phase 2
-        phaseTextsForPrompt = [p1Text, p2Text, currentPhasePromptTemplate, phase2Output];
-        console.log("Prepared inputs for 'advanced' mode, phase 3, including phase 2 output.");
+        phaseTextsForPrompt = [p1Template, p2Template, currentPhasePromptTemplate];
+        console.log("Prepared inputs for 'advanced' mode, phase 3.");
       } else {
         console.error("Internal error: Unhandled runPhase in 'advanced' mode despite validation.");
         return NextResponse.json({ error: "Internal server error: Unhandled phase." }, { status: 500 });
@@ -386,20 +385,21 @@ export async function POST(request: Request) {
         if (runPhase === 1) {
             const phase1IsCustomText = phase1_prompt && phase1_prompt.trim() !== '';
             const p1EffectiveSource = phase1_source_indicator || (phase1IsCustomText ? "custom" : defaultPhase1FileName);
-            logMessageForAdvanced = `Processing in 'advanced' mode, phase: 1. Generating using Phase 1(${p1EffectiveSource})`;
+            logMessageForAdvanced = `Processing in 'advanced' mode, phase: 1. Using P1: ${p1EffectiveSource}`;
         } else if (runPhase === 2) {
-            // For phase 2, phase1_source_indicator refers to how the *text of the phase 1 prompt* was derived.
-            // If phase1PromptText is provided, it implies "custom" or a previously resolved source.
-            const p1EffectiveSource = phase1_source_indicator || (phase1PromptText ? "previous_phase_custom" : "unknown");
+            const phase1IsCustomText = phase1_prompt && phase1_prompt.trim() !== '';
+            const p1EffectiveSource = phase1_source_indicator || (phase1IsCustomText ? "custom" : defaultPhase1FileName);
             const phase2IsCustomText = phase2_prompt && phase2_prompt.trim() !== '';
             const p2EffectiveSource = phase2_source_indicator || (phase2IsCustomText ? "custom" : defaultPhase2FileName);
-            logMessageForAdvanced = `Processing in 'advanced' mode, phase: 2. Generating using Phase 1(${p1EffectiveSource}) + Phase 2(${p2EffectiveSource})`;
+            logMessageForAdvanced = `Processing in 'advanced' mode, phase: 2. Using P1: ${p1EffectiveSource}, P2: ${p2EffectiveSource}`;
         } else if (runPhase === 3) {
-            const p1EffectiveSource = phase1_source_indicator || (phase1PromptText ? "previous_phase_custom" : "unknown");
-            const p2EffectiveSource = phase2_source_indicator || (phase2PromptText ? "previous_phase_custom" : "unknown");
+            const phase1IsCustomText = phase1_prompt && phase1_prompt.trim() !== '';
+            const p1EffectiveSource = phase1_source_indicator || (phase1IsCustomText ? "custom" : defaultPhase1FileName);
+            const phase2IsCustomText = phase2_prompt && phase2_prompt.trim() !== '';
+            const p2EffectiveSource = phase2_source_indicator || (phase2IsCustomText ? "custom" : defaultPhase2FileName);
             const phase3IsCustomText = phase3_prompt && phase3_prompt.trim() !== '';
             const p3EffectiveSource = phase3_source_indicator || (phase3IsCustomText ? "custom" : defaultPhase3FileName);
-            logMessageForAdvanced = `Processing in 'advanced' mode, phase: 3. Generating using Phase 1(${p1EffectiveSource}) + Phase 2(${p2EffectiveSource}) + Phase 3(${p3EffectiveSource})`;
+            logMessageForAdvanced = `Processing in 'advanced' mode, phase: 3. Using P1: ${p1EffectiveSource}, P2: ${p2EffectiveSource}, P3: ${p3EffectiveSource}`;
         }
          if (logMessageForAdvanced) {
             console.log(logMessageForAdvanced);
