@@ -120,10 +120,13 @@ export async function POST(request: Request) {
       phase1_prompt,   // Optional custom prompt for phase 1
       phase2_prompt,   // Optional custom prompt for phase 2
       phase3_prompt,   // Optional custom prompt for phase 3
-      previous_full_prompt, // Used in advanced mode for phases 2 and 3
+      // previous_full_prompt, // No longer used directly for construction, but available if needed for logging.
       phase1_source_indicator, // Optional: 'custom' or filename
       phase2_source_indicator, // Optional: 'custom' or filename
-      phase3_source_indicator  // Optional: 'custom' or filename
+      phase3_source_indicator,  // Optional: 'custom' or filename
+      originalInitialInput, // For advanced mode phases 2 & 3
+      phase1PromptText,     // For advanced mode phases 2 & 3
+      phase2PromptText      // For advanced mode phase 3
     } = body;
 
     // General request logging (excluding potentially very long prompt texts)
@@ -156,7 +159,7 @@ export async function POST(request: Request) {
       const metaPrompt = `${phase1Content}\n\n${phase2Content}\n\n${phase3Content}`;
 
       // In simple mode, initialInput is the user's overall instruction.
-      const basePromptInstruction = `\n\nUser Instruction: ${initialInput}\n\nGenerate the Python script for CrewAI based on this. Ensure each task's output is clearly marked with '### CREWAI_TASK_OUTPUT_MARKER: <task_name> ###' on a new line, followed by the task's output on subsequent lines.`;
+      const basePromptInstruction = `\n\nUser Instruction: @@@${initialInput}@@@\n\nGenerate the Python script for CrewAI based on this. Ensure each task's output is clearly marked with '### CREWAI_TASK_OUTPUT_MARKER: <task_name> ###' on a new line, followed by the task's output on subsequent lines.`;
       fullPrompt = `${metaPrompt}${basePromptInstruction}`;
 
     } else if (mode === 'advanced') {
@@ -196,17 +199,29 @@ export async function POST(request: Request) {
       if (runPhase === 1) {
         currentPhasePromptTemplate = phase1_prompt && phase1_prompt.trim() !== '' ? phase1_prompt : await readPromptFile('phase1_blueprint_prompt.md');
         // For Phase 1, initialInput is the original user instruction.
-        fullPrompt = `${currentPhasePromptTemplate}\n\nUser Instruction: ${initialInput}\n\n`;
+        fullPrompt = `User Instruction: @@@${initialInput}@@@\n\n${currentPhasePromptTemplate}`;
       } else if (runPhase === 2) {
-        const prevFullPrompt = body.previous_full_prompt || "";
         currentPhasePromptTemplate = phase2_prompt && phase2_prompt.trim() !== '' ? phase2_prompt : await readPromptFile('phase2_architecture_prompt.md');
-        // initialInput for runPhase 2 is the output of phase 1 (Blueprint).
-        fullPrompt = `${prevFullPrompt}\n\n${currentPhasePromptTemplate}\n\nBlueprint:\n${initialInput}\n\n`;
+        if (!originalInitialInput || !phase1PromptText) {
+          console.error("Missing originalInitialInput or phase1PromptText for phase 2");
+          return NextResponse.json({ error: "Internal server error: Missing required inputs for phase 2 prompt construction." }, { status: 500 });
+        }
+        // initialInput for runPhase 2 (payload.initialInput) is the output of phase 1 (Blueprint), used by LLM for context if needed, but not primary instruction.
+        // The main prompt structure is now original user input + phase 1 prompt + phase 2 prompt.
+        fullPrompt = `User Instruction: @@@${originalInitialInput}@@@\n\n${phase1PromptText}\n\n${currentPhasePromptTemplate}`;
+        // Optional: Append the blueprint (output of phase 1) if the LLM needs it explicitly.
+        // fullPrompt += `\n\nBlueprint (Output of Phase 1):\n${initialInput}`;
       } else if (runPhase === 3) {
-        const prevFullPrompt = body.previous_full_prompt || "";
         currentPhasePromptTemplate = phase3_prompt && phase3_prompt.trim() !== '' ? phase3_prompt : await readPromptFile('phase3_script_prompt.md');
-        // initialInput for runPhase 3 is the output of phase 2 (Architecture Plan).
-        fullPrompt = `${prevFullPrompt}\n\n${currentPhasePromptTemplate}\n\nDesign-Crew-Architecture-Plan:\n${initialInput}\n\n`;
+        if (!originalInitialInput || !phase1PromptText || !phase2PromptText) {
+          console.error("Missing originalInitialInput, phase1PromptText, or phase2PromptText for phase 3");
+          return NextResponse.json({ error: "Internal server error: Missing required inputs for phase 3 prompt construction." }, { status: 500 });
+        }
+        // initialInput for runPhase 3 (payload.initialInput) is the output of phase 2 (Architecture Plan).
+        // The main prompt structure is original user input + phase 1 prompt + phase 2 prompt + phase 3 prompt.
+        fullPrompt = `User Instruction: @@@${originalInitialInput}@@@\n\n${phase1PromptText}\n\n${phase2PromptText}\n\n${currentPhasePromptTemplate}`;
+        // Optional: Append the architecture plan (output of phase 2) if the LLM needs it explicitly.
+        // fullPrompt += `\n\nArchitecture Plan (Output of Phase 2):\n${initialInput}`;
       } else {
         return NextResponse.json({ error: "Invalid 'runPhase' for advanced mode. Must be 1, 2, or 3." }, { status: 400 });
       }
