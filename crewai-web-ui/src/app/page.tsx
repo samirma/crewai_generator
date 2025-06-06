@@ -142,6 +142,15 @@ export default function Home() {
     setIsLoading(true); // General loading for simple mode
     resetOutputStates();
 
+    const displayablePrompt = `User Instruction: @@@${initialInput}@
+
+${defaultPhase1PromptText}
+
+${defaultPhase2PromptText}
+
+${defaultPhase3PromptText}`;
+    setDisplayedPrompt(displayablePrompt);
+
     console.log("Generating using phase 1(phase1_blueprint_prompt.md) + phase 2(phase2_architecture_prompt.md) + phase 3(phase3_script_prompt.md)");
     try {
       const response = await fetch('/api/generate', {
@@ -217,10 +226,15 @@ export default function Home() {
       payload.initialInput = phase1Output || initialInput; // Output of P1
       payload.phase2_prompt = phase2Prompt;
       payload.previous_full_prompt = displayedPrompt; // Full prompt from Phase 1
+      payload.originalInitialInput = initialInput;
+      payload.phase1PromptText = phase1Prompt;
     } else if (phase === 3) {
       payload.initialInput = phase2Output || phase1Output || initialInput; // Output of P2
       payload.phase3_prompt = phase3Prompt;
       payload.previous_full_prompt = displayedPrompt; // Full prompt from Phase 2
+      payload.originalInitialInput = initialInput;
+      payload.phase1PromptText = phase1Prompt;
+      payload.phase2PromptText = phase2Prompt;
     }
 
     // Old console.log statements for specific phase generation have been removed.
