@@ -188,7 +188,7 @@ async function interactWithLLM(
     const response = await fetch(`${ollamaApiBaseUrl}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: ollamaModelName, prompt: fullPrompt, stream: false }),
+      body: JSON.stringify({ model: ollamaModelName, prompt: fullPrompt, stream: false, temperature: 0.0 }),
     });
     if (!response.ok) {
       const errorBody = await response.text();
