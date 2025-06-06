@@ -220,21 +220,17 @@ ${defaultPhase3PromptText}`;
     };
 
     if (phase === 1) {
-      payload.initialInput = initialInput; // Original user input
-      payload.phase1_prompt = phase1Prompt;
+      payload.initialInput = initialInput; // Original user input from component state
+      payload.phase1_prompt = phase1Prompt; // phase1Prompt from component state
     } else if (phase === 2) {
-      payload.initialInput = phase1Output || initialInput; // Output of P1
-      payload.phase2_prompt = phase2Prompt;
-      payload.previous_full_prompt = displayedPrompt; // Full prompt from Phase 1
-      payload.originalInitialInput = initialInput;
-      payload.phase1PromptText = phase1Prompt;
+      payload.initialInput = initialInput; // Original user input from component state
+      payload.phase1_prompt = phase1Prompt; // phase1Prompt from component state
+      payload.phase2_prompt = phase2Prompt; // phase2Prompt from component state
     } else if (phase === 3) {
-      payload.initialInput = phase2Output || phase1Output || initialInput; // Output of P2
-      payload.phase3_prompt = phase3Prompt;
-      payload.previous_full_prompt = displayedPrompt; // Full prompt from Phase 2
-      payload.originalInitialInput = initialInput;
-      payload.phase1PromptText = phase1Prompt;
-      payload.phase2PromptText = phase2Prompt;
+      payload.initialInput = initialInput; // Original user input from component state
+      payload.phase1_prompt = phase1Prompt; // phase1Prompt from component state
+      payload.phase2_prompt = phase2Prompt; // phase2Prompt from component state
+      payload.phase3_prompt = phase3Prompt; // phase3Prompt from component state
     }
 
     // Old console.log statements for specific phase generation have been removed.
