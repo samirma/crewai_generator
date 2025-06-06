@@ -16,6 +16,29 @@ const DEFAULT_PHASE1_PROMPT_FILENAME = "phase1_blueprint_prompt.md";
 const DEFAULT_PHASE2_PROMPT_FILENAME = "phase2_architecture_prompt.md";
 const DEFAULT_PHASE3_PROMPT_FILENAME = "phase3_script_prompt.md";
 
+// Helper function to set a cookie
+function setCookie(name: string, value: string, days: number) {
+  let expires = "";
+  if (days) {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    expires = "; expires=" + date.toUTCString();
+  }
+  document.cookie = name + "=" + (encodeURIComponent(value) || "") + expires + "; path=/";
+}
+
+// Helper function to get a cookie
+function getCookie(name: string): string | null {
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return decodeURIComponent(c.substring(nameEQ.length, c.length));
+  }
+  return null;
+}
+
 export default function Home() {
   const [initialInput, setInitialInput] = useState<string>("");
   const [llmModel, setLlmModel] = useState<string>("");
@@ -44,6 +67,14 @@ export default function Home() {
   const [defaultPhase1PromptText, setDefaultPhase1PromptText] = useState<string>("");
   const [defaultPhase2PromptText, setDefaultPhase2PromptText] = useState<string>("");
   const [defaultPhase3PromptText, setDefaultPhase3PromptText] = useState<string>("");
+
+  useEffect(() => {
+    // Load initialInput from cookie on component mount using helper
+    const cookieValue = getCookie('initialInstruction');
+    if (cookieValue) {
+      setInitialInput(cookieValue);
+    }
+  }, []); // Empty dependency array ensures this runs only on mount
 
   useEffect(() => {
     const fetchModels = async () => {
@@ -135,6 +166,7 @@ export default function Home() {
   };
 
   const handleSimpleModeSubmit = async () => {
+    setCookie('initialInstruction', initialInput, 30); // Save cookie on generation trigger
     if (!llmModel) {
       setError("Please select an LLM model.");
       return;
@@ -174,6 +206,7 @@ export default function Home() {
   };
 
   const handleRunPhase = async (phase: number) => {
+    setCookie('initialInstruction', initialInput, 30); // Save cookie on generation trigger
     if (!llmModel) {
       setError("Please select an LLM model.");
       return;
