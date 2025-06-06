@@ -142,46 +142,35 @@ export default function Home() {
     setIsLoading(true); // General loading for simple mode
     resetOutputStates();
 
-    const displayablePrompt = `User Instruction: @@@${initialInput}@
+    const phaseTexts = [defaultPhase1PromptText, defaultPhase2PromptText, defaultPhase3PromptText].filter(text => text); // Filter out any empty/undefined prompts
+    const fullPrompt = constructFrontendPrompt('simple', initialInput, phaseTexts);
+    setDisplayedPrompt(fullPrompt);
 
-${defaultPhase1PromptText}
+    console.log("Generating simple mode script using combined prompts.");
 
-${defaultPhase2PromptText}
+    const payload = {
+      llmModel,
+      mode: 'simple',
+      fullPrompt: fullPrompt,
+    };
 
-${defaultPhase3PromptText}`;
-    setDisplayedPrompt(displayablePrompt);
-
-    console.log("Generating using phase 1(phase1_blueprint_prompt.md) + phase 2(phase2_architecture_prompt.md) + phase 3(phase3_script_prompt.md)");
-    try {
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          initialInput,
-          llmModel,
-          mode: 'simple',
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `API request failed with status ${response.status}`);
+    await executeGenerateRequest(
+      '/api/generate',
+      payload,
+      (data) => {
+        setGeneratedScript(data.generatedScript);
+        setPhasedOutputs(data.phasedOutputs || []);
+        // setDisplayedPrompt(data.fullPrompt || ""); // Already set by frontend
+        setExecutionOutput(""); // Clear previous execution outputs
+        setScriptRunOutput(""); // Clear previous script run outputs
+      },
+      (errorMessage) => {
+        setError(errorMessage);
+      },
+      () => {
+        setIsLoading(false);
       }
-      const data = await response.json();
-      setGeneratedScript(data.generatedScript);
-      setPhasedOutputs(data.phasedOutputs || []);
-      setDisplayedPrompt(data.fullPrompt || "");
-      // Clear execution outputs, wait for "Run Script" button
-      setExecutionOutput("");
-      setScriptRunOutput("");
-
-
-    } catch (err) {
-      console.error("Error in Simple Mode API call:", err);
-      setError(err instanceof Error ? err.message : "An unknown error occurred.");
-    } finally {
-      setIsLoading(false);
-    }
+    );
   };
 
   const handleRunPhase = async (phase: number) => {
@@ -206,67 +195,60 @@ ${defaultPhase3PromptText}`;
     }
     // setScriptRunOutput(""), setExecutionOutput(""), setPhasedOutputs([]) are handled by resetOutputStates()
 
-    const phase1SourceIndicator = (phase1Prompt === defaultPhase1PromptText) ? DEFAULT_PHASE1_PROMPT_FILENAME : "custom";
-    const phase2SourceIndicator = (phase2Prompt === defaultPhase2PromptText) ? DEFAULT_PHASE2_PROMPT_FILENAME : "custom";
-    const phase3SourceIndicator = (phase3Prompt === defaultPhase3PromptText) ? DEFAULT_PHASE3_PROMPT_FILENAME : "custom";
+    const phaseTextsForPrompt: string[] = [];
+    const currentPhase1Text = (phase1Prompt && phase1Prompt !== defaultPhase1PromptText) ? phase1Prompt : defaultPhase1PromptText;
+    const currentPhase2Text = (phase2Prompt && phase2Prompt !== defaultPhase2PromptText) ? phase2Prompt : defaultPhase2PromptText;
+    const currentPhase3Text = (phase3Prompt && phase3Prompt !== defaultPhase3PromptText) ? phase3Prompt : defaultPhase3PromptText;
+
+    if (phase === 1) {
+      if (currentPhase1Text) phaseTextsForPrompt.push(currentPhase1Text);
+    } else if (phase === 2) {
+      if (currentPhase1Text) phaseTextsForPrompt.push(currentPhase1Text);
+      if (currentPhase2Text) phaseTextsForPrompt.push(currentPhase2Text);
+    } else if (phase === 3) {
+      if (currentPhase1Text) phaseTextsForPrompt.push(currentPhase1Text);
+      if (currentPhase2Text) phaseTextsForPrompt.push(currentPhase2Text);
+      if (currentPhase3Text) phaseTextsForPrompt.push(currentPhase3Text);
+    }
+
+    const fullPrompt = constructFrontendPrompt('advanced', initialInput, phaseTextsForPrompt);
+    setDisplayedPrompt(fullPrompt);
 
     let payload: any = {
       llmModel,
       mode: 'advanced',
       runPhase: phase,
-      phase1_source_indicator: phase1SourceIndicator,
-      phase2_source_indicator: phase2SourceIndicator,
-      phase3_source_indicator: phase3SourceIndicator,
+      fullPrompt: fullPrompt, // Send the fully constructed prompt
     };
-
-    if (phase === 1) {
-      payload.initialInput = initialInput; // Original user input from component state
-      payload.phase1_prompt = phase1Prompt; // phase1Prompt from component state
-    } else if (phase === 2) {
-      payload.initialInput = initialInput; // Original user input from component state
-      payload.phase1_prompt = phase1Prompt; // phase1Prompt from component state
-      payload.phase2_prompt = phase2Prompt; // phase2Prompt from component state
-    } else if (phase === 3) {
-      payload.initialInput = initialInput; // Original user input from component state
-      payload.phase1_prompt = phase1Prompt; // phase1Prompt from component state
-      payload.phase2_prompt = phase2Prompt; // phase2Prompt from component state
-      payload.phase3_prompt = phase3Prompt; // phase3Prompt from component state
-    }
 
     // Old console.log statements for specific phase generation have been removed.
     // The backend now handles detailed logging based on source indicators.
+    // Removed old payload construction that sent individual prompts and source indicators.
 
-    try {
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `API request failed for phase ${phase} with status ${response.status}`);
+    await executeGenerateRequest(
+      '/api/generate',
+      payload,
+      (data) => {
+        // setDisplayedPrompt(data.fullPrompt || ""); // Already set by frontend
+        if (phase === 1) {
+          setPhase1Output(data.output);
+        } else if (phase === 2) {
+          setPhase2Output(data.output);
+        } else if (phase === 3) {
+          setGeneratedScript(data.generatedScript);
+          setPhasedOutputs(data.phasedOutputs || []);
+          // executionOutput and scriptRunOutput are already cleared by resetOutputStates
+          // and should only be set after script execution, not after phase 3 generation.
+        }
+      },
+      (errorMessage) => {
+        setError(errorMessage);
+      },
+      () => {
+        setIsLoadingPhase(prev => ({ ...prev, [phase]: false }));
+        setCurrentPhaseRunning(null);
       }
-      const data = await response.json();
-      setDisplayedPrompt(data.fullPrompt || "");
-
-      if (phase === 1) {
-        setPhase1Output(data.output);
-      } else if (phase === 2) {
-        setPhase2Output(data.output);
-      } else if (phase === 3) {
-        setGeneratedScript(data.generatedScript); // This is fine
-        setPhasedOutputs(data.phasedOutputs || []); // This is fine
-        // executionOutput and scriptRunOutput are already cleared by resetOutputStates
-        // and should only be set after script execution, not after phase 3 generation.
-      }
-    } catch (err) {
-      console.error(`Error in Advanced Mode Phase ${phase} API call:`, err);
-      setError(err instanceof Error ? err.message : "An unknown error occurred."); // setError is fine here for specific errors
-    } finally {
-      setIsLoadingPhase(prev => ({ ...prev, [phase]: false }));
-      setCurrentPhaseRunning(null);
-    }
+    );
   };
 
 
@@ -304,6 +286,53 @@ ${defaultPhase3PromptText}`;
       }
     } finally {
       setIsExecutingScript(false);
+    }
+  };
+
+  const constructFrontendPrompt = (mode: string, userInput: string, phaseTexts: string[]): string => {
+    let fullPrompt = phaseTexts.join("\n\n");
+    fullPrompt += `\n\nUser Instruction: @@@${userInput}@@@`;
+
+    if (mode === 'simple') {
+      fullPrompt += `\n\nGenerate the Python script for CrewAI based on this. Ensure each task's output is clearly marked with '### CREWAI_TASK_OUTPUT_MARKER: <task_name> ###' on a new line, followed by the task's output on subsequent lines.`;
+    }
+    return fullPrompt;
+  };
+
+  const executeGenerateRequest = async (
+    url: string,
+    payload: object,
+    onSuccess: (data: any) => void,
+    onError: (errorMessage: string) => void,
+    onFinally?: () => void
+  ) => {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        // Attempt to parse error a bit more gracefully
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (parseError) {
+          // If parsing JSON fails, use the status text
+          throw new Error(`API request failed with status ${response.status}: ${response.statusText}`);
+        }
+        throw new Error(errorData.error || `API request failed with status ${response.status}`);
+      }
+      const data = await response.json();
+      onSuccess(data);
+    } catch (err) {
+      console.error("API Request Error:", err);
+      onError(err instanceof Error ? err.message : "An unknown API error occurred.");
+    } finally {
+      if (onFinally) {
+        onFinally();
+      }
     }
   };
 
