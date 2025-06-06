@@ -12,6 +12,10 @@ interface PhasedOutput {
   output: string;
 }
 
+const DEFAULT_PHASE1_PROMPT_FILENAME = "phase1_blueprint_prompt.md";
+const DEFAULT_PHASE2_PROMPT_FILENAME = "phase2_architecture_prompt.md";
+const DEFAULT_PHASE3_PROMPT_FILENAME = "phase3_script_prompt.md";
+
 export default function Home() {
   const [initialInput, setInitialInput] = useState<string>("");
   const [llmModel, setLlmModel] = useState<string>("");
@@ -36,6 +40,10 @@ export default function Home() {
   const [phase2Output, setPhase2Output] = useState<string>(""); // Architecture Plan
   const [currentPhaseRunning, setCurrentPhaseRunning] = useState<number | null>(null);
   const [isLoadingPhase, setIsLoadingPhase] = useState<Record<number, boolean>>({ 1: false, 2: false, 3: false });
+  const [displayedPrompt, setDisplayedPrompt] = useState<string>("");
+  const [defaultPhase1PromptText, setDefaultPhase1PromptText] = useState<string>("");
+  const [defaultPhase2PromptText, setDefaultPhase2PromptText] = useState<string>("");
+  const [defaultPhase3PromptText, setDefaultPhase3PromptText] = useState<string>("");
 
   useEffect(() => {
     const fetchModels = async () => {
@@ -99,9 +107,16 @@ export default function Home() {
           return; // Exit if any prompt fails to load
         }
 
-        setPhase1Prompt(await r1.text());
-        setPhase2Prompt(await r2.text());
-        setPhase3Prompt(await r3.text());
+        const p1Text = await r1.text();
+        const p2Text = await r2.text();
+        const p3Text = await r3.text();
+
+        setPhase1Prompt(p1Text);
+        setDefaultPhase1PromptText(p1Text);
+        setPhase2Prompt(p2Text);
+        setDefaultPhase2PromptText(p2Text);
+        setPhase3Prompt(p3Text);
+        setDefaultPhase3PromptText(p3Text);
       } catch (e) {
         console.error("Error fetching initial prompts:", e);
         setError("Error loading initial prompts. Check console.");
@@ -116,6 +131,7 @@ export default function Home() {
     setExecutionOutput("");
     setPhasedOutputs([]);
     setScriptRunOutput("");
+    setDisplayedPrompt("");
   };
 
   const handleSimpleModeSubmit = async () => {
@@ -145,6 +161,7 @@ export default function Home() {
       const data = await response.json();
       setGeneratedScript(data.generatedScript);
       setPhasedOutputs(data.phasedOutputs || []);
+      setDisplayedPrompt(data.fullPrompt || "");
       // Clear execution outputs, wait for "Run Script" button
       setExecutionOutput("");
       setScriptRunOutput("");
@@ -180,31 +197,34 @@ export default function Home() {
     }
     // setScriptRunOutput(""), setExecutionOutput(""), setPhasedOutputs([]) are handled by resetOutputStates()
 
+    const phase1SourceIndicator = (phase1Prompt === defaultPhase1PromptText) ? DEFAULT_PHASE1_PROMPT_FILENAME : "custom";
+    const phase2SourceIndicator = (phase2Prompt === defaultPhase2PromptText) ? DEFAULT_PHASE2_PROMPT_FILENAME : "custom";
+    const phase3SourceIndicator = (phase3Prompt === defaultPhase3PromptText) ? DEFAULT_PHASE3_PROMPT_FILENAME : "custom";
 
     let payload: any = {
       llmModel,
       mode: 'advanced',
       runPhase: phase,
+      phase1_source_indicator: phase1SourceIndicator,
+      phase2_source_indicator: phase2SourceIndicator,
+      phase3_source_indicator: phase3SourceIndicator,
     };
 
     if (phase === 1) {
       payload.initialInput = initialInput; // Original user input
       payload.phase1_prompt = phase1Prompt;
     } else if (phase === 2) {
-      payload.initialInput = phase1Output || initialInput; // Output of P1 or initial input
+      payload.initialInput = phase1Output || initialInput; // Output of P1
       payload.phase2_prompt = phase2Prompt;
+      payload.previous_full_prompt = displayedPrompt; // Full prompt from Phase 1
     } else if (phase === 3) {
-      payload.initialInput = phase2Output || phase1Output || initialInput; // Output of P2 or P1 or initial input
+      payload.initialInput = phase2Output || phase1Output || initialInput; // Output of P2
       payload.phase3_prompt = phase3Prompt;
+      payload.previous_full_prompt = displayedPrompt; // Full prompt from Phase 2
     }
 
-    if (phase === 1) {
-      console.log("Generating using phase 1(custom)");
-    } else if (phase === 2) {
-      console.log("Generating using phase 1(custom) + phase 2(custom)");
-    } else if (phase === 3) {
-      console.log("Generating using phase 1(custom) + phase 2(custom) + phase 3(custom)");
-    }
+    // Old console.log statements for specific phase generation have been removed.
+    // The backend now handles detailed logging based on source indicators.
 
     try {
       const response = await fetch('/api/generate', {
@@ -218,6 +238,7 @@ export default function Home() {
         throw new Error(errorData.error || `API request failed for phase ${phase} with status ${response.status}`);
       }
       const data = await response.json();
+      setDisplayedPrompt(data.fullPrompt || "");
 
       if (phase === 1) {
         setPhase1Output(data.output);
@@ -350,6 +371,20 @@ export default function Home() {
         </select>
         {modelsError && <p className="text-sm text-red-600 dark:text-red-400 mt-1">{modelsError}</p>}
       </div>
+
+      {/* Display Full Prompt Section */}
+      {displayedPrompt && (
+        <div className="mt-6 mb-8 p-4 border border-slate-300 dark:border-slate-700 rounded-lg shadow">
+          <details>
+            <summary className="text-lg font-semibold text-slate-700 dark:text-slate-200 cursor-pointer">
+              View Full Prompt Sent to LLM
+            </summary>
+            <pre className="mt-2 p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
+              {displayedPrompt}
+            </pre>
+          </details>
+        </div>
+      )}
 
       {!advancedMode && (
         <div className="mb-8">
