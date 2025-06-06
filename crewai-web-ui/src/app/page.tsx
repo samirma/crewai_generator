@@ -110,6 +110,13 @@ export default function Home() {
     fetchInitialPrompts();
   }, []);
 
+  const resetOutputStates = () => {
+    setError("");
+    setGeneratedScript("");
+    setExecutionOutput("");
+    setPhasedOutputs([]);
+    setScriptRunOutput("");
+  };
 
   const handleSimpleModeSubmit = async () => {
     if (!llmModel) {
@@ -117,12 +124,9 @@ export default function Home() {
       return;
     }
     setIsLoading(true); // General loading for simple mode
-    setError("");
-    setGeneratedScript("");
-    setExecutionOutput(""); // Docker execution output
-    setPhasedOutputs([]);
-    setScriptRunOutput(""); // Clear direct script run output
+    resetOutputStates();
 
+    console.log("Generating using phase 1(phase1_blueprint_prompt.md) + phase 2(phase2_architecture_prompt.md) + phase 3(phase3_script_prompt.md)");
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
@@ -161,27 +165,20 @@ export default function Home() {
     }
     setIsLoadingPhase(prev => ({ ...prev, [phase]: true }));
     setCurrentPhaseRunning(phase);
-    setError("");
-    // Clear subsequent phase outputs
+    resetOutputStates(); // Reset common outputs and errors
+
+    // Clear subsequent phase-specific outputs
     if (phase === 1) {
       setPhase1Output("");
       setPhase2Output("");
-      setGeneratedScript("");
-      setScriptRunOutput("");
-      setExecutionOutput("");
-      setPhasedOutputs([]);
+      // setGeneratedScript(""); // Handled by resetOutputStates
     } else if (phase === 2) {
       setPhase2Output("");
-      setGeneratedScript("");
-      setScriptRunOutput("");
-      setExecutionOutput("");
-      setPhasedOutputs([]);
+      // setGeneratedScript(""); // Handled by resetOutputStates
     } else if (phase === 3) {
-      setGeneratedScript("");
-      setScriptRunOutput("");
-      setExecutionOutput("");
-      setPhasedOutputs([]);
+      // setGeneratedScript(""); // Handled by resetOutputStates
     }
+    // setScriptRunOutput(""), setExecutionOutput(""), setPhasedOutputs([]) are handled by resetOutputStates()
 
 
     let payload: any = {
@@ -194,23 +191,19 @@ export default function Home() {
       payload.initialInput = initialInput; // Original user input
       payload.phase1_prompt = phase1Prompt;
     } else if (phase === 2) {
-      if (!phase1Output) {
-        setError("Phase 1 output (Blueprint) is required to run Phase 2.");
-        setIsLoadingPhase(prev => ({ ...prev, [phase]: false }));
-        setCurrentPhaseRunning(null);
-        return;
-      }
-      payload.initialInput = phase1Output; // Output of P1 is input to P2
+      payload.initialInput = phase1Output || initialInput; // Output of P1 or initial input
       payload.phase2_prompt = phase2Prompt;
     } else if (phase === 3) {
-      if (!phase2Output) {
-        setError("Phase 2 output (Architecture Plan) is required to run Phase 3.");
-        setIsLoadingPhase(prev => ({ ...prev, [phase]: false }));
-        setCurrentPhaseRunning(null);
-        return;
-      }
-      payload.initialInput = phase2Output; // Output of P2 is input to P3
+      payload.initialInput = phase2Output || phase1Output || initialInput; // Output of P2 or P1 or initial input
       payload.phase3_prompt = phase3Prompt;
+    }
+
+    if (phase === 1) {
+      console.log("Generating using phase 1(custom)");
+    } else if (phase === 2) {
+      console.log("Generating using phase 1(custom) + phase 2(custom)");
+    } else if (phase === 3) {
+      console.log("Generating using phase 1(custom) + phase 2(custom) + phase 3(custom)");
     }
 
     try {
@@ -231,15 +224,14 @@ export default function Home() {
       } else if (phase === 2) {
         setPhase2Output(data.output);
       } else if (phase === 3) {
-        setGeneratedScript(data.generatedScript);
-        setPhasedOutputs(data.phasedOutputs || []);
-        // Clear execution outputs, wait for "Run Script" button
-        setExecutionOutput("");
-        setScriptRunOutput("");
+        setGeneratedScript(data.generatedScript); // This is fine
+        setPhasedOutputs(data.phasedOutputs || []); // This is fine
+        // executionOutput and scriptRunOutput are already cleared by resetOutputStates
+        // and should only be set after script execution, not after phase 3 generation.
       }
     } catch (err) {
       console.error(`Error in Advanced Mode Phase ${phase} API call:`, err);
-      setError(err instanceof Error ? err.message : "An unknown error occurred.");
+      setError(err instanceof Error ? err.message : "An unknown error occurred."); // setError is fine here for specific errors
     } finally {
       setIsLoadingPhase(prev => ({ ...prev, [phase]: false }));
       setCurrentPhaseRunning(null);
@@ -298,8 +290,10 @@ export default function Home() {
           onClick={() => {
             setAdvancedMode(!advancedMode);
             // Clear errors and outputs when toggling mode
-            setError("");
-            setPhase1Output(""); setPhase2Output(""); setGeneratedScript(""); setExecutionOutput(""); setScriptRunOutput(""); setPhasedOutputs([]);
+            resetOutputStates();
+            setPhase1Output("");
+            setPhase2Output("");
+            // Other states like generatedScript, executionOutput, etc., are covered by resetOutputStates
           }}
         >
           <span
@@ -412,7 +406,7 @@ export default function Home() {
             />
             <button
               onClick={() => handleRunPhase(2)}
-              disabled={!phase1Output || isLoadingPhase[2] || modelsLoading || !llmModel || isLoadingPhase[1] || isLoadingPhase[3]}
+              disabled={isLoadingPhase[2] || modelsLoading || !llmModel || isLoadingPhase[1] || isLoadingPhase[3]}
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-indigo-400 focus:outline-none dark:focus:ring-indigo-700"
             >
               {isLoadingPhase[2] ? 'Running Phase 2...' : 'Run Phase 2 (Design Architecture)'}
@@ -438,7 +432,7 @@ export default function Home() {
             />
             <button
               onClick={() => handleRunPhase(3)}
-              disabled={!phase2Output || isLoadingPhase[3] || modelsLoading || !llmModel || isLoadingPhase[1] || isLoadingPhase[2]}
+              disabled={isLoadingPhase[3] || modelsLoading || !llmModel || isLoadingPhase[1] || isLoadingPhase[2]}
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-indigo-400 focus:outline-none dark:focus:ring-indigo-700"
             >
               {isLoadingPhase[3] ? 'Running Phase 3...' : 'Run Phase 3 (Generate & Execute Script)'}
