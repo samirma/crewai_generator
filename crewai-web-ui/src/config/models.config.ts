@@ -7,7 +7,7 @@ export interface ModelConfig {
 export const staticModels: ModelConfig[] = [
   // DeepSeek Models
   { id: "deepseek/deepseek-chat", name: "deepseek-chat" },
-  { id: "deepseek/deepseek-coder", name: "deepseek-coder" },
+  { id: "deepseek/deepseek-reasoner", name: "deepseek-reasoner" },
 
   // Gemini Models
   // Using the exact model IDs the GoogleGenerativeAI SDK expects.

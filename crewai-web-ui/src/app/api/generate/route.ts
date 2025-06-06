@@ -108,52 +108,78 @@ async function executePythonScript(scriptContent: string): Promise<{ stdout: str
   return { stdout, stderr };
 }
 
-interface PhasedOutput {
-  taskName: string;
-  output: string;
-}
-
-function parsePhasedOutput(scriptStdout: string): PhasedOutput[] {
-  const outputs: PhasedOutput[] = [];
-  // Regex to capture task name and the output until the next marker or end of string.
-  // Ensures taskName is captured from the marker.
-  // Output is everything between the current marker and the next, or EOF.
-  const regex = /### CREWAI_TASK_OUTPUT_MARKER: (.*?) ###\r?\n([\s\S]*?)(?=### CREWAI_TASK_OUTPUT_MARKER:|$)/g;
-  let match;
-  while ((match = regex.exec(scriptStdout)) !== null) {
-    outputs.push({
-      taskName: match[1].trim(),
-      output: match[2].trim(),
-    });
-  }
-  return outputs;
-}
-
 // Main API Handler
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { initialInput, llmModel } = body;
+    const {
+      initialInput, // Original user input for simple mode, or phase-specific input for advanced
+      llmModel,
+      mode = 'simple', // 'simple' or 'advanced'
+      runPhase,        // 1, 2, or 3 for advanced mode
+      phase1_prompt,   // Optional custom prompt for phase 1
+      phase2_prompt,   // Optional custom prompt for phase 2
+      phase3_prompt    // Optional custom prompt for phase 3
+    } = body;
 
-    console.log(`Received input: "${initialInput}" for LLM: ${llmModel}`);
+    console.log(`Received request: mode='${mode}', runPhase='${runPhase}', llmModel='${llmModel}'`);
+    if (initialInput) console.log(`Initial input received (length: ${initialInput.length})`);
+
 
     // Standardize llmModel to lower case for consistent checks
     const currentModelId = llmModel.toLowerCase();
-    let metaPrompt = ""; // To store content of crewai_reference.md
     let fullPrompt = "";   // To store the combined prompt for the LLM
+    let llmResponseText = ""; // To store raw text output from LLM
 
-    try {
-      metaPrompt = await fs.readFile(path.join(process.cwd(), 'crewai_reference.md'), 'utf-8');
-    } catch (fileError) {
-      console.error("Error reading crewai_reference.md:", fileError);
-      return NextResponse.json({ error: "Could not load the meta-prompt. Check server logs." }, { status: 500 });
+    // Helper function to read prompt files
+    const readPromptFile = async (fileName: string): Promise<string> => {
+      try {
+        // Corrected path to read from 'public/prompts/'
+        return await fs.readFile(path.join(process.cwd(), 'public', 'prompts', fileName), 'utf-8');
+      } catch (err) {
+        console.error(`Error reading prompt file ${fileName}:`, err);
+        throw new Error(`Could not load prompt file ${fileName}.`);
+      }
+    };
+
+    if (mode === 'simple') {
+      console.log("Processing in 'simple' mode.");
+      const phase1Content = await readPromptFile('phase1_blueprint_prompt.md');
+      const phase2Content = await readPromptFile('phase2_architecture_prompt.md');
+      const phase3Content = await readPromptFile('phase3_script_prompt.md');
+      const metaPrompt = `${phase1Content}\n\n${phase2Content}\n\n${phase3Content}`;
+
+      // In simple mode, initialInput is the user's overall instruction.
+      const basePromptInstruction = `\n\nUser Instruction: ${initialInput}\n\nGenerate the Python script for CrewAI based on this. Ensure each task's output is clearly marked with '### CREWAI_TASK_OUTPUT_MARKER: <task_name> ###' on a new line, followed by the task's output on subsequent lines.`;
+      fullPrompt = `${metaPrompt}${basePromptInstruction}`;
+
+    } else if (mode === 'advanced') {
+      console.log(`Processing in 'advanced' mode, phase: ${runPhase}.`);
+      let promptContent = "";
+      let phaseSpecificInput = initialInput; // In advanced mode, initialInput carries the output of the PREVIOUS phase.
+
+      if (runPhase === 1) {
+        promptContent = phase1_prompt && phase1_prompt.trim() !== '' ? phase1_prompt : await readPromptFile('phase1_blueprint_prompt.md');
+        // For Phase 1, initialInput is the original user instruction.
+        // The phase1_blueprint_prompt.md expects "User-provided 'Initial Instruction Input'"
+        fullPrompt = `${promptContent}\n\nUser Instruction: ${initialInput}\n\n`;
+      } else if (runPhase === 2) {
+        promptContent = phase2_prompt && phase2_prompt.trim() !== '' ? phase2_prompt : await readPromptFile('phase2_architecture_prompt.md');
+        // For Phase 2, initialInput is the Blueprint from Phase 1.
+        // The phase2_architecture_prompt.md expects the "complete 'Blueprint' document" as its input.
+        // We provide the blueprint (initialInput for this phase) directly. The prompt should instruct the LLM how to use it.
+        fullPrompt = `${promptContent}\n\nBlueprint:\n${phaseSpecificInput}\n\n`;
+      } else if (runPhase === 3) {
+        promptContent = phase3_prompt && phase3_prompt.trim() !== '' ? phase3_prompt : await readPromptFile('phase3_script_prompt.md');
+        // For Phase 3, initialInput is the Architecture Plan from Phase 2.
+        // The phase3_script_prompt.md expects the "complete 'Design-Crew-Architecture-Plan' document" as its input.
+        fullPrompt = `${promptContent}\n\nDesign-Crew-Architecture-Plan:\n${phaseSpecificInput}\n\n`;
+      } else {
+        return NextResponse.json({ error: "Invalid 'runPhase' for advanced mode. Must be 1, 2, or 3." }, { status: 400 });
+      }
+    } else {
+      return NextResponse.json({ error: "Invalid 'mode'. Must be 'simple' or 'advanced'." }, { status: 400 });
     }
-
-    // Construct the core part of the prompt, common across models
-    // Specific instructions for phased output markers are crucial.
-    const basePromptInstruction = `\n\nUser Instruction: ${initialInput}\n\nGenerate the Python script for CrewAI based on this. Ensure each task's output is clearly marked with '### CREWAI_TASK_OUTPUT_MARKER: <task_name> ###' on a new line, followed by the task's output on subsequent lines.`;
-    fullPrompt = `${metaPrompt}${basePromptInstruction}`;
-
 
     // Note: currentModelId is already lowercased.
     // The llmModel variable (original casing) is used for the actual API call.
@@ -191,10 +217,15 @@ export async function POST(request: Request) {
             result.response.candidates[0].content.parts.length > 0 &&
             result.response.candidates[0].content.parts[0].text) {
 
-            let generatedScript = result.response.candidates[0].content.parts[0].text;
-            console.log("Raw generated script from Gemini:", generatedScript);
+            llmResponseText = result.response.candidates[0].content.parts[0].text;
+            console.log("Raw LLM response from Gemini:", llmResponseText);
 
-            // Common script post-processing (e.g., extracting from markdown)
+            if (mode === 'advanced' && (runPhase === 1 || runPhase === 2)) {
+              return NextResponse.json({ phase: runPhase, output: llmResponseText });
+            }
+
+            // Proceed to script extraction and execution for simple mode or phase 3 of advanced mode
+            let generatedScript = llmResponseText;
             if (generatedScript.includes('```python')) {
               const pythonCodeBlockRegex = /```python\n([\s\S]*?)\n```/;
               const match = generatedScript.match(pythonCodeBlockRegex);
@@ -204,15 +235,12 @@ export async function POST(request: Request) {
               }
             }
 
-            console.log("Attempting to execute generated script in Docker (Gemini)...");
-            const { stdout, stderr } = await executePythonScript(generatedScript);
-            const phasedOutputs = parsePhasedOutput(stdout);
-
-            return NextResponse.json({
-                generatedScript,
-                executionOutput: `STDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`,
-                phasedOutputs,
-            });
+            // Script execution removed from here
+            if (mode === 'simple') {
+              return NextResponse.json({ generatedScript });
+            } else { // Advanced mode, phase 3
+              return NextResponse.json({ generatedScript, phase: 3 });
+            }
 
         } else {
           // Handle cases where Gemini response structure is not as expected
@@ -227,7 +255,6 @@ export async function POST(request: Request) {
         console.error(`Error calling Gemini API or executing script for model ${llmModel}:`, apiError);
         return NextResponse.json({ error: apiError instanceof Error ? apiError.message : String(apiError) }, { status: 500 });
       }
-    // Removed OpenAI handling block
     } else if (currentModelId.startsWith('deepseek/')) {
       // DEEPSEEK Handling - Now using OpenAI SDK
       const deepSeekApiKey = process.env.DEEPSEEK_API_KEY;
@@ -253,14 +280,19 @@ export async function POST(request: Request) {
         });
         console.log("DeepSeek API call completed via OpenAI SDK.");
 
-        let generatedScript = completion.choices?.[0]?.message?.content;
+        llmResponseText = completion.choices?.[0]?.message?.content;
 
-        if (!generatedScript) {
+        if (!llmResponseText) {
           console.error("DeepSeek API call via OpenAI SDK successful but response format is unexpected or content is missing.", completion);
           throw new Error("DeepSeek API Error (OpenAI SDK): No content generated or unexpected response structure.");
         }
-        console.log("Raw generated script from DeepSeek (OpenAI SDK):", generatedScript);
+        console.log("Raw LLM response from DeepSeek (OpenAI SDK):", llmResponseText);
 
+        if (mode === 'advanced' && (runPhase === 1 || runPhase === 2)) {
+          return NextResponse.json({ phase: runPhase, output: llmResponseText });
+        }
+
+        let generatedScript = llmResponseText;
         // Common script post-processing (e.g., extracting from markdown)
         if (generatedScript.includes('```python')) {
           const pythonCodeBlockRegex = /```python\n([\s\S]*?)\n```/;
@@ -278,19 +310,15 @@ export async function POST(request: Request) {
             }
         }
 
-
-        console.log("Attempting to execute generated script in Docker (DeepSeek via OpenAI SDK)...");
-        const { stdout, stderr } = await executePythonScript(generatedScript);
-        const phasedOutputs = parsePhasedOutput(stdout);
-
-        return NextResponse.json({
-          generatedScript,
-          executionOutput: `STDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`,
-          phasedOutputs,
-        });
+        // Script execution removed from here
+        if (mode === 'simple') {
+          return NextResponse.json({ generatedScript });
+        } else { // Advanced mode, phase 3
+          return NextResponse.json({ generatedScript, phase: 3 });
+        }
 
       } catch (apiError) {
-        console.error(`Error calling DeepSeek API via OpenAI SDK or executing script for model ${llmModel}:`, apiError);
+        console.error(`Error calling DeepSeek API via OpenAI SDK for model ${llmModel}:`, apiError);
         return NextResponse.json({ error: apiError instanceof Error ? apiError.message : String(apiError) }, { status: 500 });
       }
     } else if (currentModelId.startsWith('ollama/')) {
@@ -324,11 +352,15 @@ export async function POST(request: Request) {
         }
 
         const ollamaData = await response.json();
-        let generatedScript = ollamaData.response; // Ollama typically returns the full response in 'response'
-        console.log("Raw generated script from Ollama:", generatedScript);
+        llmResponseText = ollamaData.response; // Ollama typically returns the full response in 'response'
+        console.log("Raw LLM response from Ollama:", llmResponseText);
 
+        if (mode === 'advanced' && (runPhase === 1 || runPhase === 2)) {
+          return NextResponse.json({ phase: runPhase, output: llmResponseText });
+        }
+
+        let generatedScript = llmResponseText;
         // Common script post-processing (e.g., extracting from markdown)
-        // Try standard Python block first
         if (generatedScript.includes('```python')) {
           const pythonCodeBlockRegex = /```python\n([\s\S]*?)\n```/;
           const match = generatedScript.match(pythonCodeBlockRegex);
@@ -337,48 +369,57 @@ export async function POST(request: Request) {
             generatedScript = match[1];
           }
         } else if (generatedScript.startsWith('```') && generatedScript.endsWith('```')) {
-          // Fallback to generic ``` block if ```python is not found
           const pythonCodeBlockRegex = /```\n?([\s\S]*?)\n?```/;
           const match = generatedScript.match(pythonCodeBlockRegex);
           if (match && match[1]) {
             console.log("Extracted Python code from simple ``` block for Ollama.");
-            generatedScript = match[1].trim(); // Trim to remove potential leading/trailing newlines
+            generatedScript = match[1].trim();
           }
         }
-        // If no markdown block is found, use the script as is.
 
-        console.log("Attempting to execute generated script in Docker (Ollama)...");
-        const { stdout, stderr } = await executePythonScript(generatedScript);
-        const phasedOutputs = parsePhasedOutput(stdout);
-
-        return NextResponse.json({
-          generatedScript,
-          executionOutput: `STDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`,
-          phasedOutputs,
-        });
+        // Script execution removed from here
+        if (mode === 'simple') {
+          return NextResponse.json({ generatedScript });
+        } else { // Advanced mode, phase 3
+          return NextResponse.json({ generatedScript, phase: 3 });
+        }
 
       } catch (apiError) {
-        console.error(`Error calling Ollama API or executing script for model ${llmModel}:`, apiError);
+        console.error(`Error calling Ollama API for model ${llmModel}:`, apiError);
         return NextResponse.json({ error: apiError instanceof Error ? apiError.message : String(apiError) }, { status: 500 });
       }
     } else {
-      // Fallback for other/unhandled models
-      console.log(`Falling back to mock response for unhandled model ${llmModel}.`);
-      const mockPythonScript = `# Mock Python script for ${llmModel}\n# Input: ${initialInput}\nprint("Hello from mock Python script!")\n\n### CREWAI_TASK_OUTPUT_MARKER: Mock Task 1 ###\nOutput of Mock Task 1\n### CREWAI_TASK_OUTPUT_MARKER: Mock Task 2 ###\nOutput of Mock Task 2`;
-      const { stdout, stderr } = await executePythonScript(mockPythonScript);
-      const phasedOutputs = parsePhasedOutput(stdout);
-      return NextResponse.json({
-        generatedScript: mockPythonScript,
-        executionOutput: `STDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`,
-        phasedOutputs: phasedOutputs,
-      });
+      // Fallback for other/unhandled models - This part should ideally not be reached if UI restricts model choices.
+      // If reached, it implies a model was selected that doesn't have specific handling.
+      // For advanced mode phase 1 & 2, we can't just return a mock script.
+      // For simple mode or advanced phase 3, we could return a mock script.
+      console.warn(`Unhandled model: ${llmModel}. Request mode: ${mode}, phase: ${runPhase}.`);
+      if (mode === 'advanced' && (runPhase === 1 || runPhase === 2)) {
+        return NextResponse.json({ error: `Model ${llmModel} is not configured for advanced mode phases 1 or 2 direct output.` }, { status: 501 });
+      }
+
+      // Fallback to mock script generation for simple mode or advanced phase 3 with unhandled model
+      console.log(`Falling back to mock script generation for unhandled model ${llmModel} in ${mode} mode (phase ${runPhase}).`);
+      const mockPythonScript = `# Mock Python script for ${llmModel}\n# Mode: ${mode}, Phase: ${runPhase}\n# Input: ${initialInput}\nprint("Hello from mock Python script for unhandled model!")`;
+      // Script execution removed from here
+      if (mode === 'simple') {
+        return NextResponse.json({ generatedScript: mockPythonScript });
+      } else { // Advanced mode, phase 3
+        return NextResponse.json({ generatedScript: mockPythonScript, phase: 3 });
+      }
     }
 
   } catch (error) { // Catch-all for errors during request processing or unknown issues
     console.error("Error in API route:", error);
     let errorMessage = "An unknown error occurred in API route.";
     if (error instanceof Error) {
-        errorMessage = error.message;
+        errorMessage = error.message; // More specific error if available
+    } else if (typeof error === 'string') {
+        errorMessage = error;
+    }
+    // Check if the error is due to file reading (e.g. prompt files not found)
+    if (errorMessage.startsWith("Could not load prompt file")) {
+        return NextResponse.json({ error: errorMessage, details: "Ensure prompt files (phase1_blueprint_prompt.md, etc.) exist in 'crewai-web-ui/' directory." }, { status: 500 });
     }
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }

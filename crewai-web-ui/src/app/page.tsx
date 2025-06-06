@@ -14,19 +14,28 @@ interface PhasedOutput {
 
 export default function Home() {
   const [initialInput, setInitialInput] = useState<string>("");
-  const [llmModel, setLlmModel] = useState<string>(""); // Will be set after fetching models
+  const [llmModel, setLlmModel] = useState<string>("");
   const [generatedScript, setGeneratedScript] = useState<string>("");
-  const [executionOutput, setExecutionOutput] = useState<string>("");
-  const [scriptRunOutput, setScriptRunOutput] = useState<string>(""); // New state for direct script execution
-  const [isExecutingScript, setIsExecutingScript] = useState<boolean>(false); // New state for "Run Script" button loading
-  const [scriptExecutionError, setScriptExecutionError] = useState<string>(""); // New state for direct script execution errors
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [executionOutput, setExecutionOutput] = useState<string>(""); // Used for simple mode's docker output
+  const [scriptRunOutput, setScriptRunOutput] = useState<string>(""); // For "Run Script" button (Phase 3 or simple mode)
+  const [isExecutingScript, setIsExecutingScript] = useState<boolean>(false);
+  const [scriptExecutionError, setScriptExecutionError] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false); // General loading for simple mode
   const [error, setError] = useState<string>("");
   const [availableModels, setAvailableModels] = useState<Model[]>([]);
   const [modelsLoading, setModelsLoading] = useState<boolean>(true);
   const [modelsError, setModelsError] = useState<string>("");
+  const [phasedOutputs, setPhasedOutputs] = useState<PhasedOutput[]>([]); // For simple mode's task outputs
+
+  // Advanced Mode State
   const [advancedMode, setAdvancedMode] = useState<boolean>(false);
-  const [phasedOutputs, setPhasedOutputs] = useState<PhasedOutput[]>([]);
+  const [phase1Prompt, setPhase1Prompt] = useState<string>("");
+  const [phase2Prompt, setPhase2Prompt] = useState<string>("");
+  const [phase3Prompt, setPhase3Prompt] = useState<string>("");
+  const [phase1Output, setPhase1Output] = useState<string>(""); // Blueprint
+  const [phase2Output, setPhase2Output] = useState<string>(""); // Architecture Plan
+  const [currentPhaseRunning, setCurrentPhaseRunning] = useState<number | null>(null);
+  const [isLoadingPhase, setIsLoadingPhase] = useState<Record<number, boolean>>({ 1: false, 2: false, 3: false });
 
   useEffect(() => {
     const fetchModels = async () => {
@@ -72,49 +81,171 @@ export default function Home() {
     fetchModels();
   }, []);
 
-  const handleSubmit = async () => {
+  // Fetch initial prompts for advanced mode
+  useEffect(() => {
+    const fetchInitialPrompts = async () => {
+      try {
+        const r1 = await fetch('/prompts/phase1_blueprint_prompt.md');
+        const r2 = await fetch('/prompts/phase2_architecture_prompt.md');
+        const r3 = await fetch('/prompts/phase3_script_prompt.md');
+
+        if (!r1.ok || !r2.ok || !r3.ok) {
+          console.error("Failed to fetch one or more default prompts.");
+          setError("Failed to load default prompts for Advanced Mode. You may need to copy them manually if running locally. Check console for details.");
+          // Attempt to read anyway, to see which one failed.
+          if (!r1.ok) console.error(`Phase 1 prompt fetch failed: ${r1.status}`);
+          if (!r2.ok) console.error(`Phase 2 prompt fetch failed: ${r2.status}`);
+          if (!r3.ok) console.error(`Phase 3 prompt fetch failed: ${r3.status}`);
+          return; // Exit if any prompt fails to load
+        }
+
+        setPhase1Prompt(await r1.text());
+        setPhase2Prompt(await r2.text());
+        setPhase3Prompt(await r3.text());
+      } catch (e) {
+        console.error("Error fetching initial prompts:", e);
+        setError("Error loading initial prompts. Check console.");
+      }
+    };
+    fetchInitialPrompts();
+  }, []);
+
+
+  const handleSimpleModeSubmit = async () => {
     if (!llmModel) {
       setError("Please select an LLM model.");
       return;
     }
-    setIsLoading(true);
+    setIsLoading(true); // General loading for simple mode
     setError("");
     setGeneratedScript("");
-    setExecutionOutput("");
-    setPhasedOutputs([]); // Clear previous phased outputs
+    setExecutionOutput(""); // Docker execution output
+    setPhasedOutputs([]);
+    setScriptRunOutput(""); // Clear direct script run output
 
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ initialInput, llmModel }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          initialInput,
+          llmModel,
+          mode: 'simple',
+        }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || `API request failed with status ${response.status}`);
       }
-
       const data = await response.json();
       setGeneratedScript(data.generatedScript);
-      setExecutionOutput(data.executionOutput);
-      if (data.phasedOutputs) {
-        setPhasedOutputs(data.phasedOutputs);
-      }
+      setPhasedOutputs(data.phasedOutputs || []);
+      // Clear execution outputs, wait for "Run Script" button
+      setExecutionOutput("");
+      setScriptRunOutput("");
+
 
     } catch (err) {
-      console.error("Error calling API:", err);
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("An unknown error occurred while fetching data.");
-      }
+      console.error("Error in Simple Mode API call:", err);
+      setError(err instanceof Error ? err.message : "An unknown error occurred.");
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handleRunPhase = async (phase: number) => {
+    if (!llmModel) {
+      setError("Please select an LLM model.");
+      return;
+    }
+    setIsLoadingPhase(prev => ({ ...prev, [phase]: true }));
+    setCurrentPhaseRunning(phase);
+    setError("");
+    // Clear subsequent phase outputs
+    if (phase === 1) {
+      setPhase1Output("");
+      setPhase2Output("");
+      setGeneratedScript("");
+      setScriptRunOutput("");
+      setExecutionOutput("");
+      setPhasedOutputs([]);
+    } else if (phase === 2) {
+      setPhase2Output("");
+      setGeneratedScript("");
+      setScriptRunOutput("");
+      setExecutionOutput("");
+      setPhasedOutputs([]);
+    } else if (phase === 3) {
+      setGeneratedScript("");
+      setScriptRunOutput("");
+      setExecutionOutput("");
+      setPhasedOutputs([]);
+    }
+
+
+    let payload: any = {
+      llmModel,
+      mode: 'advanced',
+      runPhase: phase,
+    };
+
+    if (phase === 1) {
+      payload.initialInput = initialInput; // Original user input
+      payload.phase1_prompt = phase1Prompt;
+    } else if (phase === 2) {
+      if (!phase1Output) {
+        setError("Phase 1 output (Blueprint) is required to run Phase 2.");
+        setIsLoadingPhase(prev => ({ ...prev, [phase]: false }));
+        setCurrentPhaseRunning(null);
+        return;
+      }
+      payload.initialInput = phase1Output; // Output of P1 is input to P2
+      payload.phase2_prompt = phase2Prompt;
+    } else if (phase === 3) {
+      if (!phase2Output) {
+        setError("Phase 2 output (Architecture Plan) is required to run Phase 3.");
+        setIsLoadingPhase(prev => ({ ...prev, [phase]: false }));
+        setCurrentPhaseRunning(null);
+        return;
+      }
+      payload.initialInput = phase2Output; // Output of P2 is input to P3
+      payload.phase3_prompt = phase3Prompt;
+    }
+
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `API request failed for phase ${phase} with status ${response.status}`);
+      }
+      const data = await response.json();
+
+      if (phase === 1) {
+        setPhase1Output(data.output);
+      } else if (phase === 2) {
+        setPhase2Output(data.output);
+      } else if (phase === 3) {
+        setGeneratedScript(data.generatedScript);
+        setPhasedOutputs(data.phasedOutputs || []);
+        // Clear execution outputs, wait for "Run Script" button
+        setExecutionOutput("");
+        setScriptRunOutput("");
+      }
+    } catch (err) {
+      console.error(`Error in Advanced Mode Phase ${phase} API call:`, err);
+      setError(err instanceof Error ? err.message : "An unknown error occurred.");
+    } finally {
+      setIsLoadingPhase(prev => ({ ...prev, [phase]: false }));
+      setCurrentPhaseRunning(null);
+    }
+  };
+
 
   const handleExecuteScript = async () => {
     if (!generatedScript) {
@@ -157,9 +288,34 @@ export default function Home() {
     <main className="container mx-auto p-6 md:p-8">
       <h1 className="text-3xl md:text-4xl font-bold mb-10 text-center text-slate-700 dark:text-slate-200">CrewAI Studio</h1>
 
+      {/* Mode Toggle */}
+      <div className="mb-8 flex items-center justify-center space-x-4">
+        <label htmlFor="modeToggle" className="text-base font-medium text-slate-700 dark:text-slate-300">
+          Simple Mode
+        </label>
+        <div
+          className={`relative inline-flex items-center h-6 rounded-full w-11 cursor-pointer transition-colors duration-300 ease-in-out ${advancedMode ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}
+          onClick={() => {
+            setAdvancedMode(!advancedMode);
+            // Clear errors and outputs when toggling mode
+            setError("");
+            setPhase1Output(""); setPhase2Output(""); setGeneratedScript(""); setExecutionOutput(""); setScriptRunOutput(""); setPhasedOutputs([]);
+          }}
+        >
+          <span
+            className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-300 ease-in-out ${advancedMode ? 'translate-x-6' : 'translate-x-1'}`}
+          />
+        </div>
+        <label htmlFor="modeToggle" className="text-base font-medium text-slate-700 dark:text-slate-300">
+          Advanced Mode
+        </label>
+        <input type="checkbox" id="modeToggle" className="sr-only" checked={advancedMode} onChange={() => setAdvancedMode(!advancedMode)} />
+      </div>
+
+
       <div className="mb-8">
         <label htmlFor="initialInstruction" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
-          Initial Instruction Input
+          {advancedMode ? "Initial User Instruction (for Phase 1)" : "Initial Instruction Input"}
         </label>
         <textarea
           id="initialInstruction"
@@ -169,7 +325,7 @@ export default function Home() {
           placeholder="Enter your initial instructions here..."
           value={initialInput}
           onChange={(e) => setInitialInput(e.target.value)}
-          disabled={isLoading}
+          disabled={isLoading || isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3]}
         ></textarea>
       </div>
 
@@ -183,7 +339,7 @@ export default function Home() {
           className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 bg-white hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
           value={llmModel}
           onChange={(e) => setLlmModel(e.target.value)}
-          disabled={isLoading || modelsLoading || modelsError !== ""}
+          disabled={isLoading || modelsLoading || modelsError !== "" || isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3]}
         >
           {modelsLoading && <option value="">Loading models...</option>}
           {modelsError && <option value="">Error loading models</option>}
@@ -201,63 +357,161 @@ export default function Home() {
         {modelsError && <p className="text-sm text-red-600 dark:text-red-400 mt-1">{modelsError}</p>}
       </div>
 
-      <div className="mb-8">
-        <button
-          type="button"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-md shadow-md transition duration-150 ease-in-out disabled:opacity-50 focus:ring-4 focus:ring-blue-300 focus:outline-none dark:focus:ring-blue-800"
-          onClick={handleSubmit}
-          disabled={isLoading || modelsLoading || !llmModel}
-        >
-          {isLoading ? 'Generating...' : (modelsLoading ? 'Loading models...' : 'Run')}
-        </button>
-      </div>
+      {!advancedMode && (
+        <div className="mb-8">
+          <button
+            type="button"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-md shadow-md transition duration-150 ease-in-out disabled:opacity-50 focus:ring-4 focus:ring-blue-300 focus:outline-none dark:focus:ring-blue-800"
+            onClick={handleSimpleModeSubmit}
+            disabled={isLoading || modelsLoading || !llmModel}
+          >
+            {isLoading ? 'Generating (Simple Mode)...' : (modelsLoading ? 'Loading models...' : 'Run Simple Mode')}
+          </button>
+        </div>
+      )}
+
+      {advancedMode && (
+        <div className="space-y-10">
+          {/* Phase 1 */}
+          <div className="p-6 border border-slate-300 dark:border-slate-700 rounded-lg shadow">
+            <h2 className="text-2xl font-semibold mb-4 text-slate-700 dark:text-slate-200">Phase 1: Define Blueprint</h2>
+            <label htmlFor="phase1Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Phase 1 Prompt (Blueprint Definition)</label>
+            <textarea
+              id="phase1Prompt"
+              value={phase1Prompt}
+              onChange={(e) => setPhase1Prompt(e.target.value)}
+              rows={8}
+              className="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500 mb-3"
+              disabled={isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3]}
+            />
+            <button
+              onClick={() => handleRunPhase(1)}
+              disabled={isLoadingPhase[1] || modelsLoading || !llmModel || isLoadingPhase[2] || isLoadingPhase[3]}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-indigo-400 focus:outline-none dark:focus:ring-indigo-700"
+            >
+              {isLoadingPhase[1] ? 'Running Phase 1...' : 'Run Phase 1 (Define Blueprint)'}
+            </button>
+            <label htmlFor="phase1Output" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mt-4 mb-1">Phase 1 Output (Blueprint)</label>
+            <pre
+              id="phase1Output"
+              className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+            >{phase1Output || "Blueprint output will appear here..."}</pre>
+          </div>
+
+          {/* Phase 2 */}
+          <div className="p-6 border border-slate-300 dark:border-slate-700 rounded-lg shadow">
+            <h2 className="text-2xl font-semibold mb-4 text-slate-700 dark:text-slate-200">Phase 2: Design Crew Architecture Plan</h2>
+            <label htmlFor="phase2Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Phase 2 Prompt (Architecture Design)</label>
+            <textarea
+              id="phase2Prompt"
+              value={phase2Prompt}
+              onChange={(e) => setPhase2Prompt(e.target.value)}
+              rows={8}
+              className="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500 mb-3"
+              disabled={isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3]}
+            />
+            <button
+              onClick={() => handleRunPhase(2)}
+              disabled={!phase1Output || isLoadingPhase[2] || modelsLoading || !llmModel || isLoadingPhase[1] || isLoadingPhase[3]}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-indigo-400 focus:outline-none dark:focus:ring-indigo-700"
+            >
+              {isLoadingPhase[2] ? 'Running Phase 2...' : 'Run Phase 2 (Design Architecture)'}
+            </button>
+            <label htmlFor="phase2Output" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mt-4 mb-1">Phase 2 Output (Architecture Plan)</label>
+            <pre
+              id="phase2Output"
+              className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+            >{phase2Output || "Architecture plan output will appear here..."}</pre>
+          </div>
+
+          {/* Phase 3 */}
+          <div className="p-6 border border-slate-300 dark:border-slate-700 rounded-lg shadow">
+            <h2 className="text-2xl font-semibold mb-4 text-slate-700 dark:text-slate-200">Phase 3: Construct Python Script</h2>
+            <label htmlFor="phase3Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Phase 3 Prompt (Script Generation)</label>
+            <textarea
+              id="phase3Prompt"
+              value={phase3Prompt}
+              onChange={(e) => setPhase3Prompt(e.target.value)}
+              rows={8}
+              className="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500 mb-3"
+              disabled={isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3]}
+            />
+            <button
+              onClick={() => handleRunPhase(3)}
+              disabled={!phase2Output || isLoadingPhase[3] || modelsLoading || !llmModel || isLoadingPhase[1] || isLoadingPhase[2]}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-indigo-400 focus:outline-none dark:focus:ring-indigo-700"
+            >
+              {isLoadingPhase[3] ? 'Running Phase 3...' : 'Run Phase 3 (Generate & Execute Script)'}
+            </button>
+            {/* Phase 3 output uses existing generatedScript and scriptRunOutput areas */}
+          </div>
+        </div>
+      )}
+
 
       {error && (
-        <div className="mb-8 p-4 border border-red-400 bg-red-100 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-500/50 dark:text-red-400">
+        <div className="mt-8 mb-8 p-4 border border-red-400 bg-red-100 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-500/50 dark:text-red-400">
           <p className="font-semibold">Error:</p>
           <p>{error}</p>
         </div>
       )}
 
       {scriptExecutionError && (
-        <div className="mb-8 p-4 border border-red-400 bg-red-100 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-500/50 dark:text-red-400">
+        <div className="mt-8 mb-8 p-4 border border-red-400 bg-red-100 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-500/50 dark:text-red-400">
           <p className="font-semibold">Script Execution Error:</p>
           <p>{scriptExecutionError}</p>
         </div>
       )}
 
-      <div className="grid md:grid-cols-2 gap-6 mb-8">
-        <div>
-          <label htmlFor="scriptOutput" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
-            Script Execution Output
-          </label>
-          <pre
-            id="scriptOutput"
-            className="w-full p-4 border border-slate-200 rounded-md bg-slate-50 shadow-sm overflow-auto whitespace-pre-wrap min-h-[160px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
-          >
-            {scriptRunOutput || "Script execution output will appear here"}
-          </pre>
+      {/* Output sections: Generated Script and Script Execution Output / Phased Outputs */}
+      {/* These are shown for both simple mode and advanced mode (phase 3) */}
+      {(generatedScript || scriptRunOutput || phasedOutputs.length > 0 || executionOutput) && (
+         <div className="grid md:grid-cols-2 gap-6 mt-10 mb-8">
+          <div>
+            <label htmlFor="scriptOutput" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
+              {advancedMode && currentPhaseRunning === 3 ? "Phase 3 Script Execution Output" : (advancedMode ? "Script Execution Output (Phase 3)" : "Script Execution Output (Simple Mode)")}
+            </label>
+            <pre
+              id="scriptOutput"
+              className="w-full p-4 border border-slate-200 rounded-md bg-slate-50 shadow-sm overflow-auto whitespace-pre-wrap min-h-[160px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+            >
+              {scriptRunOutput || (executionOutput ? `Full Docker Output:\n${executionOutput}` : "Script execution output will appear here")}
+            </pre>
+             {phasedOutputs.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-md font-semibold mb-2 text-slate-700 dark:text-slate-300">Task Outputs:</h3>
+                  <ul className="space-y-2">
+                    {phasedOutputs.map((out, index) => (
+                      <li key={index} className="p-3 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 shadow-sm">
+                        <strong className="text-sm text-indigo-600 dark:text-indigo-400">{out.taskName}:</strong>
+                        <pre className="mt-1 text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap overflow-auto">{out.output}</pre>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+          </div>
+          <div>
+            <label htmlFor="generatedScript" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
+              {advancedMode && currentPhaseRunning === 3 ? "Phase 3 Generated Python Script" : (advancedMode ? "Generated Python Script (Phase 3)" : "Generated Python Script (Simple Mode)")}
+            </label>
+            <pre
+              id="generatedScript"
+              className="w-full p-4 border border-slate-200 rounded-md bg-slate-50 shadow-sm overflow-auto whitespace-pre-wrap min-h-[160px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+            >
+              {generatedScript || "Python script output will appear here"}
+            </pre>
+            <button
+              type="button"
+              onClick={handleExecuteScript}
+              disabled={!generatedScript || isExecutingScript || (advancedMode && currentPhaseRunning !== null && currentPhaseRunning !== 3) }
+              className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2.5 rounded-md shadow-md transition duration-150 ease-in-out disabled:opacity-50 focus:ring-4 focus:ring-green-300 focus:outline-none dark:focus:ring-green-800"
+            >
+              {isExecutingScript ? 'Executing Script...' : 'Run This Script (Locally via API)'}
+            </button>
+          </div>
         </div>
-        <div>
-          <label htmlFor="generatedScript" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
-            Generated Python Script
-          </label>
-          <pre
-            id="generatedScript"
-            className="w-full p-4 border border-slate-200 rounded-md bg-slate-50 shadow-sm overflow-auto whitespace-pre-wrap min-h-[160px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
-          >
-            {generatedScript || "Python script output will appear here"}
-          </pre>
-          <button
-            type="button"
-            onClick={handleExecuteScript}
-            disabled={!generatedScript || isExecutingScript}
-            className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2.5 rounded-md shadow-md transition duration-150 ease-in-out disabled:opacity-50 focus:ring-4 focus:ring-green-300 focus:outline-none dark:focus:ring-green-800"
-          >
-            {isExecutingScript ? 'Executing Script...' : 'Run Script'}
-          </button>
-        </div>
-      </div>
+      )}
     </main>
   );
 }
