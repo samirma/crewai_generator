@@ -24,7 +24,6 @@ from crewai import LLM, Agent, Task, Crew, Process
 # from crewai.tools import BaseTool
 # Import Pydantic BaseModel if any Pydantic models are defined in Section F of the Plan
 # from pydantic import BaseModel
-# from crewai.llms import ChatOllama # Import if an Ollama model is used
 ```
 *(The AI generating the script **MUST** uncomment `BaseTool`, `BaseModel`, and specific tool imports only if they are needed based on the Design-Crew-Architecture-Plan).*
 
@@ -41,8 +40,7 @@ from crewai import LLM, Agent, Task, Crew, Process
     *   `gemini/gemini-2.5-flash-preview-05-20`
     *   `gemini/gemini-2.5-pro-preview-05-06`
     *   `deepseek/deepseek-chat`
-    *   `ollama/<model_name>` (e.g., `ollama/mistral`, `ollama/llama2`, `ollama/codellama`)
-*   Example for `LLM` (e.g. Gemini, Deepseek):
+*   Example:
     ```python
     # llm_gemini_flash = LLM(
     #     model="gemini/gemini-2.5-flash-preview-05-20", # From Plan
@@ -52,19 +50,6 @@ from crewai import LLM, Agent, Task, Crew, Process
     #     # config_params={'base_url': '...'} # If in Plan's LLM Specification
     # )
     ```
-*   Example for `ChatOllama`:
-    ```python
-    # from crewai.llms import ChatOllama # Ensure this import is added to "Core Imports" if an Ollama model is used
-    # llm_ollama_mistral = ChatOllama(
-    #     model="mistral", # Extracted from Plan's model ID, e.g., "ollama/mistral" -> "mistral"
-    #     base_url=os.getenv("OLLAMA_BASE_URL"), # Optional: From Plan's config_params if specified, defaults to http://localhost:11434
-    #     temperature=0.0 # As per constraint
-    # )
-    ```
-*   **Note on Ollama Configuration:**
-    *   Ollama models generally do not require an `api_key`.
-    *   The `base_url` for `ChatOllama` can be provided via `config_params` in the Plan (e.g., `config_params={"OLLAMA_BASE_URL": "http://custom.ollama.host:11434"}`). If so, the script should use `os.getenv("OLLAMA_BASE_URL")`.
-    *   If `OLLAMA_BASE_URL` is not specified in `config_params` or found in environment variables, `ChatOllama` defaults to `http://localhost:11434`.
 
 **Custom Tool & Pydantic Model Definitions (If applicable):**
 *   If 'Custom Tool Definitions' (Section D) or 'Structured Data Handling' (Section F with "Yes" for Usage) are present in the 'Design-Crew-Architecture-Plan':
