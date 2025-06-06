@@ -155,7 +155,8 @@ export async function POST(request: Request) {
     // Helper function to read prompt files
     const readPromptFile = async (fileName: string): Promise<string> => {
       try {
-        return await fs.readFile(path.join(process.cwd(), 'crewai-web-ui', fileName), 'utf-8');
+        // Corrected path to read from 'public/prompts/'
+        return await fs.readFile(path.join(process.cwd(), 'public', 'prompts', fileName), 'utf-8');
       } catch (err) {
         console.error(`Error reading prompt file ${fileName}:`, err);
         throw new Error(`Could not load prompt file ${fileName}.`);
