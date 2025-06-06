@@ -108,27 +108,6 @@ async function executePythonScript(scriptContent: string): Promise<{ stdout: str
   return { stdout, stderr };
 }
 
-interface PhasedOutput {
-  taskName: string;
-  output: string;
-}
-
-function parsePhasedOutput(scriptStdout: string): PhasedOutput[] {
-  const outputs: PhasedOutput[] = [];
-  // Regex to capture task name and the output until the next marker or end of string.
-  // Ensures taskName is captured from the marker.
-  // Output is everything between the current marker and the next, or EOF.
-  const regex = /### CREWAI_TASK_OUTPUT_MARKER: (.*?) ###\r?\n([\s\S]*?)(?=### CREWAI_TASK_OUTPUT_MARKER:|$)/g;
-  let match;
-  while ((match = regex.exec(scriptStdout)) !== null) {
-    outputs.push({
-      taskName: match[1].trim(),
-      output: match[2].trim(),
-    });
-  }
-  return outputs;
-}
-
 // Main API Handler
 export async function POST(request: Request) {
   try {
@@ -256,16 +235,12 @@ export async function POST(request: Request) {
               }
             }
 
-            console.log("Attempting to execute generated script in Docker (Gemini)...");
-            const { stdout, stderr } = await executePythonScript(generatedScript);
-            const phasedOutputs = parsePhasedOutput(stdout);
-
-            return NextResponse.json({
-                generatedScript,
-                executionOutput: `STDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`,
-                phasedOutputs,
-                ...(mode === 'advanced' && runPhase === 3 && { phase: 3 }) // Add phase info for advanced phase 3
-            });
+            // Script execution removed from here
+            if (mode === 'simple') {
+              return NextResponse.json({ generatedScript });
+            } else { // Advanced mode, phase 3
+              return NextResponse.json({ generatedScript, phase: 3 });
+            }
 
         } else {
           // Handle cases where Gemini response structure is not as expected
@@ -335,20 +310,15 @@ export async function POST(request: Request) {
             }
         }
 
-
-        console.log("Attempting to execute generated script in Docker (DeepSeek via OpenAI SDK)...");
-        const { stdout, stderr } = await executePythonScript(generatedScript);
-        const phasedOutputs = parsePhasedOutput(stdout);
-
-        return NextResponse.json({
-          generatedScript,
-          executionOutput: `STDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`,
-          phasedOutputs,
-          ...(mode === 'advanced' && runPhase === 3 && { phase: 3 }) // Add phase info
-        });
+        // Script execution removed from here
+        if (mode === 'simple') {
+          return NextResponse.json({ generatedScript });
+        } else { // Advanced mode, phase 3
+          return NextResponse.json({ generatedScript, phase: 3 });
+        }
 
       } catch (apiError) {
-        console.error(`Error calling DeepSeek API via OpenAI SDK or executing script for model ${llmModel}:`, apiError);
+        console.error(`Error calling DeepSeek API via OpenAI SDK for model ${llmModel}:`, apiError);
         return NextResponse.json({ error: apiError instanceof Error ? apiError.message : String(apiError) }, { status: 500 });
       }
     } else if (currentModelId.startsWith('ollama/')) {
@@ -407,19 +377,15 @@ export async function POST(request: Request) {
           }
         }
 
-        console.log("Attempting to execute generated script in Docker (Ollama)...");
-        const { stdout, stderr } = await executePythonScript(generatedScript);
-        const phasedOutputs = parsePhasedOutput(stdout);
-
-        return NextResponse.json({
-          generatedScript,
-          executionOutput: `STDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`,
-          phasedOutputs,
-          ...(mode === 'advanced' && runPhase === 3 && { phase: 3 }) // Add phase info
-        });
+        // Script execution removed from here
+        if (mode === 'simple') {
+          return NextResponse.json({ generatedScript });
+        } else { // Advanced mode, phase 3
+          return NextResponse.json({ generatedScript, phase: 3 });
+        }
 
       } catch (apiError) {
-        console.error(`Error calling Ollama API or executing script for model ${llmModel}:`, apiError);
+        console.error(`Error calling Ollama API for model ${llmModel}:`, apiError);
         return NextResponse.json({ error: apiError instanceof Error ? apiError.message : String(apiError) }, { status: 500 });
       }
     } else {
@@ -432,17 +398,15 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: `Model ${llmModel} is not configured for advanced mode phases 1 or 2 direct output.` }, { status: 501 });
       }
 
-      // Fallback to mock script execution for simple mode or advanced phase 3 with unhandled model
-      console.log(`Falling back to mock script execution for unhandled model ${llmModel} in ${mode} mode (phase ${runPhase}).`);
-      const mockPythonScript = `# Mock Python script for ${llmModel}\n# Mode: ${mode}, Phase: ${runPhase}\n# Input: ${initialInput}\nprint("Hello from mock Python script for unhandled model!")\n\n### CREWAI_TASK_OUTPUT_MARKER: Mock Task 1 ###\nOutput of Mock Task 1 for ${llmModel}`;
-      const { stdout, stderr } = await executePythonScript(mockPythonScript);
-      const phasedOutputs = parsePhasedOutput(stdout);
-      return NextResponse.json({
-        generatedScript: mockPythonScript,
-        executionOutput: `STDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`,
-        phasedOutputs: phasedOutputs,
-        ...(mode === 'advanced' && runPhase === 3 && { phase: 3 })
-      });
+      // Fallback to mock script generation for simple mode or advanced phase 3 with unhandled model
+      console.log(`Falling back to mock script generation for unhandled model ${llmModel} in ${mode} mode (phase ${runPhase}).`);
+      const mockPythonScript = `# Mock Python script for ${llmModel}\n# Mode: ${mode}, Phase: ${runPhase}\n# Input: ${initialInput}\nprint("Hello from mock Python script for unhandled model!")`;
+      // Script execution removed from here
+      if (mode === 'simple') {
+        return NextResponse.json({ generatedScript: mockPythonScript });
+      } else { // Advanced mode, phase 3
+        return NextResponse.json({ generatedScript: mockPythonScript, phase: 3 });
+      }
     }
 
   } catch (error) { // Catch-all for errors during request processing or unknown issues
