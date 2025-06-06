@@ -140,14 +140,10 @@ export default function Home() {
       }
       const data = await response.json();
       setGeneratedScript(data.generatedScript);
-      setExecutionOutput(data.executionOutput); // This is the Docker output for simple mode
-      if (data.phasedOutputs) {
-        setPhasedOutputs(data.phasedOutputs);
-      }
-       // Also set scriptRunOutput to the Docker stdout for simple mode for consistency if user expects output there
-      if (data.executionOutput && typeof data.executionOutput === 'string' && data.executionOutput.includes("STDOUT:")) {
-        setScriptRunOutput(data.executionOutput.substring(data.executionOutput.indexOf("STDOUT:") + "STDOUT:".length).split("STDERR:")[0].trim());
-      }
+      setPhasedOutputs(data.phasedOutputs || []);
+      // Clear execution outputs, wait for "Run Script" button
+      setExecutionOutput("");
+      setScriptRunOutput("");
 
 
     } catch (err) {
@@ -236,14 +232,10 @@ export default function Home() {
         setPhase2Output(data.output);
       } else if (phase === 3) {
         setGeneratedScript(data.generatedScript);
-        setExecutionOutput(data.executionOutput); // Docker output for Phase 3
-         if (data.phasedOutputs) {
-          setPhasedOutputs(data.phasedOutputs);
-        }
-        // Set scriptRunOutput for Phase 3 from Docker's STDOUT part of executionOutput
-        if (data.executionOutput && typeof data.executionOutput === 'string' && data.executionOutput.includes("STDOUT:")) {
-            setScriptRunOutput(data.executionOutput.substring(data.executionOutput.indexOf("STDOUT:") + "STDOUT:".length).split("STDERR:")[0].trim());
-        }
+        setPhasedOutputs(data.phasedOutputs || []);
+        // Clear execution outputs, wait for "Run Script" button
+        setExecutionOutput("");
+        setScriptRunOutput("");
       }
     } catch (err) {
       console.error(`Error in Advanced Mode Phase ${phase} API call:`, err);
