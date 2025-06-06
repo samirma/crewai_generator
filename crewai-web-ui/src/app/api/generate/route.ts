@@ -182,11 +182,7 @@ async function interactWithLLM(
     }
     console.log("Raw LLM response from DeepSeek (OpenAI SDK):", llmResponseText);
   } else if (currentModelId.startsWith('ollama/')) {
-    const ollamaApiBaseUrl = process.env.OLLAMA_API_BASE_URL;
-    if (!ollamaApiBaseUrl) {
-      console.error("OLLAMA_API_BASE_URL is not configured.");
-      throw new Error("OLLAMA_API_BASE_URL is not configured.");
-    }
+    const ollamaApiBaseUrl = process.env.OLLAMA_API_BASE_URL || 'http://localhost:11434';
     const ollamaModelName = llmModel.substring('ollama/'.length);
     console.log(`Calling Ollama API for model: ${ollamaModelName} at base URL: ${ollamaApiBaseUrl}`);
     const response = await fetch(`${ollamaApiBaseUrl}/api/generate`, {
@@ -289,11 +285,54 @@ export async function POST(request: Request) {
       // Call interactWithLLM with the fullPrompt received from the client
       const llmResult = await interactWithLLM(fullPrompt, llmModel, mode, runPhase);
       const llmResponseText = llmResult.llmResponseText; // Always present
-      const generatedScript = llmResult.generatedScript; // Optional
+      let generatedScript = llmResult.generatedScript; // Optional, changed to let
 
       // Return structure now includes the fullPrompt that was sent in the request
       if (mode === 'advanced' && (runPhase === 1 || runPhase === 2)) {
         return NextResponse.json({ phase: runPhase, output: llmResponseText, fullPrompt: fullPrompt });
+      }
+
+      // Ollama-specific LLM configuration injection
+      if (generatedScript && typeof generatedScript === 'string' && llmModel.startsWith('ollama/')) {
+        const resolvedOllamaUrl = process.env.OLLAMA_API_BASE_URL || 'http://localhost:11434';
+        const ollamaModelName = llmModel.substring('ollama/'.length);
+        const chatOllamaImport = "from crewai.llms import ChatOllama";
+
+        // Ensure the comment and the llm assignment are on separate lines in the script
+        const ollamaLLMConfigLine = `# Ollama LLM configuration added by CrewAI Studio\nllm = ChatOllama(model='${ollamaModelName}', base_url='${resolvedOllamaUrl}', temperature=0.0)`;
+
+        if (!generatedScript.includes(chatOllamaImport)) {
+          // Prepend the import if it's not already there
+          generatedScript = chatOllamaImport + "\n" + generatedScript;
+        }
+
+        let scriptLines = generatedScript.split('\n');
+        let lastImportIndex = -1;
+        // Find the index of the last import statement
+        for (let i = 0; i < scriptLines.length; i++) {
+          const line = scriptLines[i].trim();
+          if (line.startsWith("import ") || line.startsWith("from ")) {
+            lastImportIndex = i;
+          } else if (line !== "" && !line.startsWith("#")) {
+            // Stop searching after the first non-import, non-empty, non-comment line
+            break;
+          }
+        }
+
+        // Determine where to insert the Ollama LLM configuration
+        const insertIndex = lastImportIndex + 1;
+        const configLinesToInsert = ollamaLLMConfigLine.split('\n');
+
+        // Check if there's already content at the insertIndex and if it's not just whitespace
+        // Add a blank line before the config if inserting before existing code.
+        if (scriptLines[insertIndex] && scriptLines[insertIndex].trim() !== "") {
+          scriptLines.splice(insertIndex, 0, "", ...configLinesToInsert);
+        } else {
+          // If inserting at the end of imports or into an empty line, no need for an extra blank line before.
+          scriptLines.splice(insertIndex, 0, ...configLinesToInsert);
+        }
+
+        generatedScript = scriptLines.join('\n');
       }
 
       if (generatedScript !== undefined) {
@@ -307,6 +346,9 @@ export async function POST(request: Request) {
           return NextResponse.json({ generatedScript, phase: 3, fullPrompt: fullPrompt /* phasedOutputs: [] an example if needed */ });
         }
       } else {
+        // This case should ideally not be reached if llmModel.startsWith('ollama/') and generatedScript was initially undefined,
+        // as the injection logic itself checks for generatedScript.
+        // However, if generatedScript was undefined from llmResult and it's not an Ollama model, this path is valid.
         console.error(`Error: generatedScript is undefined for mode='${mode}' and runPhase='${runPhase}'. This should not happen if a script was expected.`);
         return NextResponse.json({ error: "Failed to process LLM output for script generation." }, { status: 500 });
       }
