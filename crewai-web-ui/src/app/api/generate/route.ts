@@ -8,6 +8,7 @@ import Docker from 'dockerode';
 import { exec } from 'child_process'; // For docker build command
 
 // Helper function to execute Python script in Docker
+// No changes to executePythonScript itself in this step
 async function executePythonScript(scriptContent: string): Promise<{ stdout: string; stderr: string }> {
   const docker = new Docker(); // Assumes Docker is accessible (e.g., /var/run/docker.sock)
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'crewai-script-'));
@@ -108,54 +109,15 @@ async function executePythonScript(scriptContent: string): Promise<{ stdout: str
   return { stdout, stderr };
 }
 
-// Helper function to read prompt files from 'public/prompts/'
-const readPromptFile = async (fileName: string): Promise<string> => {
-  try {
-    return await fs.readFile(path.join(process.cwd(), 'public', 'prompts', fileName), 'utf-8');
-  } catch (err) {
-    console.error(`Error reading prompt file ${fileName}:`, err);
-    throw new Error(`Could not load prompt file ${fileName}. Ensure it exists in 'crewai-web-ui/public/prompts/'.`);
-  }
-};
-
-// Helper function to construct the full prompt
-async function constructPrompt(
-  mode: string, // To decide if the extra simple mode instruction is needed
-  userInput: string, // User's primary input.
-  phaseTexts: string[], // Ordered list of prompt texts for the current phase(s)
-  // runPhase: number | null // Potentially keep if specific phase logic is needed, otherwise remove.
-                         // For now, assuming mode and the content of phaseTexts is enough.
-): Promise<string> {
-  console.log(`Constructing prompt with mode: '${mode}', userInput length: ${userInput.length}, phaseTexts count: ${phaseTexts.length}`);
-
-  // 1. Join the phaseTexts array with \n\n as a separator.
-  const joinedPhaseTexts = phaseTexts.join("\n\n");
-
-  // 2. Construct the user instruction string.
-  const userInstruction = `\n\nUser Instruction: @@@${userInput}@@@`;
-
-  let fullPrompt = `${joinedPhaseTexts}${userInstruction}`;
-
-  // 3. For 'simple' mode, append an additional instruction.
-  if (mode === 'simple') {
-    const simpleModeInstruction = `\n\nGenerate the Python script for CrewAI based on this. Ensure each task's output is clearly marked with '### CREWAI_TASK_OUTPUT_MARKER: <task_name> ###' on a new line, followed by the task's output on subsequent lines.`;
-    fullPrompt += simpleModeInstruction;
-    console.log("Appended simple mode specific instruction.");
-  }
-
-  // 4. The final prompt is ready.
-  // console.log("Constructed full prompt:", fullPrompt); // Potentially very long, log with caution or only parts.
-  return fullPrompt;
-}
-
 // Helper function to interact with LLMs
+// No changes to interactWithLLM itself in this step, but it will receive fullPrompt directly.
 async function interactWithLLM(
-  fullPrompt: string,
+  fullPrompt: string, // This is now the directly passed, fully constructed prompt
   llmModel: string, // Original casing
   mode: string,
   runPhase: number | null
 ): Promise<{ llmResponseText: string; generatedScript?: string }> {
-  const currentModelId = llmModel.toLowerCase();
+  const currentModelId = llmModel.toLowerCase(); // Keep for internal logic
   let llmResponseText = "";
   let generatedScript: string | undefined = undefined;
 
@@ -292,173 +254,76 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
-      initialInput, // Original user input for simple mode, or phase-specific input for advanced
       llmModel,
       mode = 'simple', // 'simple' or 'advanced'
-      runPhase,        // 1, 2, or 3 for advanced mode
-      phase1_prompt,   // Optional custom prompt for phase 1
-      phase2_prompt,   // Optional custom prompt for phase 2
-      phase3_prompt,   // Optional custom prompt for phase 3
-      // previous_full_prompt, // No longer used directly for construction, but available if needed for logging.
-      phase1_source_indicator, // Optional: 'custom' or filename
-      phase2_source_indicator, // Optional: 'custom' or filename
-      phase3_source_indicator  // Optional: 'custom' or filename
+      runPhase,        // 1, 2, or 3 for advanced mode. Can be null/undefined if mode is 'simple'.
+      fullPrompt       // The pre-constructed prompt from the frontend
     } = body;
 
-    // General request logging (excluding potentially very long prompt texts)
-    console.log(`Received request: mode='${mode}', runPhase='${runPhase}', llmModel='${llmModel}'`);
-    if (initialInput) console.log(`Initial input received (length: ${initialInput.length})`);
-    // Specific prompt source logging will be handled within simple/advanced blocks
-
-    // Standardize llmModel to lower case for consistent checks (though interactWithLLM will do it again)
-    // const currentModelId = llmModel.toLowerCase(); // No longer needed here for dispatch
-
-    // Validate mode and runPhase before calling constructPrompt or interactWithLLM
+    // Validate essential parameters
+    if (!llmModel || !fullPrompt) {
+      return NextResponse.json({ error: "Missing required parameters: llmModel and fullPrompt." }, { status: 400 });
+    }
     if (mode !== 'simple' && mode !== 'advanced') {
       return NextResponse.json({ error: "Invalid 'mode'. Must be 'simple' or 'advanced'." }, { status: 400 });
     }
     if (mode === 'advanced' && (runPhase !== 1 && runPhase !== 2 && runPhase !== 3)) {
       return NextResponse.json({ error: "Invalid 'runPhase' for advanced mode. Must be 1, 2, or 3." }, { status: 400 });
     }
-
-    // Construct the full prompt using the helper function
-    // Determine userInstructionInput and prepare phaseTextsForPrompt
-    let userInstructionInput: string;
-    let phaseTextsForPrompt: string[] = [];
-
-    if (mode === 'simple') {
-      userInstructionInput = initialInput;
-      const phase1Content = await readPromptFile('phase1_blueprint_prompt.md');
-      const phase2Content = await readPromptFile('phase2_architecture_prompt.md');
-      const phase3Content = await readPromptFile('phase3_script_prompt.md');
-      phaseTextsForPrompt = [phase1Content, phase2Content, phase3Content];
-      console.log("Prepared inputs for 'simple' mode.");
-    } else if (mode === 'advanced') {
-      if (runPhase === 1) {
-        if (!initialInput) {
-          console.error("Missing initialInput for advanced phase 1.");
-          return NextResponse.json({ error: "Internal server error: Missing initialInput for phase 1." }, { status: 500 });
-        }
-        userInstructionInput = initialInput;
-        const currentPhasePromptTemplate = phase1_prompt && phase1_prompt.trim() !== '' ? phase1_prompt : await readPromptFile('phase1_blueprint_prompt.md');
-        phaseTextsForPrompt = [currentPhasePromptTemplate];
-        console.log("Prepared inputs for 'advanced' mode, phase 1.");
-      } else if (runPhase === 2) {
-        if (!initialInput) { // phase1_prompt is optional, will use default if not provided
-          console.error("Missing initialInput for advanced phase 2.");
-          return NextResponse.json({ error: "Internal server error: Missing initialInput for phase 2." }, { status: 500 });
-        }
-        userInstructionInput = initialInput;
-        const p1Template = phase1_prompt && phase1_prompt.trim() !== '' ? phase1_prompt : await readPromptFile('phase1_blueprint_prompt.md');
-        const currentPhasePromptTemplate = phase2_prompt && phase2_prompt.trim() !== '' ? phase2_prompt : await readPromptFile('phase2_architecture_prompt.md');
-        phaseTextsForPrompt = [p1Template, currentPhasePromptTemplate];
-        console.log("Prepared inputs for 'advanced' mode, phase 2.");
-      } else if (runPhase === 3) {
-        if (!initialInput) { // phase1_prompt and phase2_prompt are optional, will use defaults
-          console.error("Missing initialInput for advanced phase 3.");
-          return NextResponse.json({ error: "Internal server error: Missing initialInput for phase 3." }, { status: 500 });
-        }
-        userInstructionInput = initialInput;
-        const p1Template = phase1_prompt && phase1_prompt.trim() !== '' ? phase1_prompt : await readPromptFile('phase1_blueprint_prompt.md');
-        const p2Template = phase2_prompt && phase2_prompt.trim() !== '' ? phase2_prompt : await readPromptFile('phase2_architecture_prompt.md');
-        const currentPhasePromptTemplate = phase3_prompt && phase3_prompt.trim() !== '' ? phase3_prompt : await readPromptFile('phase3_script_prompt.md');
-        phaseTextsForPrompt = [p1Template, p2Template, currentPhasePromptTemplate];
-        console.log("Prepared inputs for 'advanced' mode, phase 3.");
-      } else {
-        console.error("Internal error: Unhandled runPhase in 'advanced' mode despite validation.");
-        return NextResponse.json({ error: "Internal server error: Unhandled phase." }, { status: 500 });
-      }
-    } else {
-      console.error("Internal error: Unhandled mode despite validation.");
-      return NextResponse.json({ error: "Internal server error: Unhandled mode." }, { status: 500 });
+     if (mode === 'simple' && runPhase !== undefined && runPhase !== null) {
+      // runPhase is not expected for simple mode, but not treating as critical error, just log.
+      console.warn(`Received runPhase='${runPhase}' for simple mode. This is not typically expected.`);
     }
 
-    const fullPrompt = await constructPrompt(mode, userInstructionInput, phaseTextsForPrompt);
 
-    // Logging for advanced mode based on source indicators (can be refined or moved into constructPrompt if preferred)
+    // Simplified logging
+    console.log(`Received request: mode='${mode}', llmModel='${llmModel}', fullPrompt length: ${fullPrompt.length}`);
     if (mode === 'advanced') {
-        const defaultPhase1FileName = "phase1_blueprint_prompt.md";
-        const defaultPhase2FileName = "phase2_architecture_prompt.md";
-        const defaultPhase3FileName = "phase3_script_prompt.md";
-        let logMessageForAdvanced = "";
-
-        if (runPhase === 1) {
-            const phase1IsCustomText = phase1_prompt && phase1_prompt.trim() !== '';
-            const p1EffectiveSource = phase1_source_indicator || (phase1IsCustomText ? "custom" : defaultPhase1FileName);
-            logMessageForAdvanced = `Processing in 'advanced' mode, phase: 1. Using P1: ${p1EffectiveSource}`;
-        } else if (runPhase === 2) {
-            const phase1IsCustomText = phase1_prompt && phase1_prompt.trim() !== '';
-            const p1EffectiveSource = phase1_source_indicator || (phase1IsCustomText ? "custom" : defaultPhase1FileName);
-            const phase2IsCustomText = phase2_prompt && phase2_prompt.trim() !== '';
-            const p2EffectiveSource = phase2_source_indicator || (phase2IsCustomText ? "custom" : defaultPhase2FileName);
-            logMessageForAdvanced = `Processing in 'advanced' mode, phase: 2. Using P1: ${p1EffectiveSource}, P2: ${p2EffectiveSource}`;
-        } else if (runPhase === 3) {
-            const phase1IsCustomText = phase1_prompt && phase1_prompt.trim() !== '';
-            const p1EffectiveSource = phase1_source_indicator || (phase1IsCustomText ? "custom" : defaultPhase1FileName);
-            const phase2IsCustomText = phase2_prompt && phase2_prompt.trim() !== '';
-            const p2EffectiveSource = phase2_source_indicator || (phase2IsCustomText ? "custom" : defaultPhase2FileName);
-            const phase3IsCustomText = phase3_prompt && phase3_prompt.trim() !== '';
-            const p3EffectiveSource = phase3_source_indicator || (phase3IsCustomText ? "custom" : defaultPhase3FileName);
-            logMessageForAdvanced = `Processing in 'advanced' mode, phase: 3. Using P1: ${p1EffectiveSource}, P2: ${p2EffectiveSource}, P3: ${p3EffectiveSource}`;
-        }
-         if (logMessageForAdvanced) {
-            console.log(logMessageForAdvanced);
-        } else {
-            console.log(`Processing in 'advanced' mode, phase: ${runPhase} (Log message construction error or invalid phase)`);
-        }
-    } else if (mode === 'simple') {
-        console.log("Processing in 'simple' mode. Generating using phase 1(phase1_blueprint_prompt.md) + phase 2(phase2_architecture_prompt.md) + phase 3(phase3_script_prompt.md)");
+      console.log(`Advanced mode phase: ${runPhase}`);
     }
 
-
-    // Note: currentModelId is already lowercased.
-    // The llmModel variable (original casing) is used for the actual API call.
+    // The fullPrompt is now received directly from the client.
+    // No need to call readPromptFile or constructPrompt on the backend.
 
     try {
+      // Call interactWithLLM with the fullPrompt received from the client
       const llmResult = await interactWithLLM(fullPrompt, llmModel, mode, runPhase);
       const llmResponseText = llmResult.llmResponseText; // Always present
       const generatedScript = llmResult.generatedScript; // Optional
 
+      // Return structure now includes the fullPrompt that was sent in the request
       if (mode === 'advanced' && (runPhase === 1 || runPhase === 2)) {
-        // For advanced mode phase 1 or 2, return the raw LLM output.
-        // fullPrompt is returned for debugging/logging on client-side.
         return NextResponse.json({ phase: runPhase, output: llmResponseText, fullPrompt: fullPrompt });
       }
 
-      // For simple mode or advanced phase 3, a generatedScript is expected.
       if (generatedScript !== undefined) {
         if (mode === 'simple') {
-          return NextResponse.json({ generatedScript, fullPrompt: fullPrompt });
+          // For simple mode, phasedOutputs might be relevant if the script produces them
+          // However, the current llmResult from interactWithLLM doesn't include phasedOutputs
+          // This might need adjustment if simple mode is expected to also return structured task outputs
+          // directly from the /api/generate call, or if they are only handled by /api/execute
+          return NextResponse.json({ generatedScript, fullPrompt: fullPrompt /* phasedOutputs: [] an example if needed */ });
         } else { // Advanced mode, phase 3
-          return NextResponse.json({ generatedScript, phase: 3, fullPrompt: fullPrompt });
+          return NextResponse.json({ generatedScript, phase: 3, fullPrompt: fullPrompt /* phasedOutputs: [] an example if needed */ });
         }
       } else {
-        // This case implies that for simple mode or advanced phase 3, script extraction failed
-        // or was not applicable, which would be an issue if a script was expected.
-        // The interactWithLLM function is designed to provide a mock script for unhandled models
-        // in these scenarios, so this path should ideally not be hit unless there's a bug.
-        console.error("Error: generatedScript is undefined for simple mode or advanced phase 3, and no mock was provided.");
+        console.error(`Error: generatedScript is undefined for mode='${mode}' and runPhase='${runPhase}'. This should not happen if a script was expected.`);
         return NextResponse.json({ error: "Failed to process LLM output for script generation." }, { status: 500 });
       }
 
     } catch (apiError) {
-      // This catches errors thrown from interactWithLLM (e.g., API key issues, network failures, LLM API errors)
-      console.error(`Error interacting with LLM or processing its response for model ${llmModel}:`, apiError);
-      return NextResponse.json({ error: apiError instanceof Error ? apiError.message : String(apiError) }, { status: 500 });
+      console.error(`Error interacting with LLM for model ${llmModel}:`, apiError);
+      const message = apiError instanceof Error ? apiError.message : String(apiError);
+      return NextResponse.json({ error: message, fullPrompt: fullPrompt }, { status: 500 }); // Include fullPrompt for client debugging
     }
 
-  } catch (error) { // Catch-all for errors during request processing (e.g., from constructPrompt) or unknown issues
-    console.error("Error in API route:", error);
+  } catch (error) { // Catch-all for errors during request processing (e.g., JSON parsing)
+    console.error("Error in API route processing:", error);
     let errorMessage = "An unknown error occurred in API route.";
     if (error instanceof Error) {
-        errorMessage = error.message; // More specific error if available
+      errorMessage = error.message;
     } else if (typeof error === 'string') {
-        errorMessage = error;
-    }
-    // Check if the error is due to file reading (e.g. prompt files not found)
-    if (errorMessage.startsWith("Could not load prompt file")) {
-        // The error from readPromptFile now includes the path, so the details message here can be simpler or removed.
-        return NextResponse.json({ error: errorMessage }, { status: 500 });
+      errorMessage = error;
     }
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
