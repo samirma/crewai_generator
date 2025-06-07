@@ -2,7 +2,7 @@
 FROM python:3.10-slim
 
 # Set working directory
-WORKDIR /usr/src/app
+WORKDIR /workspace
 
 # Install git for crewai dependencies that might need it
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*

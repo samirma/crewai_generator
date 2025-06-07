@@ -52,14 +52,19 @@ async function executePythonScript(scriptContent: string): Promise<{ stdout: str
     console.log(`Creating Docker container for image '${imageName}' with script from ${tempDir} for direct execution`);
     const container = await docker.createContainer({
       Image: imageName,
-      Cmd: ['python', 'script.py'],
-      WorkingDir: '/usr/src/app',
+      Cmd: ['python', '/run/script_dir/script.py'],
+      WorkingDir: '/workspace',
       HostConfig: {
         Mounts: [
           {
             Type: 'bind',
             Source: tempDir,
-            Target: '/usr/src/app'
+            Target: '/run/script_dir'
+          },
+          {
+            Type: 'bind',
+            Source: path.resolve(projectRoot, 'workspace'),
+            Target: '/workspace'
           }
         ],
         AutoRemove: true,
