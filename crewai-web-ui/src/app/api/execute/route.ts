@@ -17,8 +17,33 @@ async function executePythonScript(scriptContent: string): Promise<{ stdout: str
   // Ensure python-runner image exists by attempting to build it.
   // cwd should be the project root where 'python-runner' directory exists.
   // If process.cwd() for the API route is /app/crewai-web-ui, then '..' is /app.
-  const projectRoot = path.resolve(process.cwd(), '..');
+  const projectRoot = path.resolve(process.cwd(), '..'); // This should point to <project_root>
+  console.log(`Project root identified as: ${projectRoot}`);
+
+  // Define path for .env file on the host
+  const envFilePath = path.resolve(projectRoot, 'crewai-web-ui', '.env');
+  let envFileExists = false;
+  try {
+    await fs.access(envFilePath); // Check if file exists and is accessible
+    envFileExists = true;
+    console.log(`.env file found at ${envFilePath}, will be mounted.`);
+  } catch (err) {
+    console.log(`.env file not found at ${envFilePath} or not accessible, skipping mount.`);
+  }
+
   console.log(`Attempting to build Docker image '${imageName}' from ${projectRoot}/python-runner for direct execution`);
+
+  // Define and create workspace directory
+  const workspaceDir = path.resolve(projectRoot, 'workspace');
+  try {
+    await fs.mkdir(workspaceDir, { recursive: true });
+    console.log(`Workspace directory ensured at: ${workspaceDir}`);
+  } catch (mkdirError) {
+    console.error(`Failed to create workspace directory at ${workspaceDir}:`, mkdirError);
+    // Depending on the desired behavior, you might want to throw an error here
+    // or handle it in a way that doesn't prevent the script from running if the workspace is optional.
+    // For now, logging the error and proceeding.
+  }
 
   try {
     await new Promise<void>((resolve, reject) => {
@@ -50,19 +75,24 @@ async function executePythonScript(scriptContent: string): Promise<{ stdout: str
 
   try {
     console.log(`Creating Docker container for image '${imageName}' with script from ${tempDir} for direct execution`);
+
+    const mounts = [
+      { Type: 'bind' as const, Source: tempDir, Target: '/usr/src/app' },
+      { Type: 'bind' as const, Source: workspaceDir, Target: '/workspace' }
+    ];
+
+    if (envFileExists) {
+      mounts.push({ Type: 'bind' as const, Source: envFilePath, Target: '/usr/src/app/.env' });
+    }
+
     const container = await docker.createContainer({
       Image: imageName,
       Cmd: ['python', 'script.py'],
-      WorkingDir: '/usr/src/app',
+      WorkingDir: '/usr/src/app', // Script execution relative to this path in container
       HostConfig: {
-        Mounts: [
-          {
-            Type: 'bind',
-            Source: tempDir,
-            Target: '/usr/src/app'
-          }
-        ],
+        Mounts: mounts,
         AutoRemove: true,
+        ExtraHosts: ['host.docker.internal:host-gateway'] // Added for host communication
       },
       Tty: false,
     });
