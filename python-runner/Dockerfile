@@ -20,6 +20,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     sqlite3 \
     libsqlite3-dev && \
+    # LaTeX for PDF generation (provides pdflatex)
+    texlive-latex-extra \
+    texlive-fonts-recommended \
+    ghostscript && \
     rm -rf /var/lib/apt/lists/*
 
 # 2. Create a virtual environment
