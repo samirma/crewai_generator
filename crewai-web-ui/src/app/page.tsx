@@ -362,6 +362,10 @@ export default function Home() {
         for (const line of lines) {
           if (line.startsWith("DOCKER_COMMAND: ")) {
             setDockerCommandToDisplay(line.substring("DOCKER_COMMAND: ".length));
+          } else if (line.startsWith("PRE_DOCKER_LOG: ")) {
+            setScriptLogOutput(prev => [...prev, "PRE_DOCKER_RUN: " + line.substring("PRE_DOCKER_LOG: ".length)]);
+          } else if (line.startsWith("PRE_DOCKER_ERROR: ")) {
+            setScriptLogOutput(prev => [...prev, "PRE_DOCKER_RUN_ERROR: " + line.substring("PRE_DOCKER_ERROR: ".length)]);
           } else if (line.startsWith("LOG: ")) {
             setScriptLogOutput(prev => [...prev, line.substring("LOG: ".length)]);
           } else if (line.startsWith("LOG_ERROR: ")) {
@@ -400,6 +404,10 @@ export default function Home() {
       // Process any remaining buffer content
       if (buffer.startsWith("DOCKER_COMMAND: ")) {
         setDockerCommandToDisplay(buffer.substring("DOCKER_COMMAND: ".length));
+      } else if (buffer.startsWith("PRE_DOCKER_LOG: ")) {
+        setScriptLogOutput(prev => [...prev, "PRE_DOCKER_RUN: " + buffer.substring("PRE_DOCKER_LOG: ".length)]);
+      } else if (buffer.startsWith("PRE_DOCKER_ERROR: ")) {
+        setScriptLogOutput(prev => [...prev, "PRE_DOCKER_RUN_ERROR: " + buffer.substring("PRE_DOCKER_ERROR: ".length)]);
       } else if (buffer.startsWith("LOG: ")) {
         setScriptLogOutput(prev => [...prev, buffer.substring("LOG: ".length)]);
       } else if (buffer.startsWith("LOG_ERROR: ")) {
