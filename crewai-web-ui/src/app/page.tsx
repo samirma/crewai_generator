@@ -53,6 +53,7 @@ export default function Home() {
   const [modelsLoading, setModelsLoading] = useState<boolean>(true);
   const [modelsError, setModelsError] = useState<string>("");
   const [phasedOutputs, setPhasedOutputs] = useState<PhasedOutput[]>([]); // For simple mode's task outputs
+  const [scriptLogOutput, setScriptLogOutput] = useState<string[]>([]);
 
   // Advanced Mode State
   const [advancedMode, setAdvancedMode] = useState<boolean>(false);
@@ -292,7 +293,10 @@ export default function Home() {
     }
     setIsExecutingScript(true);
     setScriptExecutionError("");
+    setScriptLogOutput([]);
     setScriptRunOutput("");
+    setPhasedOutputs([]);
+    setExecutionOutput("");
 
     try {
       const response = await fetch('/api/execute', {
@@ -300,16 +304,126 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ script: generatedScript }), // Send generatedScript as "script"
+        body: JSON.stringify({ script: generatedScript }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `API request failed with status ${response.status}`);
+        let errorText = `API request failed with status ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorText = errorData.error || errorText;
+        } catch (e) {
+          // Ignore if response is not JSON
+        }
+        throw new Error(errorText);
       }
 
-      const data = await response.json();
-      setScriptRunOutput(data.output); // Assuming the API returns { output: "..." }
+      if (!response.body) {
+        throw new Error("Response body is null");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      // let streamErrorOccurred = false; // Flag to indicate specific stream error, not used for now
+
+      while (true) {
+        let value;
+        let done;
+        try {
+          ({ value, done } = await reader.read());
+        } catch (streamReadError: any) {
+          console.error("Error reading from stream:", streamReadError);
+          setScriptExecutionError("Error reading script output stream. Connection may have been lost or the process terminated unexpectedly.");
+          setScriptLogOutput(prev => [...prev, "STREAM_ERROR: The log stream ended unexpectedly due to a read error."]);
+          // streamErrorOccurred = true;
+          break; // Exit the loop
+        }
+
+        if (done) {
+          break;
+        }
+
+        try {
+          buffer += decoder.decode(value, { stream: true });
+        } catch (decodeError: any) {
+          console.error("Error decoding stream data:", decodeError);
+          setScriptExecutionError("Error decoding script output. The data may be corrupted.");
+          setScriptLogOutput(prev => [...prev, "STREAM_ERROR: The log stream contained undecodable data."]);
+          // streamErrorOccurred = true;
+          break; // Exit the loop
+        }
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ""; // Keep the last partial line in buffer
+
+        for (const line of lines) {
+          if (line.startsWith("LOG: ")) {
+            setScriptLogOutput(prev => [...prev, line.substring(5)]);
+          } else if (line.startsWith("RESULT: ")) {
+            try {
+              const finalResult = JSON.parse(line.substring(8));
+              let summary = `Overall Status: ${finalResult.overallStatus}\n`;
+              if (finalResult.mainScript) {
+                summary += `Stdout:\n${finalResult.mainScript.stdout || ""}\n`;
+                summary += `Stderr:\n${finalResult.mainScript.stderr || ""}\n`;
+              }
+              if (finalResult.error) {
+                summary += `Error: ${finalResult.error}\n`;
+              }
+              setScriptRunOutput(summary);
+
+              if (finalResult.mainScript && finalResult.mainScript.stdout) {
+                const taskOutputs = parsePhasedOutputs(finalResult.mainScript.stdout);
+                setPhasedOutputs(taskOutputs);
+              }
+
+              if (finalResult.overallStatus === 'failure') {
+                let errorMsg = "Script execution failed.";
+                if (finalResult.error) errorMsg += ` Error: ${finalResult.error}`;
+                if (finalResult.mainScript && finalResult.mainScript.stderr) errorMsg += ` Stderr: ${finalResult.mainScript.stderr}`;
+                setScriptExecutionError(errorMsg);
+              }
+            } catch (e) {
+              console.error("Error parsing final result JSON:", e);
+              setScriptExecutionError("Error parsing final result from script execution.");
+            }
+          }
+        }
+      }
+      // Process any remaining buffer content
+      if (buffer.startsWith("LOG: ")) {
+        setScriptLogOutput(prev => [...prev, buffer.substring(5)]);
+      } else if (buffer.startsWith("RESULT: ")) {
+         try {
+              const finalResult = JSON.parse(buffer.substring(8));
+              let summary = `Overall Status: ${finalResult.overallStatus}\n`;
+              if (finalResult.mainScript) {
+                summary += `Stdout:\n${finalResult.mainScript.stdout || ""}\n`;
+                summary += `Stderr:\n${finalResult.mainScript.stderr || ""}\n`;
+              }
+              if (finalResult.error) {
+                summary += `Error: ${finalResult.error}\n`;
+              }
+              setScriptRunOutput(summary);
+
+              if (finalResult.mainScript && finalResult.mainScript.stdout) {
+                const taskOutputs = parsePhasedOutputs(finalResult.mainScript.stdout);
+                setPhasedOutputs(taskOutputs);
+              }
+
+              if (finalResult.overallStatus === 'failure') {
+                let errorMsg = "Script execution failed.";
+                if (finalResult.error) errorMsg += ` Error: ${finalResult.error}`;
+                if (finalResult.mainScript && finalResult.mainScript.stderr) errorMsg += ` Stderr: ${finalResult.mainScript.stderr}`;
+                setScriptExecutionError(errorMsg);
+              }
+            } catch (e) {
+              console.error("Error parsing final result JSON from remaining buffer:", e);
+              setScriptExecutionError("Error parsing final result from script execution (buffer).");
+            }
+      }
+
     } catch (err) {
       console.error("Error executing script:", err);
       if (err instanceof Error) {
@@ -566,24 +680,46 @@ export default function Home() {
 
       {/* Output sections: Generated Script and Script Execution Output / Phased Outputs */}
       {/* These are shown for both simple mode and advanced mode (phase 3) */}
-      {(generatedScript || scriptRunOutput || phasedOutputs.length > 0 || executionOutput) && (
+      {(generatedScript || scriptLogOutput.length > 0 || scriptRunOutput || phasedOutputs.length > 0) && (
          <div className="grid md:grid-cols-2 gap-6 mt-10 mb-8">
           <div>
-            <label htmlFor="scriptOutput" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
+            <label htmlFor="scriptExecutionArea" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
               {advancedMode && currentPhaseRunning === 3 ? "Phase 3 Script Execution Output" : (advancedMode ? "Script Execution Output (Phase 3)" : "Script Execution Output (Simple Mode)")}
             </label>
-            <pre
-              id="scriptOutput"
-              className="w-full p-4 border border-slate-200 rounded-md bg-slate-50 shadow-sm overflow-auto whitespace-pre-wrap min-h-[160px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
-            >
-              {scriptRunOutput || (executionOutput ? `Full Docker Output:\n${executionOutput}` : "Script execution output will appear here")}
-            </pre>
-             {phasedOutputs.length > 0 && (
-                <div className="mt-4">
-                  <h3 className="text-md font-semibold mb-2 text-slate-700 dark:text-slate-300">Task Outputs:</h3>
+            <div id="scriptExecutionArea" className="space-y-4 p-4 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 shadow-sm min-h-[160px]">
+              {/* Live Logs */}
+              <div>
+                <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  {isExecutingScript ? "Execution Logs (Streaming...)" : "Execution Logs:"}
+                </h3>
+                {(scriptLogOutput.length > 0 || isExecutingScript) ? (
+                  <pre className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-inner overflow-auto whitespace-pre-wrap max-h-[300px] min-h-[100px] text-xs text-slate-600 dark:text-slate-300">
+                    {scriptLogOutput.length > 0 ? scriptLogOutput.join('\n') : "Waiting for script output..."}
+                  </pre>
+                ) : (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">No logs produced.</p>
+                )}
+              </div>
+
+              {/* Final Summary */}
+              {scriptRunOutput && (
+                <div>
+                  <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Final Summary:
+                  </h3>
+                  <pre className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-inner overflow-auto whitespace-pre-wrap text-xs text-slate-600 dark:text-slate-300">
+                    {scriptRunOutput}
+                  </pre>
+                </div>
+              )}
+
+              {/* Phased Outputs */}
+              {phasedOutputs.length > 0 && (
+                <div>
+                  <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300 mb-1">Task Outputs:</h3>
                   <ul className="space-y-2">
                     {phasedOutputs.map((out, index) => (
-                      <li key={index} className="p-3 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 shadow-sm">
+                      <li key={index} className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm">
                         <strong className="text-sm text-indigo-600 dark:text-indigo-400">{out.taskName}:</strong>
                         <pre className="mt-1 text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap overflow-auto">{out.output}</pre>
                       </li>
@@ -591,6 +727,7 @@ export default function Home() {
                   </ul>
                 </div>
               )}
+            </div>
           </div>
           <div>
             <label htmlFor="generatedScript" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
