@@ -54,6 +54,7 @@ export default function Home() {
   const [modelsError, setModelsError] = useState<string>("");
   const [phasedOutputs, setPhasedOutputs] = useState<PhasedOutput[]>([]); // For simple mode's task outputs
   const [scriptLogOutput, setScriptLogOutput] = useState<string[]>([]);
+  const [dockerCommandToDisplay, setDockerCommandToDisplay] = useState<string>("");
 
   // Advanced Mode State
   const [advancedMode, setAdvancedMode] = useState<boolean>(false);
@@ -294,6 +295,7 @@ export default function Home() {
     setIsExecutingScript(true);
     setScriptExecutionError("");
     setScriptLogOutput([]);
+    setDockerCommandToDisplay(""); // Reset Docker command display
     setScriptRunOutput("");
     setPhasedOutputs([]);
     setExecutionOutput("");
@@ -358,11 +360,15 @@ export default function Home() {
         buffer = lines.pop() || ""; // Keep the last partial line in buffer
 
         for (const line of lines) {
-          if (line.startsWith("LOG: ")) {
-            setScriptLogOutput(prev => [...prev, line.substring(5)]);
+          if (line.startsWith("DOCKER_COMMAND: ")) {
+            setDockerCommandToDisplay(line.substring("DOCKER_COMMAND: ".length));
+          } else if (line.startsWith("LOG: ")) {
+            setScriptLogOutput(prev => [...prev, line.substring("LOG: ".length)]);
+          } else if (line.startsWith("LOG_ERROR: ")) {
+            setScriptLogOutput(prev => [...prev, line.substring("LOG_ERROR: ".length)]);
           } else if (line.startsWith("RESULT: ")) {
             try {
-              const finalResult = JSON.parse(line.substring(8));
+              const finalResult = JSON.parse(line.substring("RESULT: ".length));
               let summary = `Overall Status: ${finalResult.overallStatus}\n`;
               if (finalResult.mainScript) {
                 summary += `Stdout:\n${finalResult.mainScript.stdout || ""}\n`;
@@ -392,11 +398,15 @@ export default function Home() {
         }
       }
       // Process any remaining buffer content
-      if (buffer.startsWith("LOG: ")) {
-        setScriptLogOutput(prev => [...prev, buffer.substring(5)]);
+      if (buffer.startsWith("DOCKER_COMMAND: ")) {
+        setDockerCommandToDisplay(buffer.substring("DOCKER_COMMAND: ".length));
+      } else if (buffer.startsWith("LOG: ")) {
+        setScriptLogOutput(prev => [...prev, buffer.substring("LOG: ".length)]);
+      } else if (buffer.startsWith("LOG_ERROR: ")) {
+        setScriptLogOutput(prev => [...prev, buffer.substring("LOG_ERROR: ".length)]);
       } else if (buffer.startsWith("RESULT: ")) {
          try {
-              const finalResult = JSON.parse(buffer.substring(8));
+              const finalResult = JSON.parse(buffer.substring("RESULT: ".length));
               let summary = `Overall Status: ${finalResult.overallStatus}\n`;
               if (finalResult.mainScript) {
                 summary += `Stdout:\n${finalResult.mainScript.stdout || ""}\n`;
@@ -687,6 +697,17 @@ export default function Home() {
               {advancedMode && currentPhaseRunning === 3 ? "Phase 3 Script Execution Output" : (advancedMode ? "Script Execution Output (Phase 3)" : "Script Execution Output (Simple Mode)")}
             </label>
             <div id="scriptExecutionArea" className="space-y-4 p-4 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 shadow-sm min-h-[160px]">
+              {/* Display Docker Command */}
+              {dockerCommandToDisplay && (
+                <div>
+                  <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Docker Command Used:
+                  </h3>
+                  <pre className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-inner overflow-auto whitespace-pre-wrap text-xs text-slate-600 dark:text-slate-300">
+                    {dockerCommandToDisplay}
+                  </pre>
+                </div>
+              )}
               {/* Live Logs */}
               <div>
                 <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300 mb-1">

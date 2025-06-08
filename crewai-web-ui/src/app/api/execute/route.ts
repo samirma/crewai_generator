@@ -28,6 +28,7 @@ interface ExecutePythonScriptSetupResult {
   preHostRunResult: StageOutput;
   overallStatus: 'success' | 'failure';
   error?: string;
+  dockerCommand?: string;
 }
 
 // Modified function to process collected Docker output and finalize execution
@@ -327,7 +328,7 @@ async function executePythonScript(scriptContent: string): Promise<ExecutePython
       overallStatus = 'failure';
       topLevelError = `Docker image build failed: ${buildError.message}`;
       // Early exit for Docker build failure
-      return { preHostRunResult, overallStatus, error: topLevelError };
+    return { preHostRunResult, overallStatus, error: topLevelError, dockerCommand: "" }; // Return empty dockerCommand on failure
     }
 
     // --- Docker Container Setup ---
@@ -348,7 +349,7 @@ async function executePythonScript(scriptContent: string): Promise<ExecutePython
     try {
       const container = await docker.createContainer({
         Image: imageName,
-        Cmd: ['/bin/sh', '-c', dockerCommand],
+        Cmd: ['/bin/sh', '-c', dockerCommand], // dockerCommand is defined above
         WorkingDir: '/workspace',
         HostConfig: {
           Mounts: [{ Type: 'bind', Source: workspaceDir, Target: '/workspace' }],
@@ -365,20 +366,21 @@ async function executePythonScript(scriptContent: string): Promise<ExecutePython
       await container.start();
       console.log(`Container for ${imageName} started.`);
 
-      return { container, stream, preHostRunResult, overallStatus };
+      return { container, stream, preHostRunResult, overallStatus, dockerCommand }; // Return dockerCommand
 
     } catch (dockerErr: any) {
       console.error("Error setting up or starting Docker container:", dockerErr);
       overallStatus = 'failure';
       topLevelError = `Docker container setup/start error: ${dockerErr.message}`;
-      return { preHostRunResult, overallStatus, error: topLevelError };
+      return { preHostRunResult, overallStatus, error: topLevelError, dockerCommand }; // Return dockerCommand even on error
     }
 
   } catch (topLevelCatchError: any) { // Catch errors from fs operations, etc.
     console.error("Top-level error in executePythonScript setup:", topLevelCatchError);
     overallStatus = 'failure';
     topLevelError = `Unhandled setup error: ${topLevelCatchError.message}`;
-    return { preHostRunResult, overallStatus, error: topLevelError };
+    // In this case, dockerCommand might not have been defined, so ensure it's part of the return if needed or set to empty
+    return { preHostRunResult, overallStatus, error: topLevelError, dockerCommand: "" };
   }
 }
 
@@ -415,33 +417,43 @@ export async function POST(request: Request) {
 
     console.log("Docker setup successful. Starting to stream logs and process final result...");
 
-    const { container, stream: dockerStream, preHostRunResult, overallStatus: setupOverallStatus, error: setupError } = setupResult;
+    const { container, stream: dockerStream, preHostRunResult, overallStatus: setupOverallStatus, error: setupError, dockerCommand: retrievedDockerCommand } = setupResult;
 
     const readableStream = new ReadableStream({
       async start(controller) {
+        if (retrievedDockerCommand) {
+          controller.enqueue(`DOCKER_COMMAND: ${retrievedDockerCommand}\n`);
+        }
+
         const stdoutChunks: Buffer[] = [];
         const stderrChunks: Buffer[] = [];
 
         dockerStream!.on('data', (chunk: Buffer) => {
           try {
-            // Demultiplex Docker stream (first byte indicates type: 1 for stdout, 2 for stderr)
-            // The rest of the chunk is the actual data.
             if (chunk.length > 8) {
               const type = chunk[0];
               const payload = chunk.slice(8);
+              const payloadString = payload.toString('utf-8');
 
-              // Log to server console
-              console.log(`Docker Stream (to client, type ${type}):`, payload.toString('utf-8'));
-              // Enqueue for client
-              controller.enqueue(`LOG: ${payload.toString('utf-8')}`);
+              // console.log(`Docker Stream (to client, type ${type}):`, payloadString); // Commented out as per plan
 
-              if (type === 1) stdoutChunks.push(payload);
-              else if (type === 2) stderrChunks.push(payload);
+              if (type === 1) { // stdout
+                controller.enqueue(`LOG: ${payloadString}`);
+                stdoutChunks.push(payload);
+              } else if (type === 2) { // stderr
+                controller.enqueue(`LOG_ERROR: ${payloadString}`);
+                stderrChunks.push(payload);
+              } else {
+                controller.enqueue(`LOG_UNKNOWN_TYPE_${type}: ${payloadString}`);
+                // Still collect unknown types in stdout for now, or create a separate bucket
+                stdoutChunks.push(payload);
+              }
             } else {
-              // Should not happen with TTY=false, but good to log if it does
               const rawChunkStr = chunk.toString('utf-8');
-              console.log("Docker Stream (raw, short chunk):", rawChunkStr);
-              controller.enqueue(`LOG: ${rawChunkStr}`);
+              console.log("Docker Stream (raw, short chunk, to client):", rawChunkStr);
+              controller.enqueue(`LOG_RAW: ${rawChunkStr}`);
+              // Collect raw chunks in stdout for now
+              stdoutChunks.push(chunk);
             }
           } catch (e: any) {
             console.error("Error processing chunk for client stream:", e);
