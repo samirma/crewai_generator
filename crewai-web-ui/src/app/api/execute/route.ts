@@ -435,8 +435,15 @@ export async function POST(request: Request) {
               const payload = chunk.slice(8);
               const payloadString = payload.toString('utf-8');
 
-              // console.log(`Docker Stream (to client, type ${type}):`, payloadString); // Commented out as per plan
+              // Server-side console logging (as per new feedback)
+              if (type === 2) { // stderr
+                // ANSI escape code for red text
+                console.log(`[31m%s[0m`, payloadString.endsWith('\n') ? payloadString.slice(0, -1) : payloadString);
+              } else { // stdout and other types
+                console.log(payloadString.endsWith('\n') ? payloadString.slice(0, -1) : payloadString);
+              }
 
+              // Existing client-side enqueue logic
               if (type === 1) { // stdout
                 controller.enqueue(`LOG: ${payloadString}`);
                 stdoutChunks.push(payload);
@@ -449,14 +456,17 @@ export async function POST(request: Request) {
                 stdoutChunks.push(payload);
               }
             } else {
+              // For very short chunks (unexpected with TTY=false, but handle defensively)
               const rawChunkStr = chunk.toString('utf-8');
-              console.log("Docker Stream (raw, short chunk, to client):", rawChunkStr);
+              // Server-side log for raw/short chunk
+              console.log(rawChunkStr.endsWith('\n') ? rawChunkStr.slice(0, -1) : rawChunkStr);
+              // Client-side enqueue for raw/short chunk
               controller.enqueue(`LOG_RAW: ${rawChunkStr}`);
               // Collect raw chunks in stdout for now
               stdoutChunks.push(chunk);
             }
           } catch (e: any) {
-            console.error("Error processing chunk for client stream:", e);
+            console.error("Error processing chunk for client stream or server log:", e);
             controller.enqueue(`LOG_ERROR: Error processing Docker log chunk: ${e.message}`);
           }
         });
