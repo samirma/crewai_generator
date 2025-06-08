@@ -63,6 +63,7 @@ export default function Home() {
   const [phase3Prompt, setPhase3Prompt] = useState<string>("");
   const [phase1Output, setPhase1Output] = useState<string>(""); // Blueprint
   const [phase2Output, setPhase2Output] = useState<string>(""); // Architecture Plan
+  const [phase3GeneratedTaskOutputs, setPhase3GeneratedTaskOutputs] = useState<PhasedOutput[]>([]);
   const [currentPhaseRunning, setCurrentPhaseRunning] = useState<number | null>(null);
   const [isLoadingPhase, setIsLoadingPhase] = useState<Record<number, boolean>>({ 1: false, 2: false, 3: false });
   const [displayedPrompt, setDisplayedPrompt] = useState<string>("");
@@ -273,7 +274,8 @@ export default function Home() {
           setPhase2Output(data.output);
         } else if (phase === 3) {
           setGeneratedScript(data.generatedScript);
-          setPhasedOutputs(data.phasedOutputs || []);
+          setPhase3GeneratedTaskOutputs(data.phasedOutputs || []);
+          // setPhasedOutputs(data.phasedOutputs || []); // Removed as per requirement
           // executionOutput and scriptRunOutput are already cleared by resetOutputStates
           // and should only be set after script execution, not after phase 3 generation.
         }
@@ -678,6 +680,21 @@ export default function Home() {
             >
               {isLoadingPhase[3] ? 'Running Phase 3...' : 'Run Phase 3 (Generate & Execute Script)'}
             </button>
+            {phase3GeneratedTaskOutputs && phase3GeneratedTaskOutputs.length > 0 && (
+              <div className="mt-6">
+                <label htmlFor="phase3GeneratedOutput" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Phase 3 Generation - Predicted Task Outputs</label>
+                <ul className="space-y-2 p-3 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 shadow-inner min-h-[100px]">
+                  {phase3GeneratedTaskOutputs.map((out, index) => (
+                    <li key={index} className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm">
+                      <strong className="text-sm text-indigo-600 dark:text-indigo-400">{out.taskName}:</strong>
+                      <pre className="mt-1 text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap overflow-auto">
+                        {out.output}
+                      </pre>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {/* Phase 3 output uses existing generatedScript and scriptRunOutput areas */}
           </div>
         </div>
