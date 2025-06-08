@@ -7,6 +7,9 @@ WORKDIR /workspace
 # Install git for crewai dependencies that might need it
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
+# Install build-essential for gcc and other development tools
+RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/lists/*
+
 # Install crewai and crewai-tools
 # Ensure these are the latest versions or specific versions as per requirements
 RUN pip install --no-cache-dir crewai crewai-tools
