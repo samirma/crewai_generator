@@ -5,7 +5,7 @@ FROM python:3.10-slim
 WORKDIR /workspace
 
 # Install build-essential for gcc and other development tools
-RUN apt-get update && apt-get install -y git build-essential vim  && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y git build-essential vim
 
 RUN pip install --upgrade pip
 
