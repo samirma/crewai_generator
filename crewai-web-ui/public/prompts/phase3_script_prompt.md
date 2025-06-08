@@ -1,6 +1,7 @@
-## Phase 3: Construct Python Script
 
-**Input:** The **complete 'Design-Crew-Architecture-Plan' document** generated in Phase 2. No other information source should be used.
+## Construct Python Script
+
+**Input:** The **complete 'Design-Crew-Architecture-Plan' document** generated. No other information source should be used.
 
 **Process:** Construct the Python script by meticulously implementing all specifications, configurations, and logic detailed in the **entirety of the 'Design-Crew-Architecture-Plan' input document**.
 
@@ -122,7 +123,7 @@ if __name__ == "__main__":
 
 ```
 
-**Internal Review Checklist (Phase 3 Self-Correction - Perform before finalizing script):**
+**Internal Review Checklist (Script Construction Self-Correction - Perform before finalizing script):**
 *   **Plan Adherence:** Does the script accurately implement ALL specifications from the 'Design-Crew-Architecture-Plan' (LLMs, tools, agents, tasks, process, memory, Pydantic models, custom tool logic, RAG configs)?
 *   **Python Syntax & Imports:** Is the script syntactically correct Python 3? Are all necessary modules imported (e.g., `BaseTool`, `BaseModel` *only if used*, specific `crewai_tools` as per Plan)? Run a linter or syntax check if possible.
 *   **Environment & API Keys:** Is `load_dotenv(find_dotenv())` called at the very beginning? Are all API keys accessed via `os.getenv()` using correct environment variable names from the Plan? **VERIFY NO HARDCODED SECRETS.**
