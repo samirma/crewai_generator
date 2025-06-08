@@ -64,7 +64,6 @@
             #         "provider": "ollama", # Or other provider
             #         "config": {
             #             "model": "nomic-embed-text:latest",
-            #             # "url": "http://localhost:11434/api/" # If needed
             #         },
             #     },
             #   }
