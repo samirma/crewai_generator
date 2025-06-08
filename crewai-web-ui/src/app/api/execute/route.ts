@@ -355,6 +355,7 @@ async function executePythonScript(scriptContent: string): Promise<ExecutePython
           Mounts: [{ Type: 'bind', Source: workspaceDir, Target: '/workspace' }],
           AutoRemove: true,
           ExtraHosts: ['host.docker.internal:host-gateway'],
+          NetworkMode: "host",
         },
         Env: ['OLLAMA_HOST=http://host.docker.internal:11434'],
         Tty: false,

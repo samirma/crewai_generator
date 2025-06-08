@@ -119,7 +119,7 @@ This project provides a web interface to automate the process of generating and 
 
 # Docker test
 '''bash
-docker run -it --rm --name my-python-runner python-runner:latest bash
+docker run -it --rm --name my-python-runner -v "./workspace:/workspace" --network="host" python-runner:latest bash
 '''
 
 ## Future Enhancements

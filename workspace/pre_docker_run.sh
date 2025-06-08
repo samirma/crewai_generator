@@ -1,9 +1,4 @@
 echo "/workspace/pre_docker_run.sh is running"
 
-id
+rm -Rf /workspace/db
 
-pip install --force-reinstall pymupdf
-
-apt update
-
-apt install texlive-full -y

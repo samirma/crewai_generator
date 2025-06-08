@@ -194,3 +194,4 @@ cython_debug/
 .cursorindexingignore
 
 workspace/*
+server_logs.txt

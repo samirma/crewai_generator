@@ -165,6 +165,8 @@ export default function Home() {
     setPhasedOutputs([]);
     setScriptRunOutput("");
     setDisplayedPrompt("");
+    setScriptExecutionError("");
+    setModelsError("");
   };
 
   const handleSimpleModeSubmit = async () => {
