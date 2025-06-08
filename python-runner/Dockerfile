@@ -4,11 +4,10 @@ FROM python:3.10-slim
 # Set working directory
 WORKDIR /workspace
 
-# Install git for crewai dependencies that might need it
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
-
 # Install build-essential for gcc and other development tools
-RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y git build-essential vim  && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --upgrade pip
 
 # Install crewai and crewai-tools
 # Ensure these are the latest versions or specific versions as per requirements
