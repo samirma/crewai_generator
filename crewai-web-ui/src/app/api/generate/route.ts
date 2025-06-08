@@ -216,28 +216,25 @@ async function interactWithLLM(
   // Script extraction logic, applicable if not returning early for advanced phases 1 & 2
   if (mode === 'simple' || (mode === 'advanced' && runPhase === 3)) {
     let scriptToExtract = llmResponseText;
-    if (scriptToExtract.includes('```python')) {
-      const pythonCodeBlockRegex = /```python\n([\s\S]*?)\n```/;
-      const match = scriptToExtract.match(pythonCodeBlockRegex);
-      if (match && match[1]) {
-        console.log(`Extracted Python code from markdown block for ${llmModel}.`);
-        generatedScript = match[1];
-      } else {
-        // If ```python is present but regex fails, keep original text as script (might be malformed)
-        generatedScript = scriptToExtract;
-      }
-    } else if (scriptToExtract.startsWith('```') && scriptToExtract.endsWith('```')) {
-      const pythonCodeBlockRegex = /```\n?([\s\S]*?)\n?```/;
-      const match = scriptToExtract.match(pythonCodeBlockRegex);
-      if (match && match[1]) {
-        console.log(`Extracted Python code from simple \`\`\` block for ${llmModel}.`);
-        generatedScript = match[1].trim();
-      } else {
-        generatedScript = scriptToExtract.substring(3, scriptToExtract.length - 3).trim();
-      }
+
+    const pythonCodeBlockRegex = /```python\n([\s\S]*?)\n```/g;
+    const pythonMatches = Array.from(scriptToExtract.matchAll(pythonCodeBlockRegex));
+
+    if (pythonMatches.length > 0) {
+      generatedScript = pythonMatches[pythonMatches.length - 1][1];
+      console.log(`Extracted last Python code block from markdown for ${llmModel}.`);
     } else {
-      // No markdown block detected, assume the whole response is the script
-      generatedScript = scriptToExtract;
+      const genericCodeBlockRegex = /```\n?([\s\S]*?)\n?```/g;
+      const genericMatches = Array.from(scriptToExtract.matchAll(genericCodeBlockRegex));
+
+      if (genericMatches.length > 0) {
+        generatedScript = genericMatches[genericMatches.length - 1][1].trim();
+        console.log(`Extracted last generic code block from markdown for ${llmModel}.`);
+      } else {
+        // No markdown block detected, assume the whole response is the script
+        generatedScript = scriptToExtract;
+        console.log(`No markdown block detected for ${llmModel}. Using entire response as script.`);
+      }
     }
     // If it was the mock response for unhandled model, generatedScript will be that mock script.
   }

@@ -1,0 +1,34 @@
+
+> crewai-web-ui@0.1.0 dev
+> next dev --turbopack
+
+   ▲ Next.js 15.3.3 (Turbopack)
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.0.2:3000
+
+ ✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+ ✓ Ready in 1628ms
+ ○ Compiling /api/generate ...
+ ✓ Compiled /api/generate in 2.7s
+--- Starting script extraction tests ---
+Extracted last Python code block from markdown for mock-model-for-test (Test).
+Test Case 1 (Multiple Python blocks) - Extracted Script: `print("Second Python block - THIS SHOULD BE EXTRACTED")`
+Extracted last generic code block from markdown for mock-model-for-test (Test).
+Test Case 2 (Multiple generic blocks) - Extracted Script: `print("Second generic block - THIS SHOULD BE EXTRACTED")`
+Extracted last Python code block from markdown for mock-model-for-test (Test).
+Test Case 3 (Mix of Python and generic, last Python) - Extracted Script: `print("First Python block - THIS SHOULD BE EXTRACTED")`
+Extracted last Python code block from markdown for mock-model-for-test (Test).
+Test Case 4 (Single Python block) - Extracted Script: `print("Single Python block - THIS SHOULD BE EXTRACTED")`
+Extracted last generic code block from markdown for mock-model-for-test (Test).
+Test Case 5 (Single generic block) - Extracted Script: `print("Single generic block - THIS SHOULD BE EXTRACTED")`
+No markdown block detected for mock-model-for-test (Test). Using entire response as script.
+Test Case 6 (No code blocks) - Extracted Script: `print("No code blocks - THIS WHOLE STRING SHOULD BE THE SCRIPT")`
+Extracted last Python code block from markdown for mock-model-for-test (Test).
+Test Case 7 (Python block not last) - Extracted Script: `print("Python block - THIS SHOULD BE EXTRACTED")`
+--- Finished script extraction tests ---
+ POST /api/generate 200 in 3296ms
