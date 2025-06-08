@@ -1,3 +1,5 @@
+--- START OF FILE phase3_script_prompt.md ---
+
 
 ## Construct Python Script
 
@@ -22,11 +24,12 @@ from crewai import LLM, Agent, Task, Crew, Process
 # Import ALL specific standard tools used (e.g., from crewai_tools) based on 'tool_type' in Section C of the Plan
 # Example: from crewai_tools import SerperDevTool, WebsiteSearchTool, FileWriterTool, FileReadTool, PDFSearchTool
 # Import BaseTool if any custom tools are defined in Section D of the Plan
-# from crewai.tools import BaseTool
+from crewai.tools import BaseTool # UNCOMMENTED IF CUSTOM TOOLS ARE USED
 # Import Pydantic BaseModel if any Pydantic models are defined in Section F of the Plan
-# from pydantic import BaseModel
+from pydantic import BaseModel, Field # UNCOMMENTED IF PYDANTIC MODELS ARE USED
+from typing import Type # UNCOMMENTED IF Type HINTING IS USED FOR args_schema
 ```
-*(The AI generating the script **MUST** uncomment `BaseTool`, `BaseModel`, and specific tool imports only if they are needed based on the Design-Crew-Architecture-Plan).*
+*(The AI generating the script **MUST** uncomment `BaseTool`, `BaseModel`, `Field`, `Type` and specific tool imports only if they are needed based on the Design-Crew-Architecture-Plan).*
 
 **API Key Access:**
 *   Method: Use `os.getenv("YOUR_API_KEY_NAME")` for ALL API keys, where "YOUR_API_KEY_NAME" is derived from `api_key` fields in the 'Design-Crew-Architecture-Plan'.
@@ -57,6 +60,25 @@ from crewai import LLM, Agent, Task, Crew, Process
     *   Implement Python class definitions for ALL custom tools from Section D, using their `class_name`, `tool_name_attr`, `description_attr`, `args_schema_class_name` (if any), `_run_method_signature`, and `_run_method_logic_description`.
         *   **CRITICAL**: Include the `justification_for_custom_tool` (from Section D of the Plan) as a prominent comment within or above each custom tool class definition.
         *   Implement basic `try-except` blocks within custom tool `_run` methods for robustness, based on `_run_method_logic_description`.
+        *   **Custom Tool Template:**
+            ```python
+            # Justification for this custom tool: [justification_for_custom_tool from Plan]
+            class MyToolInput(BaseModel): # Use args_schema_class_name from Plan
+                """Input schema for MyCustomTool."""
+                argument: str = Field(..., description="Description of the argument.") # Define fields based on _run_method_signature
+
+            class MyCustomTool(BaseTool): # Use class_name from Plan
+                name: str = "Name of my tool" # Use tool_name_attr from Plan
+                description: str = "What this tool does. It's vital for effective utilization." # Use description_attr from Plan
+                args_schema: Type[BaseModel] = MyToolInput # Use args_schema_class_name from Plan, if applicable
+
+                def _run(self, argument: str) -> str: # Use _run_method_signature from Plan
+                    try:
+                        # Your tool's logic here, based on _run_method_logic_description from Plan
+                        return "Tool's result"
+                    except Exception as e:
+                        return f"An error occurred: {e}"
+            ```
     *   Implement Pydantic model class definitions specified in Section F of the Plan.
 
 **Tool Instantiation:**
@@ -125,7 +147,7 @@ if __name__ == "__main__":
 
 **Internal Review Checklist (Script Construction Self-Correction - Perform before finalizing script):**
 *   **Plan Adherence:** Does the script accurately implement ALL specifications from the 'Design-Crew-Architecture-Plan' (LLMs, tools, agents, tasks, process, memory, Pydantic models, custom tool logic, RAG configs)?
-*   **Python Syntax & Imports:** Is the script syntactically correct Python 3? Are all necessary modules imported (e.g., `BaseTool`, `BaseModel` *only if used*, specific `crewai_tools` as per Plan)? Run a linter or syntax check if possible.
+*   **Python Syntax & Imports:** Is the script syntactically correct Python 3? Are all necessary modules imported (e.g., `BaseTool`, `BaseModel`, `Field`, `Type` *only if used*, specific `crewai_tools` as per Plan)? Run a linter or syntax check if possible.
 *   **Environment & API Keys:** Is `load_dotenv(find_dotenv())` called at the very beginning? Are all API keys accessed via `os.getenv()` using correct environment variable names from the Plan? **VERIFY NO HARDCODED SECRETS.**
 *   **LLM Configuration:** Are all LLM instances (agents, manager, RAG LLMs) configured with `temperature=0.0` and correct models, API keys, `config_params`, and `multimodal` settings as per the Plan?
 *   **Tool Instantiation & Configuration:** Are all tools instantiated correctly with parameters from the 'Tool Configuration Repository' (Section C of Plan), including RAG `config` dictionaries? Are tool instances correctly assigned to Python variables matching `config_id`?
