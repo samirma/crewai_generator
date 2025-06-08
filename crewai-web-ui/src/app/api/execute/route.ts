@@ -133,7 +133,9 @@ async function executePythonScript(scriptContent: string): Promise<ExecutionResu
         HostConfig: {
           Mounts: [{ Type: 'bind', Source: workspaceDir, Target: '/workspace' }],
           AutoRemove: true,
+          ExtraHosts: ['host.docker.internal:host-gateway'], // Added this line
         },
+        Env: ['OLLAMA_HOST=http://host.docker.internal:11434'], // Added this line
         Tty: false,
       });
 

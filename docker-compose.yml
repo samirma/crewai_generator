@@ -7,6 +7,8 @@ services:
       - "3000:3000"
     environment:
       NODE_ENV: development # Or 'production' for production builds
+    extra_hosts: # Add this section
+      - "host.docker.internal:host-gateway" # Add this line
     # Mount the source code for development (optional, good for local dev)
     # For production, you'd typically not mount the source
     volumes:
