@@ -21,7 +21,7 @@ load_dotenv(find_dotenv()) # MUST BE CALLED EARLY
 * Uncomment `from pydantic import BaseModel, Field` if `structured_data_handling.usage` is `true` in the JSON.
 ```python
 from crewai import LLM, Agent, Task, Crew, Process
-# Import specific standard tools (e.g., SerperDevTool) based on the `tool_type` values in the JSON's `tool_repository`.
+# Import specific standard tools (e.g., SerperDevTool) based on the `class_name` values in the JSON's `tool_repository`.
 # from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool
 # from crewai.tools import BaseTool # UNCOMMENT if custom tools are defined
 # from pydantic import BaseModel, Field # UNCOMMENT if Pydantic models are defined
@@ -33,26 +33,32 @@ from crewai import LLM, Agent, Task, Crew, Process
 
 **LLM Instantiation:**
 * Iterate through the `agent_cadre` list and the `workflow_process.manager_llm_specification` (if it exists) in the input JSON.
-* For each unique LLM configuration, create an `LLM` instance using the `model`, `temperature`, `api_key`, and `multimodal` properties provided in the JSON. `temperature` MUST BE 0.0.
+* For each unique LLM configuration, create an `LLM` instance using the `model`, and `api_key` properties provided in the JSON. The `temperature` MUST BE 0.0.
 
 **Custom Tool & Pydantic Model Definitions (If applicable):**
-* If the `custom_tool_definitions` key exists in the JSON, iterate through the list and generate a Python class for each object. Use the `class_name`, `tool_name_attr`, `description_attr`, `args_schema_class_name`, and `run_method_signature`.
-    * **CRITICAL**: Insert the `justification_for_custom_tool` string from the JSON as a prominent comment above each generated class definition.
-    * Implement the `_run` method based on the `run_method_logic_description`.
-* If `structured_data_handling.usage` is `true`, iterate through `model_definitions` and generate a Pydantic class for each object using its `class_name` and `fields`.
+* If `structured_data_handling.usage` is `true` in the JSON, iterate through `model_definitions` and generate a Pydantic `BaseModel` class for each object using its `class_name` and `fields`.
+* If the `custom_tool_definitions` key exists and is not empty in the JSON, iterate through the list and generate a Python class for each custom tool.
+    * The class name for the tool MUST be the `class_name` found in the corresponding `tool_repository` entry (which is linked by `tool_id`). The generated class should inherit from `BaseTool`.
+    * **CRITICAL**: Insert the `justification_for_custom_tool` string from the JSON as a prominent comment above the class definition.
+    * The tool's `name` attribute must be set to the value of `name_attribute` from the JSON.
+    * The tool's `description` attribute must be set to the value of `description_attribute` from the JSON.
+    * If `args_pydantic_model` is specified, set the tool's `args_schema` to that Pydantic class.
+    * Define the `_run` method. The method's parameters MUST match the `name` and `python_type` specified in the `run_method_parameters` array.
+    * The body of the `_run` method should be implemented based on the detailed steps provided in the `run_method_logic` string.
 
 **Tool Instantiation:**
 * Iterate through the `tool_repository` list in the JSON.
 * For each object, instantiate the tool:
-    * The Python variable name should be the `config_id`.
-    * The class to instantiate is the `tool_type`.
-    * The constructor arguments are in `initialization_params`. Fetch API keys using `os.getenv()`.
+    * The Python variable name for the tool instance MUST be the `tool_id`.
+    * The class to instantiate is specified in the `class_name` property. This applies to both pre-built and custom tools.
+    * If `initialization_params` exists and is not empty, pass its contents as keyword arguments to the class constructor.
+    * When an API key is needed for a parameter (e.g., `os.getenv("SERPER_API_KEY")`), retrieve it from the environment.
 
 **Agent Definitions:**
 * Iterate through the `agent_cadre` list in the JSON.
 * For each agent object, create an `Agent` instance using its `role`, `goal`, and `backstory`.
 * Assign the correct pre-instantiated LLM object.
-* To build the agent's `tools` list, find all tasks in the JSON's `task_roster` assigned to this agent's `role`. Collect the unique `enabling_tools` (`config_id`s) from those tasks and map them to the tool instances you created.
+* To build the agent's `tools` list, find all tasks in the JSON's `task_roster` assigned to this agent's `role`. Collect the unique `enabling_tools` (`tool_id`s) from those tasks and map them to the tool instances you created.
 * Set `verbose=True` and `allow_delegation` based on the JSON properties.
 
 **Task Definitions:**
@@ -60,7 +66,7 @@ from crewai import LLM, Agent, Task, Crew, Process
 * For each task object, create a `Task` instance:
     * The variable name is the `task_identifier`.
     * Use the `description` and assign the correct agent instance based on `assigned_agent_role`.
-    * The `tools` list for the task must contain the specific tool instances corresponding to the `config_id`s in the task's `enabling_tools` list.
+    * The `tools` list for the task must contain the specific tool instances corresponding to the `tool_id`s in the task's `enabling_tools` list.
     * Set `context` by finding the task instances that match the identifiers in `context_tasks`.
     * If `output_pydantic_model` is specified, assign the corresponding Pydantic class to the `output_pydantic` parameter.
 

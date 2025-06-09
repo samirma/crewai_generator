@@ -8,7 +8,7 @@ The design process should follow a logical, top-down cascade to ensure robustnes
 * **Self-Correction:** The architecture must include agents and tasks dedicated to quality assurance and critique.
 * **Multimodality:** The design must identify which **Agents** are multimodal, as per CrewAI's documentation. This is a core characteristic of the agent that will dictate its LLM and tasks.
 
-**Output:** A **single JSON object** named `'Design-Crew-Architecture-Plan'**. This JSON object must be valid and adhere to the section order and schema defined below. **Do NOT generate any Python code.**
+**Output:** A **single JSON object** named `'Design-Crew-Architecture-Plan'`. This JSON object must be valid and adhere to the section order and schema defined below. **Do NOT generate any Python code.**
 
 ### **Design Section Order**
 
@@ -70,23 +70,26 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
         * `class_name` (String): Python class name.
         * `fields` (Object): Dictionary of field names to their Python types.
 
-* `tool_repository` (Array of Objects): Each object defines a unique tool configuration.
-    * `config_id` (String): A unique identifier.
-    * `tool_type` (String): The CrewAI tool class, based on the latest version of CrewAI tool, or a custom tool's `class_name`.
-    * `is_custom_tool` (Boolean): `true` if this is a custom tool.
-    * `tool_selection_justification` (String): Why this specific tool is chosen.
-    * `initialization_params` (Object, Optional): Parameters for the tool's constructor. For RAG-enabled tools, this MUST include a `config` object with `llm` and `embedder` specifications.
-    * `input_data_requirements` (String): Description of expected input format.
-    * `output_data_requirements` (String): Description of expected output format.
+* `tool_repository` (Array of Objects): Each object defines a unique tool to be instantiated.
+    * `tool_id` (String): A unique identifier for this specific tool instance (e.g., "web_search_tool", "primary_file_writer").
+    * `usage_justification` (String): A concise explanation of why this tool is essential for the crew's overall mission, referencing the Blueprint's goals.
+    * `tool_type_justification` (String): A detailed rationale for choosing a specific tool implementation. First, analyze the tool's requirements (inputs, outputs, logic) from the Blueprint. Then, compare these against existing CrewAI tools.
+        * **If a pre-built tool is sufficient**: Justify why the selected pre-built CrewAI tool (e.g., `SerperDevTool`) is the appropriate choice. Your reasoning here should lead to `is_custom_tool` being `false`.
+        * **If no pre-built tool is sufficient**: Explain precisely why existing tools are inadequate. This justification is mandatory for creating a custom tool and should lead to `is_custom_tool` being `true`.
+    * `is_custom_tool` (Boolean): `true` if the analysis in `tool_type_justification` concluded that a custom tool is necessary, otherwise `false`.
+    * `class_name` (String): The exact Python class name to instantiate. This is determined by the outcome of the `tool_type_justification`. If `is_custom_tool` is `false`, this will be a standard tool class (e.g., `SerperDevTool`). If `is_custom_tool` is `true`, this will be the name of the new custom tool class defined in `custom_tool_definitions`.
+    * `initialization_params` (Object, Optional): An object where keys are the exact parameter names for the tool's constructor (`__init__`) and values are their corresponding arguments.
 
-* `custom_tool_definitions` (Array of Objects, Optional): Define only if a custom tool is necessary.
-    * `class_name` (String): Python class name.
-    * `tool_name_attr` (String): The 'name' attribute for the tool.
-    * `description_attr` (String): The 'description' attribute.
-    * `args_schema_class_name` (String, Optional): Pydantic model class name for inputs.
-    * `run_method_signature` (String): The method signature.
-    * `run_method_logic_description` (String): Detailed text description of the `_run` method's logic.
-    * `justification_for_custom_tool` (String): Explicit justification referencing the Blueprint.
+* `custom_tool_definitions` (Array of Objects, Optional): Defines the complete implementation details for a custom tool.
+    * `tool_id` (String): The identifier that links this definition to an entry in the `tool_repository`.
+    * `name_attribute` (String): The value for the tool's `name` attribute, which is used by the agent to identify the tool (e.g., "read_specific_section_from_blueprint").
+    * `description_attribute` (String): The detailed description of what the tool does, for the agent's understanding.
+    * `args_pydantic_model` (String, Optional): The class name of the Pydantic model used for validating the tool's input arguments.
+    * `justification_for_custom_tool` (String): An explicit justification for why a custom tool is required to fulfill a specific requirement from the Blueprint that cannot be met by standard tools.
+    * `run_method_parameters` (Array of Objects): A structured list of all parameters for the `_run` method. Each object in the array represents one parameter.
+        * `name` (String): The name of the parameter (e.g., `section_title`).
+        * `python_type` (String): The Python type hint for the parameter (e.g., `str`, `int`, `List[str]`).
+    * `run_method_logic` (String): A detailed, step-by-step description or pseudo-code of the logic to be implemented inside the `_run` method. This serves as a direct prompt for the code generator.
 
 * `task_roster` (Array of Objects): Each object represents a task.
     * `task_identifier` (String): Unique name.
@@ -94,7 +97,7 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
     * `assigned_agent_role` (String): The `role` of the designated agent.
     * `quality_gate` (String): A detailed description of the acceptance criteria for the `expected_output`.
     * `expected_output` (String): Definition of the task's output.
-    * `enabling_tools` (Array of Strings): List of `config_id`s from the `tool_repository`.
+    * `enabling_tools` (Array of Strings): List of `tool_id`s from the `tool_repository`.
     * `tool_rationale` (String): Justification for why these tools are chosen for this task.
     * `context_tasks` (Array of Strings, Optional): List of prerequisite `task_identifier`s.
     * `output_pydantic_model` (String, Optional): The `class_name` of a Pydantic model for structured output.
