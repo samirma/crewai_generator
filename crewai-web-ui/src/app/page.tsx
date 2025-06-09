@@ -63,6 +63,7 @@ export default function Home() {
   const [phase3Prompt, setPhase3Prompt] = useState<string>("");
   const [phase1Output, setPhase1Output] = useState<string>(""); // Blueprint
   const [phase2Output, setPhase2Output] = useState<string>(""); // Architecture Plan
+  const [phase3Output, setPhase3Output] = useState<string>(""); // Phase 3 Script Output
   const [phase3GeneratedTaskOutputs, setPhase3GeneratedTaskOutputs] = useState<PhasedOutput[]>([]);
   const [currentPhaseRunning, setCurrentPhaseRunning] = useState<number | null>(null);
   const [isLoadingPhase, setIsLoadingPhase] = useState<Record<number, boolean>>({ 1: false, 2: false, 3: false });
@@ -224,9 +225,11 @@ export default function Home() {
     if (phase === 1) {
       setPhase1Output("");
       setPhase2Output("");
+      setPhase3Output("");
       // setGeneratedScript(""); // Handled by resetOutputStates
     } else if (phase === 2) {
       setPhase2Output("");
+      setPhase3Output("");
       // setGeneratedScript(""); // Handled by resetOutputStates
     } else if (phase === 3) {
       // setGeneratedScript(""); // Handled by resetOutputStates
@@ -234,9 +237,9 @@ export default function Home() {
     // setScriptRunOutput(""), setExecutionOutput(""), setPhasedOutputs([]) are handled by resetOutputStates()
 
     const phaseTextsForPrompt: string[] = [];
-    const currentPhase1Text = (phase1Prompt && phase1Prompt !== defaultPhase1PromptText) ? phase1Prompt : defaultPhase1PromptText;
-    const currentPhase2Text = (phase2Prompt && phase2Prompt !== defaultPhase2PromptText) ? phase2Prompt : defaultPhase2PromptText;
-    const currentPhase3Text = (phase3Prompt && phase3Prompt !== defaultPhase3PromptText) ? phase3Prompt : defaultPhase3PromptText;
+    const currentPhase1Text = phase1Prompt;
+    const currentPhase2Text = phase2Prompt;
+    const currentPhase3Text = phase3Prompt;
 
     if (phase === 1) {
       if (currentPhase1Text) phaseTextsForPrompt.push(currentPhase1Text);
@@ -273,6 +276,7 @@ export default function Home() {
         } else if (phase === 2) {
           setPhase2Output(data.output);
         } else if (phase === 3) {
+          setPhase3Output(data.output);
           setGeneratedScript(data.generatedScript);
           setPhase3GeneratedTaskOutputs(data.phasedOutputs || []);
           // setPhasedOutputs(data.phasedOutputs || []); // Removed as per requirement
@@ -522,6 +526,7 @@ export default function Home() {
             resetOutputStates();
             setPhase1Output("");
             setPhase2Output("");
+            setPhase3Output("");
             // Other states like generatedScript, executionOutput, etc., are covered by resetOutputStates
           }}
         >
@@ -680,6 +685,12 @@ export default function Home() {
             >
               {isLoadingPhase[3] ? 'Running Phase 3...' : 'Run Phase 3 (Generate & Execute Script)'}
             </button>
+            <label htmlFor="phase3Output" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mt-4 mb-1">Phase 3 Output</label>
+            <pre
+              id="phase3Output"
+              className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+            >{phase3Output || "Full phase 3 output"}</pre>
+            
             {phase3GeneratedTaskOutputs && phase3GeneratedTaskOutputs.length > 0 && (
               <div className="mt-6">
                 <label htmlFor="phase3GeneratedOutput" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Phase 3 Generation - Predicted Task Outputs</label>
