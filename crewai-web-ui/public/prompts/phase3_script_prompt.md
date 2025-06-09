@@ -4,7 +4,7 @@
 
 **Process:** Construct the Python script by meticulously implementing all specifications, configurations, and logic detailed in the **entirety of the input JSON plan**. Your exclusive role is to translate the provided architecture plan into code. Do not re-evaluate or change any architectural decisions.
 
-**Output:** The final, runnable CrewAI Python script.
+**Output:** The final, runnable CrewAI Python script code block.
 
 **Script Structure & Content Requirements:**
 
@@ -26,6 +26,7 @@ from crewai import LLM, Agent, Task, Crew, Process
 # from crewai.tools import BaseTool # UNCOMMENT if custom tools are defined
 # from pydantic import BaseModel, Field # UNCOMMENT if Pydantic models are defined
 # from typing import Type, List # UNCOMMENT for advanced type hinting if needed
+from crewai import LLM # Used for LLMs section 
 ```
 
 **API Key Access:**
@@ -50,6 +51,7 @@ from crewai import LLM, Agent, Task, Crew, Process
 * Iterate through the `tool_repository` list in the JSON.
 * For each object, instantiate the tool:
     * The Python variable name for the tool instance MUST be the `tool_id`.
+    * **CRITICAL**: Before each tool instantiation line, insert the `usage_justification` from the JSON as a Python comment (`#`).
     * The class to instantiate is specified in the `class_name` property. This applies to both pre-built and custom tools.
     * If `initialization_params` exists and is not empty, pass its contents as keyword arguments to the class constructor.
     * When an API key is needed for a parameter (e.g., `os.getenv("SERPER_API_KEY")`), retrieve it from the environment.
@@ -57,6 +59,7 @@ from crewai import LLM, Agent, Task, Crew, Process
 **Agent Definitions:**
 * Iterate through the `agent_cadre` list in the JSON.
 * For each agent object, create an `Agent` instance using its `role`, `goal`, and `backstory`.
+* **CRITICAL**: As part of the agent's definition, insert a Python comment block containing the agent's `llm_rationale` and `tool_rationale` from the JSON.
 * Assign the correct pre-instantiated LLM object.
 * To build the agent's `tools` list, find all tasks in the JSON's `task_roster` assigned to this agent's `role`. Collect the unique `enabling_tools` (`tool_id`s) from those tasks and map them to the tool instances you created.
 * Set `verbose=True` and `allow_delegation` based on the JSON properties.
@@ -66,7 +69,7 @@ from crewai import LLM, Agent, Task, Crew, Process
 * For each task object, create a `Task` instance:
     * The variable name is the `task_identifier`.
     * Use the `description` and assign the correct agent instance based on `assigned_agent_role`.
-    * The `tools` list for the task must contain the specific tool instances corresponding to the `tool_id`s in the task's `enabling_tools` list.
+    * The `tools` list for the task must contain the specific tool instances corresponding to the `tool_id`s in the task's `enabling_tools` list. If `enabling_tools` is empty or not present, this MUST be an empty list `[]`.
     * Set `context` by finding the task instances that match the identifiers in `context_tasks`.
     * If `output_pydantic_model` is specified, assign the corresponding Pydantic class to the `output_pydantic` parameter.
 
@@ -84,20 +87,24 @@ from crewai import LLM, Agent, Task, Crew, Process
 ```python
 if __name__ == "__main__":
     print("## Initializing Crew...")
-    # kickoff() arguments should be determined by analyzing the Blueprint/Plan.
-    # If the process requires initial inputs, they should be defined here.
-    # inputs_dict = {"example_key": "example_value"}
-    results = your_crew_instance.kickoff() # Use kickoff(inputs=...) if needed
+    # Analyze the Blueprint and the 'task_roster' to determine if the crew's kickoff requires initial inputs.
+    # If the first task description implies it needs data to start, define an 'inputs' dictionary.
+    # For example: inputs = {'blueprint_file_path': 'path/to/your/blueprint.md'}
+    # Then, call your_crew_instance.kickoff(inputs=inputs)
+    results = your_crew_instance.kickoff()
     print("\n## Crew Operation Complete.")
     print("Final Results:")
     print(results)
 
-    # Add file checking logic if a deliverable with a filename was specified in the plan's task roster.
-    # final_deliverable_filename = "output_report.md"
+    # To verify the final output, identify the task in the 'task_roster' that is responsible for
+    # creating the final deliverable (e.g., a task using FileWriterTool).
+    # Use the expected output filename from that task's description or expected_output field.
+    # For example: final_deliverable_filename = "final_report.md"
+    #
     # if final_deliverable_filename and os.path.exists(final_deliverable_filename):
     #    print(f"\nDeliverable '{final_deliverable_filename}' generated successfully.")
     # else:
     #    print(f"\nDeliverable file '{final_deliverable_filename}' was expected but not found.")
 ```
 
-As a result of this prompt, a python code should be written
+

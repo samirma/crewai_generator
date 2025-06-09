@@ -23,7 +23,6 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
 7.  `custom_tool_definitions`
 8.  `task_roster`
 
----
 **'Design-Crew-Architecture-Plan' - JSON Schema:**
 
 * `workflow_process` (Object):
@@ -57,7 +56,7 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
         * `model` (String): Model name from the "Approved LLM List".
         * `temperature` (Number): MUST BE 0.0.
         * `api_key_env_var` (String, Optional): Environment variable name.
-    * `llm_rationale` (String): Justification for the chosen model. If `is_multimodal_agent` is `true`, this rationale MUST confirm the selected model has `multimodal_support=True`. It should also reference the model's 'reasoner' capability in relation to the agent's goal.
+    * `llm_rationale` (String): Justification for the chosen model. If `multimodal` is `true`, this rationale MUST confirm the selected model has `multimodal_support=True`. It should also reference the model's 'reasoner' capability in relation to the agent's goal.
     * `tools` (Array of Strings): List of general tool *types/capabilities* (e.g., "Web Search", "File Writing").
     * `tool_rationale` (String): Explanation of why this toolkit is essential.
     * `allow_delegation` (Boolean): `true` or `false`.
@@ -73,11 +72,15 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
 * `tool_repository` (Array of Objects): Each object defines a unique tool to be instantiated.
     * `tool_id` (String): A unique identifier for this specific tool instance (e.g., "web_search_tool", "primary_file_writer").
     * `usage_justification` (String): A concise explanation of why this tool is essential for the crew's overall mission, referencing the Blueprint's goals.
-    * `tool_type_justification` (String): A detailed rationale for choosing a specific tool implementation. First, analyze the tool's requirements (inputs, outputs, logic) from the Blueprint. Then, compare these against existing CrewAI tools.
-        * **If a pre-built tool is sufficient**: Justify why the selected pre-built CrewAI tool (e.g., `SerperDevTool`) is the appropriate choice. Your reasoning here should lead to `is_custom_tool` being `false`.
-        * **If no pre-built tool is sufficient**: Explain precisely why existing tools are inadequate. This justification is mandatory for creating a custom tool and should lead to `is_custom_tool` being `true`.
-    * `is_custom_tool` (Boolean): `true` if the analysis in `tool_type_justification` concluded that a custom tool is necessary, otherwise `false`.
-    * `class_name` (String): The exact Python class name to instantiate. This is determined by the outcome of the `tool_type_justification`. If `is_custom_tool` is `false`, this will be a standard tool class (e.g., `SerperDevTool`). If `is_custom_tool` is `true`, this will be the name of the new custom tool class defined in `custom_tool_definitions`.
+    * `analysis_and_decision` (Object): A structured block to ensure rigorous tool selection.
+        * `required_functionality` (String): A clear, one-sentence description of the specific action the tool must perform, derived from the Blueprint's requirements (e.g., "Read a single, specific section from a Markdown file given the section's title").
+        * `standard_tool_evaluation` (Array of Objects): An evaluation of relevant standard tools.
+            * `tool_name` (String): Name of a standard tool from the reference list (e.g., "FileReadTool").
+            * `suitability_analysis` (String): A mandatory, explicit analysis of WHY this standard tool IS or IS NOT sufficient. Must reference the tool's exact capabilities from the 'Standard CrewAI Tool Reference'. Example: "FileReadTool is NOT sufficient because it can only read the entire file, but the requirement is to read a specific section, which it cannot do."
+            * `is_sufficient` (Boolean): `true` or `false`.
+        * `final_decision_rationale` (String): A concluding statement. If a standard tool is sufficient, explain why. If no standard tool is sufficient after evaluating all relevant candidates, state this clearly. This rationale directly determines the value of 'is_custom_tool'.
+    * `is_custom_tool` (Boolean): MUST be `true` if the `standard_tool_evaluation` concluded that no standard tool is sufficient. Otherwise, MUST be `false`.
+    * `class_name` (String): The exact Python class name to instantiate. If `is_custom_tool` is `false`, this will be a standard tool class (e.g., `SerperDevTool`). If `is_custom_tool` is `true`, this will be the name of the new custom tool class defined in `custom_tool_definitions`.
     * `initialization_params` (Object, Optional): An object where keys are the exact parameter names for the tool's constructor (`__init__`) and values are their corresponding arguments.
 
 * `custom_tool_definitions` (Array of Objects, Optional): Defines the complete implementation details for a custom tool.
@@ -106,6 +109,6 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
 ---
 **Approved LLM List (For `model` property):**
 * model: `gemini/gemini-2.5-flash-preview-05-20`, reasoner: false, multimodal_support: True
-* model: `gemini/gemini-2.5-pro-preview-05-06`, reasoner: true, multimodal_support: True
+* model: `gemini/gemini-2.5-pro-preview-06-05`, reasoner: true, multimodal_support: True
 * model: `deepseek/deepseek-chat`, reasoner: false, multimodal_support: False
 * model: `deepseek/deepseek-reasoner`, reasoner: true, multimodal_support: False
