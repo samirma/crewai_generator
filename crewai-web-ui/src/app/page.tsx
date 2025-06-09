@@ -1,6 +1,9 @@
 "use client"; // Required for Next.js App Router to use client-side features like useState
 
 import { useState, useEffect } from 'react';
+import CopyButton from './components/CopyButton';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface Model {
   id: string;
@@ -545,16 +548,21 @@ export default function Home() {
         <label htmlFor="initialInstruction" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
           {advancedMode ? "Initial User Instruction (for Phase 1)" : "Initial Instruction Input"}
         </label>
-        <textarea
-          id="initialInstruction"
-          name="initialInstruction"
+        <div style={{ position: 'relative' }}>
+          <textarea
+            id="initialInstruction"
+            name="initialInstruction"
           rows={4}
           className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
           placeholder="Enter your initial instructions here..."
           value={initialInput}
           onChange={(e) => setInitialInput(e.target.value)}
           disabled={isLoading || isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3]}
-        ></textarea>
+          ></textarea>
+          <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
+            <CopyButton textToCopy={initialInput} />
+          </div>
+        </div>
       </div>
 
       <div className="mb-8">
@@ -589,8 +597,9 @@ export default function Home() {
       {displayedPrompt && (
         <div className="mt-6 mb-8 p-4 border border-slate-300 dark:border-slate-700 rounded-lg shadow">
           <details>
-            <summary className="text-lg font-semibold text-slate-700 dark:text-slate-200 cursor-pointer">
-              View Full Prompt Sent to LLM
+            <summary className="text-lg font-semibold text-slate-700 dark:text-slate-200 cursor-pointer flex justify-between items-center">
+              <span>View Full Prompt Sent to LLM</span>
+              <CopyButton textToCopy={displayedPrompt} />
             </summary>
             <pre className="mt-2 p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
               {displayedPrompt}
@@ -617,7 +626,10 @@ export default function Home() {
           {/* Phase 1 */}
           <div className="p-6 border border-slate-300 dark:border-slate-700 rounded-lg shadow">
             <h2 className="text-2xl font-semibold mb-4 text-slate-700 dark:text-slate-200">Phase 1: Define Blueprint</h2>
-            <label htmlFor="phase1Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Phase 1 Prompt (Blueprint Definition)</label>
+            <div className="flex justify-between items-center mb-1">
+              <label htmlFor="phase1Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 1 Prompt (Blueprint Definition)</label>
+              <CopyButton textToCopy={phase1Prompt} />
+            </div>
             <textarea
               id="phase1Prompt"
               value={phase1Prompt}
@@ -629,11 +641,14 @@ export default function Home() {
             <button
               onClick={() => handleRunPhase(1)}
               disabled={isLoadingPhase[1] || modelsLoading || !llmModel || isLoadingPhase[2] || isLoadingPhase[3]}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-indigo-400 focus:outline-none dark:focus:ring-indigo-700"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-indigo-400 focus:outline-none dark:focus:ring-indigo-700 mt-3"
             >
               {isLoadingPhase[1] ? 'Running Phase 1...' : 'Run Phase 1 (Define Blueprint)'}
             </button>
-            <label htmlFor="phase1Output" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mt-4 mb-1">Phase 1 Output (Blueprint)</label>
+            <div className="flex justify-between items-center mt-4 mb-1">
+              <label htmlFor="phase1Output" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 1 Output (Blueprint)</label>
+              <CopyButton textToCopy={phase1Output} />
+            </div>
             <pre
               id="phase1Output"
               className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
@@ -643,7 +658,10 @@ export default function Home() {
           {/* Phase 2 */}
           <div className="p-6 border border-slate-300 dark:border-slate-700 rounded-lg shadow">
             <h2 className="text-2xl font-semibold mb-4 text-slate-700 dark:text-slate-200">Phase 2: Design Crew Architecture Plan</h2>
-            <label htmlFor="phase2Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Phase 2 Prompt (Architecture Design)</label>
+            <div className="flex justify-between items-center mb-1">
+              <label htmlFor="phase2Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 2 Prompt (Architecture Design)</label>
+              <CopyButton textToCopy={phase2Prompt} />
+            </div>
             <textarea
               id="phase2Prompt"
               value={phase2Prompt}
@@ -655,11 +673,14 @@ export default function Home() {
             <button
               onClick={() => handleRunPhase(2)}
               disabled={isLoadingPhase[2] || modelsLoading || !llmModel || isLoadingPhase[1] || isLoadingPhase[3]}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-indigo-400 focus:outline-none dark:focus:ring-indigo-700"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-indigo-400 focus:outline-none dark:focus:ring-indigo-700 mt-3"
             >
               {isLoadingPhase[2] ? 'Running Phase 2...' : 'Run Phase 2 (Design Architecture)'}
             </button>
-            <label htmlFor="phase2Output" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mt-4 mb-1">Phase 2 Output (Architecture Plan)</label>
+            <div className="flex justify-between items-center mt-4 mb-1">
+              <label htmlFor="phase2Output" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 2 Output (Architecture Plan)</label>
+              <CopyButton textToCopy={phase2Output} />
+            </div>
             <pre
               id="phase2Output"
               className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
@@ -669,7 +690,10 @@ export default function Home() {
           {/* Phase 3 */}
           <div className="p-6 border border-slate-300 dark:border-slate-700 rounded-lg shadow">
             <h2 className="text-2xl font-semibold mb-4 text-slate-700 dark:text-slate-200">Phase 3: Construct Python Script</h2>
-            <label htmlFor="phase3Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Phase 3 Prompt (Script Generation)</label>
+            <div className="flex justify-between items-center mb-1">
+              <label htmlFor="phase3Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 3 Prompt (Script Generation)</label>
+              <CopyButton textToCopy={phase3Prompt} />
+            </div>
             <textarea
               id="phase3Prompt"
               value={phase3Prompt}
@@ -681,11 +705,14 @@ export default function Home() {
             <button
               onClick={() => handleRunPhase(3)}
               disabled={isLoadingPhase[3] || modelsLoading || !llmModel || isLoadingPhase[1] || isLoadingPhase[2]}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-indigo-400 focus:outline-none dark:focus:ring-indigo-700"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-indigo-400 focus:outline-none dark:focus:ring-indigo-700 mt-3"
             >
               {isLoadingPhase[3] ? 'Running Phase 3...' : 'Run Phase 3 (Generate & Execute Script)'}
             </button>
-            <label htmlFor="phase3Output" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mt-4 mb-1">Phase 3 Output</label>
+            <div className="flex justify-between items-center mt-4 mb-1">
+              <label htmlFor="phase3Output" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 3 Output</label>
+              <CopyButton textToCopy={phase3Output} />
+            </div>
             <pre
               id="phase3Output"
               className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
@@ -696,8 +723,13 @@ export default function Home() {
                 <label htmlFor="phase3GeneratedOutput" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Phase 3 Generation - Predicted Task Outputs</label>
                 <ul className="space-y-2 p-3 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 shadow-inner min-h-[100px]">
                   {phase3GeneratedTaskOutputs.map((out, index) => (
-                    <li key={index} className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm">
-                      <strong className="text-sm text-indigo-600 dark:text-indigo-400">{out.taskName}:</strong>
+                    <li key={index} className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm relative">
+                      <div className="flex justify-between items-start">
+                        <strong className="text-sm text-indigo-600 dark:text-indigo-400 pr-2">{out.taskName}:</strong>
+                        <div style={{ position: 'absolute', top: '4px', right: '4px' }}>
+                           <CopyButton textToCopy={out.output} />
+                        </div>
+                      </div>
                       <pre className="mt-1 text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap overflow-auto">
                         {out.output}
                       </pre>
@@ -738,9 +770,12 @@ export default function Home() {
               {/* Display Docker Command */}
               {dockerCommandToDisplay && (
                 <div>
-                  <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Docker Command Used:
-                  </h3>
+                  <div className="flex justify-between items-center mb-1">
+                    <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300">
+                      Docker Command Used:
+                    </h3>
+                    <CopyButton textToCopy={dockerCommandToDisplay} />
+                  </div>
                   <pre className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-inner overflow-auto whitespace-pre-wrap text-xs text-slate-600 dark:text-slate-300">
                     {dockerCommandToDisplay}
                   </pre>
@@ -748,9 +783,12 @@ export default function Home() {
               )}
               {/* Live Logs */}
               <div>
-                <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  {isExecutingScript ? "Execution Logs (Streaming...)" : "Execution Logs:"}
-                </h3>
+                <div className="flex justify-between items-center mb-1">
+                  <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300">
+                    {isExecutingScript ? "Execution Logs (Streaming...)" : "Execution Logs:"}
+                  </h3>
+                  <CopyButton textToCopy={scriptLogOutput.join('\n')} />
+                </div>
                 {(scriptLogOutput.length > 0 || isExecutingScript) ? (
                   <pre className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-inner overflow-auto whitespace-pre-wrap max-h-[300px] min-h-[100px] text-xs text-slate-600 dark:text-slate-300">
                     {scriptLogOutput.length > 0 ? scriptLogOutput.join('\n') : "Waiting for script output..."}
@@ -763,9 +801,12 @@ export default function Home() {
               {/* Final Summary */}
               {scriptRunOutput && (
                 <div>
-                  <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Final Summary:
-                  </h3>
+                  <div className="flex justify-between items-center mb-1">
+                    <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300">
+                      Final Summary:
+                    </h3>
+                    <CopyButton textToCopy={scriptRunOutput} />
+                  </div>
                   <pre className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-inner overflow-auto whitespace-pre-wrap text-xs text-slate-600 dark:text-slate-300">
                     {scriptRunOutput}
                   </pre>
@@ -778,8 +819,13 @@ export default function Home() {
                   <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300 mb-1">Task Outputs:</h3>
                   <ul className="space-y-2">
                     {phasedOutputs.map((out, index) => (
-                      <li key={index} className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm">
-                        <strong className="text-sm text-indigo-600 dark:text-indigo-400">{out.taskName}:</strong>
+                      <li key={index} className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm relative">
+                        <div className="flex justify-between items-start">
+                          <strong className="text-sm text-indigo-600 dark:text-indigo-400 pr-2">{out.taskName}:</strong>
+                          <div style={{ position: 'absolute', top: '4px', right: '4px' }}>
+                            <CopyButton textToCopy={out.output} />
+                          </div>
+                        </div>
                         <pre className="mt-1 text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap overflow-auto">{out.output}</pre>
                       </li>
                     ))}
@@ -789,15 +835,31 @@ export default function Home() {
             </div>
           </div>
           <div>
-            <label htmlFor="generatedScript" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
-              {advancedMode && currentPhaseRunning === 3 ? "Phase 3 Generated Python Script" : (advancedMode ? "Generated Python Script (Phase 3)" : "Generated Python Script (Simple Mode)")}
-            </label>
-            <pre
-              id="generatedScript"
-              className="w-full p-4 border border-slate-200 rounded-md bg-slate-50 shadow-sm overflow-auto whitespace-pre-wrap min-h-[160px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
-            >
-              {generatedScript || "Python script output will appear here"}
-            </pre>
+            <div className="flex justify-between items-center mb-2">
+              <label htmlFor="generatedScript" className="block text-base font-medium text-slate-700 dark:text-slate-300">
+                {advancedMode && currentPhaseRunning === 3 ? "Phase 3 Generated Python Script" : (advancedMode ? "Generated Python Script (Phase 3)" : "Generated Python Script (Simple Mode)")}
+              </label>
+              <CopyButton textToCopy={generatedScript} />
+            </div>
+            <div className="w-full p-4 border border-slate-200 rounded-md bg-slate-800 shadow-sm overflow-auto min-h-[160px] dark:border-slate-700">
+              <SyntaxHighlighter
+                language="python"
+                style={atomDark}
+                showLineNumbers={true}
+                wrapLines={true} // Wraps lines that exceed the width
+                lineProps={{ style: { whiteSpace: 'pre-wrap', wordBreak: 'break-all' } }} // Ensures lines wrap correctly
+                customStyle={{
+                  margin: 0, // Remove default margin from pre tag
+                  backgroundColor: 'transparent', // Inherit background from parent div
+                  height: 'auto', // Allow height to adjust to content or minHeight
+                  minHeight: '140px', // Approximate original content area minus padding
+                  overflow: 'auto', // Ensure scrolling if content overflows
+                }}
+                codeTagProps={{ style: { fontFamily: 'inherit' } }} // Use consistent font
+              >
+                {generatedScript || "# Python script output will appear here"}
+              </SyntaxHighlighter>
+            </div>
             <button
               type="button"
               onClick={handleExecuteScript}
