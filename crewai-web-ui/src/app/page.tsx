@@ -71,6 +71,7 @@ export default function Home() {
   const [currentPhaseRunning, setCurrentPhaseRunning] = useState<number | null>(null);
   const [isLoadingPhase, setIsLoadingPhase] = useState<Record<number, boolean>>({ 1: false, 2: false, 3: false });
   const [displayedPrompt, setDisplayedPrompt] = useState<string>("");
+  const [rawLlmResult, setRawLlmResult] = useState<string>("");
   const [defaultPhase1PromptText, setDefaultPhase1PromptText] = useState<string>("");
   const [defaultPhase2PromptText, setDefaultPhase2PromptText] = useState<string>("");
   const [defaultPhase3PromptText, setDefaultPhase3PromptText] = useState<string>("");
@@ -172,6 +173,7 @@ export default function Home() {
     setDisplayedPrompt("");
     setScriptExecutionError("");
     setModelsError("");
+    setRawLlmResult("");
   };
 
   const handleSimpleModeSubmit = async () => {
@@ -501,6 +503,7 @@ export default function Home() {
         throw new Error(errorData.error || `API request failed with status ${response.status}`);
       }
       const data = await response.json();
+      setRawLlmResult(JSON.stringify(data, null, 2));
       onSuccess(data);
     } catch (err) {
       console.error("API Request Error:", err);
@@ -608,6 +611,21 @@ export default function Home() {
         </div>
       )}
 
+    {/* Display Raw LLM Result Section */}
+    {rawLlmResult && (
+      <div className="mt-6 mb-8 p-4 border border-slate-300 dark:border-slate-700 rounded-lg shadow">
+        <details>
+          <summary className="text-lg font-semibold text-slate-700 dark:text-slate-200 cursor-pointer flex justify-between items-center">
+            <span>View Raw LLM Result</span>
+            <CopyButton textToCopy={rawLlmResult} />
+          </summary>
+          <pre className="mt-2 p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
+            {rawLlmResult}
+          </pre>
+        </details>
+      </div>
+    )}
+
       {!advancedMode && (
         <div className="mb-8">
           <button
@@ -645,14 +663,28 @@ export default function Home() {
             >
               {isLoadingPhase[1] ? 'Running Phase 1...' : 'Run Phase 1 (Define Blueprint)'}
             </button>
-            <div className="flex justify-between items-center mt-4 mb-1">
-              <label htmlFor="phase1Output" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 1 Output (Blueprint)</label>
-              <CopyButton textToCopy={phase1Output} />
-            </div>
-            <pre
-              id="phase1Output"
-              className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
-            >{phase1Output || "Blueprint output will appear here..."}</pre>
+            {phase1Output && (
+              <div className="mt-4"> {/* Added a wrapper div for margin consistency */}
+                <details>
+                  <summary className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer flex justify-between items-center mb-1">
+                    <span>Phase 1 Output (Blueprint)</span>
+                    <CopyButton textToCopy={phase1Output} />
+                  </summary>
+                  <pre
+                    id="phase1Output" // id can remain for anchoring if needed, or be removed
+                    className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 mt-2" // Added mt-2 for spacing from summary
+                  >{phase1Output || "Blueprint output will appear here..."}</pre>
+                </details>
+              </div>
+            )}
+            {!phase1Output && ( // Fallback for when phase1Output is empty
+                <div className="mt-4">
+                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Phase 1 Output (Blueprint)</label>
+                    <pre
+                      className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+                    >{"Blueprint output will appear here..."}</pre>
+                </div>
+            )}
           </div>
 
           {/* Phase 2 */}
@@ -677,14 +709,28 @@ export default function Home() {
             >
               {isLoadingPhase[2] ? 'Running Phase 2...' : 'Run Phase 2 (Design Architecture)'}
             </button>
-            <div className="flex justify-between items-center mt-4 mb-1">
-              <label htmlFor="phase2Output" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 2 Output (Architecture Plan)</label>
-              <CopyButton textToCopy={phase2Output} />
-            </div>
-            <pre
-              id="phase2Output"
-              className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
-            >{phase2Output || "Architecture plan output will appear here..."}</pre>
+            {phase2Output && (
+              <div className="mt-4"> {/* Added a wrapper div for margin consistency */}
+                <details>
+                  <summary className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer flex justify-between items-center mb-1">
+                    <span>Phase 2 Output (Architecture Plan)</span>
+                    <CopyButton textToCopy={phase2Output} />
+                  </summary>
+                  <pre
+                    id="phase2Output" // id can remain or be removed
+                    className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 mt-2" // Added mt-2 for spacing
+                  >{phase2Output || "Architecture plan output will appear here..."}</pre>
+                </details>
+              </div>
+            )}
+            {!phase2Output && ( // Fallback for when phase2Output is empty
+                <div className="mt-4">
+                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Phase 2 Output (Architecture Plan)</label>
+                    <pre
+                      className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+                    >{"Architecture plan output will appear here..."}</pre>
+                </div>
+            )}
           </div>
 
           {/* Phase 3 */}
@@ -709,14 +755,6 @@ export default function Home() {
             >
               {isLoadingPhase[3] ? 'Running Phase 3...' : 'Run Phase 3 (Generate & Execute Script)'}
             </button>
-            <div className="flex justify-between items-center mt-4 mb-1">
-              <label htmlFor="phase3Output" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 3 Output</label>
-              <CopyButton textToCopy={phase3Output} />
-            </div>
-            <pre
-              id="phase3Output"
-              className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
-            >{phase3Output || "Full phase 3 output"}</pre>
             
             {phase3GeneratedTaskOutputs && phase3GeneratedTaskOutputs.length > 0 && (
               <div className="mt-6">
