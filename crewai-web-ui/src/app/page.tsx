@@ -66,7 +66,6 @@ export default function Home() {
   const [phase3Prompt, setPhase3Prompt] = useState<string>("");
   const [phase1Output, setPhase1Output] = useState<string>(""); // Blueprint
   const [phase2Output, setPhase2Output] = useState<string>(""); // Architecture Plan
-  const [phase3Output, setPhase3Output] = useState<string>(""); // Phase 3 Script Output
   const [phase3GeneratedTaskOutputs, setPhase3GeneratedTaskOutputs] = useState<PhasedOutput[]>([]);
   const [currentPhaseRunning, setCurrentPhaseRunning] = useState<number | null>(null);
   const [isLoadingPhase, setIsLoadingPhase] = useState<Record<number, boolean>>({ 1: false, 2: false, 3: false });
@@ -230,11 +229,9 @@ export default function Home() {
     if (phase === 1) {
       setPhase1Output("");
       setPhase2Output("");
-      setPhase3Output("");
       // setGeneratedScript(""); // Handled by resetOutputStates
     } else if (phase === 2) {
       setPhase2Output("");
-      setPhase3Output("");
       // setGeneratedScript(""); // Handled by resetOutputStates
     } else if (phase === 3) {
       // setGeneratedScript(""); // Handled by resetOutputStates
@@ -281,7 +278,6 @@ export default function Home() {
         } else if (phase === 2) {
           setPhase2Output(data.output);
         } else if (phase === 3) {
-          setPhase3Output(data.output);
           setGeneratedScript(data.generatedScript);
           setPhase3GeneratedTaskOutputs(data.phasedOutputs || []);
           // setPhasedOutputs(data.phasedOutputs || []); // Removed as per requirement
@@ -532,7 +528,6 @@ export default function Home() {
             resetOutputStates();
             setPhase1Output("");
             setPhase2Output("");
-            setPhase3Output("");
             // Other states like generatedScript, executionOutput, etc., are covered by resetOutputStates
           }}
         >
