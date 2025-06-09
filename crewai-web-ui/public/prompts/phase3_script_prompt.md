@@ -22,7 +22,7 @@ load_dotenv(find_dotenv()) # MUST BE CALLED EARLY
 ```python
 from crewai import LLM, Agent, Task, Crew, Process
 # Import specific standard tools (e.g., SerperDevTool) based on the `tool_type` values in the JSON's `tool_repository`.
-# from crewai_tools import SerperDevTool, FileWriterTool
+# from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool
 # from crewai.tools import BaseTool # UNCOMMENT if custom tools are defined
 # from pydantic import BaseModel, Field # UNCOMMENT if Pydantic models are defined
 # from typing import Type, List # UNCOMMENT for advanced type hinting if needed
@@ -33,7 +33,7 @@ from crewai import LLM, Agent, Task, Crew, Process
 
 **LLM Instantiation:**
 * Iterate through the `agent_cadre` list and the `workflow_process.manager_llm_specification` (if it exists) in the input JSON.
-* For each unique LLM configuration, create an `LLM` instance using the `model`, `temperature`, `api_key_env_var`, and `multimodal` properties provided in the JSON. `temperature` MUST BE 0.0.
+* For each unique LLM configuration, create an `LLM` instance using the `model`, `temperature`, `api_key`, and `multimodal` properties provided in the JSON. `temperature` MUST BE 0.0.
 
 **Custom Tool & Pydantic Model Definitions (If applicable):**
 * If the `custom_tool_definitions` key exists in the JSON, iterate through the list and generate a Python class for each object. Use the `class_name`, `tool_name_attr`, `description_attr`, `args_schema_class_name`, and `run_method_signature`.

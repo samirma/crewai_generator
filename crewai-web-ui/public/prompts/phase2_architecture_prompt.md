@@ -52,7 +52,7 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
     * `role` (String): Concise functional title.
     * `goal` (String): A single, focused sentence describing the agent's objective.
     * `backstory` (String): A narrative reinforcing the agent's expertise.
-    * `is_multimodal_agent` (Boolean): `true` if this agent needs to process both text and images. This is a primary characteristic of the Agent.
+    * `multimodal` (Boolean): `true` ONLY if this agent needs to process both text and images, otherwise it should be `false`. This is a primary characteristic of the Agent.
     * `llm_specification` (Object):
         * `model` (String): Model name from the "Approved LLM List".
         * `temperature` (Number): MUST BE 0.0.
@@ -72,7 +72,7 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
 
 * `tool_repository` (Array of Objects): Each object defines a unique tool configuration.
     * `config_id` (String): A unique identifier.
-    * `tool_type` (String): The CrewAI tool class or a custom tool's `class_name`.
+    * `tool_type` (String): The CrewAI tool class, based on the latest version of CrewAI tool, or a custom tool's `class_name`.
     * `is_custom_tool` (Boolean): `true` if this is a custom tool.
     * `tool_selection_justification` (String): Why this specific tool is chosen.
     * `initialization_params` (Object, Optional): Parameters for the tool's constructor. For RAG-enabled tools, this MUST include a `config` object with `llm` and `embedder` specifications.
@@ -104,5 +104,5 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
 **Approved LLM List (For `model` property):**
 * model: `gemini/gemini-2.5-flash-preview-05-20`, reasoner: false, multimodal_support: True
 * model: `gemini/gemini-2.5-pro-preview-05-06`, reasoner: true, multimodal_support: True
-* model: `deepseek/deepseek-chat`, reasoner: false, multimodal_support: True
-* model: `deepseek/deepseek-reasoner`, reasoner: true, multimodal_support: True
+* model: `deepseek/deepseek-chat`, reasoner: false, multimodal_support: False
+* model: `deepseek/deepseek-reasoner`, reasoner: true, multimodal_support: False
