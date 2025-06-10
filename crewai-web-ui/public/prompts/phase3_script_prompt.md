@@ -6,9 +6,6 @@
 
 **Script Structure & Content Requirements:**
 
-**JSON Plan Comment Block:**
-* **CRITICAL**: At the absolute top of the generated Python script, insert a multi-line block comment (`"""..."""`) containing the complete input JSON object (`'Design-Crew-Architecture-Plan'`). The JSON inside the comment block should be pretty-printed for maximum readability.
-
 **Environment Setup (Order is CRITICAL):**
 ```python
 import os
