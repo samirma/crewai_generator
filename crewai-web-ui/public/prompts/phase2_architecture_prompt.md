@@ -37,7 +37,7 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
     * `final_validation_step` (String): Describe the final task that will perform a quality check against the `Blueprint`.
 
 * `crew_memory` (Object, Optional):
-    * `activation` (Boolean): `true` to enable memory.
+    * `activation` (Boolean): `True` to enable memory.
     * `rationale` (String, Optional): Why memory is crucial for this crew.
     * `embedder_config` (Object, Optional):
         * `provider` (String): e.g., "ollama".
@@ -47,32 +47,32 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
 * `llm_registry` (Array of Objects): A central list defining the complete set of approved LLM configurations for this crew. This list is **pre-defined** and must be populated exactly as follows:
     * `llm_id` (String): A unique identifier for this configuration (e.g., "gemini_pro_reasoner", "deepseek_chat_basic").
     * `model` (String): The model name.
-    * `reasoner` (Boolean): `true` if the model has strong reasoning capabilities.
-    * `multimodal_support` (Boolean): `true` if the model can process images.
+    * `reasoner` (Boolean): `True` if the model has strong reasoning capabilities.
+    * `multimodal_support` (Boolean): `True` if the model can process images.
     * `temperature` (Number): MUST BE 0.0.
     * `api_key_env_var` (String, Optional): Environment variable name for the API key.
     * **Pre-defined List to Use:**
-        * `gemini/gemini-2.5-flash-preview-05-20` (reasoner: false, multimodal\_support: True)
-        * `gemini/gemini-2.5-pro-preview-06-05` (reasoner: true, multimodal\_support: True)
-        * `deepseek/deepseek-chat` (reasoner: false, multimodal\_support: False)
-        * `deepseek/deepseek-reasoner` (reasoner: true, multimodal\_support: False)
+        * `gemini/gemini-2.5-flash-preview-05-20` (reasoner: False, multimodal\_support: True)
+        * `gemini/gemini-2.5-pro-preview-06-05` (reasoner: True, multimodal\_support: True)
+        * `deepseek/deepseek-chat` (reasoner: False, multimodal\_support: False)
+        * `deepseek/deepseek-reasoner` (reasoner: True, multimodal\_support: False)
 
 * `agent_cadre` (Array of Objects): Each object represents an agent. The structure separates constructor arguments from design rationale.
-    * `role` (String): Concise functional title. This acts as the primary identifier for the agent.
     * `design_metadata` (Object): Contains contextual information and justifications, not used for code generation.
-        * `multimodal` (Boolean): `true` ONLY if this agent needs to process both text and images.
-        * `llm_rationale` (String): Justification for the chosen `llm_id`. If `multimodal` is `true`, this rationale MUST confirm the selected model has `multimodal_support=True`. It should also reference the model's 'reasoner' capability.
+        * `multimodal` (Boolean): `True` ONLY if this agent needs to process both text and images.
+        * `llm_rationale` (String): Justification for the chosen `llm_id`. If `multimodal` is `True`, this rationale MUST confirm the selected model has `multimodal_support=True`. It should also reference the model's 'reasoner' capability.
         * `tool_rationale` (String): Explanation of why this agent's toolkit is essential for its goal.
         * `delegation_rationale` (String): Justification for the `allow_delegation` setting.
     * `constructor_args` (Object): Contains only the parameters for the CrewAI `Agent` class constructor.
+        * `role` (String): Concise functional title. This acts as the primary identifier for the agent.
         * `goal` (String): A single, focused sentence describing the agent's objective.
         * `backstory` (String): A narrative reinforcing the agent's expertise.
         * `llm_id` (String): The identifier of the LLM to be used by this agent, referencing an entry in the `llm_registry`.
         * `tools` (Array of Strings): List of `tool_id`s from the `tool_repository` that this agent will use.
-        * `allow_delegation` (Boolean): `true` or `false`.
+        * `allow_delegation` (Boolean): `True` or `False`.
 
 * `structured_data_handling` (Object, Optional):
-    * `usage` (Boolean): `true` if Pydantic models are used.
+    * `usage` (Boolean): `True` if Pydantic models are used.
     * `rationale` (String, Optional): Explanation of how using Pydantic models enhances reliability.
     * `model_definitions` (Array of Objects, Optional):
         * `class_name` (String): Python class name.
@@ -86,9 +86,9 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
         * `standard_tool_evaluation` (Array of Objects): An evaluation of relevant standard tools.
             * `tool_name` (String): Name of a standard tool from the reference list.
             * `suitability_analysis` (String): Mandatory analysis of WHY this standard tool IS or IS NOT sufficient.
-            * `is_sufficient` (Boolean): `true` or `false`.
+            * `is_sufficient` (Boolean): `True` or `False`.
         * `final_decision_rationale` (String): A concluding statement on tool choice.
-    * `is_custom_tool` (Boolean): `true` if no standard tool is sufficient.
+    * `is_custom_tool` (Boolean): `True` if no standard tool is sufficient.
     * `class_name` (String): The exact Python class name to instantiate.
     * `initialization_params` (Object, Optional): Constructor parameters for the tool.
 
