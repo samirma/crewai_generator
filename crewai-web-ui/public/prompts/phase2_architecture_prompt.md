@@ -8,8 +8,6 @@ The design process should follow a logical, top-down cascade to ensure robustnes
 * **Self-Correction:** The architecture must include agents and tasks dedicated to quality assurance and critique.
 * **Multimodality:** The design must identify which **Agents** are multimodal, as per CrewAI's documentation. This is a core characteristic of the agent that will dictate its LLM and tasks.
 
-**Output:** A **single JSON object** named `'Design-Crew-Architecture-Plan'`. This JSON object must be valid and adhere to the section order and schema defined below. **Do NOT generate any Python code.**
-
 ### **Design Section Order**
 
 To improve the robustness of the design, the JSON object's keys MUST be in the following order:
@@ -29,7 +27,12 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
     * `selected_process` (String): "Process.sequential" OR "Process.hierarchical".
     * `justification` (String): Explanation of why this process is optimal, referencing the specific steps in the Blueprint's Execution Outline.
     * `manager_llm_specification` (Object, Optional): Required if `selected_process` is "Process.hierarchical".
-        * `model` (String): Model name from the "Approved LLM List".
+        * `model` (String): The model name. MUST be chosen from the "Approved LLM List" below.
+            * **Approved LLM List:**
+                * `gemini/gemini-2.5-flash-preview-05-20` (reasoner: false, multimodal_support: True)
+                * `gemini/gemini-2.5-pro-preview-06-05` (reasoner: true, multimodal_support: True)
+                * `deepseek/deepseek-chat` (reasoner: false, multimodal_support: False)
+                * `deepseek/deepseek-reasoner` (reasoner: true, multimodal_support: False)
         * `temperature` (Number): MUST BE 0.0.
         * `api_key_env_var` (String, Optional): Environment variable name for the API key.
         * `rationale` (String): Justification for this manager LLM, referencing its capabilities (e.g., 'reasoner') from the Approved LLM List.
@@ -53,7 +56,12 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
     * `backstory` (String): A narrative reinforcing the agent's expertise.
     * `multimodal` (Boolean): `true` ONLY if this agent needs to process both text and images, otherwise it should be `false`. This is a primary characteristic of the Agent.
     * `llm_specification` (Object):
-        * `model` (String): Model name from the "Approved LLM List".
+        * `model` (String): The model name. MUST be chosen from the "Approved LLM List" below.
+            * **Approved LLM List:**
+                * `gemini/gemini-2.5-flash-preview-05-20` (reasoner: false, multimodal_support: True)
+                * `gemini/gemini-2.5-pro-preview-06-05` (reasoner: true, multimodal_support: True)
+                * `deepseek/deepseek-chat` (reasoner: false, multimodal_support: False)
+                * `deepseek/deepseek-reasoner` (reasoner: true, multimodal_support: False)
         * `temperature` (Number): MUST BE 0.0.
         * `api_key_env_var` (String, Optional): Environment variable name.
     * `llm_rationale` (String): Justification for the chosen model. If `multimodal` is `true`, this rationale MUST confirm the selected model has `multimodal_support=True`. It should also reference the model's 'reasoner' capability in relation to the agent's goal.
@@ -106,9 +114,5 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
     * `output_pydantic_model` (String, Optional): The `class_name` of a Pydantic model for structured output.
     * `output_pydantic_rationale` (String, Optional): Justification for using Pydantic.
 
----
-**Approved LLM List (For `model` property):**
-* model: `gemini/gemini-2.5-flash-preview-05-20`, reasoner: false, multimodal_support: True
-* model: `gemini/gemini-2.5-pro-preview-06-05`, reasoner: true, multimodal_support: True
-* model: `deepseek/deepseek-chat`, reasoner: false, multimodal_support: False
-* model: `deepseek/deepseek-reasoner`, reasoner: true, multimodal_support: False
+
+**Output:** A **single JSON object** named `'Design-Crew-Architecture-Plan'`. This JSON object must be valid and adhere to the section order and schema defined below. **Do NOT generate any Python code.**

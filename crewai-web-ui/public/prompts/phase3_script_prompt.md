@@ -4,8 +4,6 @@
 
 **Process:** Construct the Python script by meticulously implementing all specifications, configurations, and logic detailed in the **entirety of the input JSON plan**. Your exclusive role is to translate the provided architecture plan into code. Do not re-evaluate or change any architectural decisions.
 
-**Output:** The final, runnable CrewAI Python script code block.
-
 **Script Structure & Content Requirements:**
 
 **Environment Setup (Order is CRITICAL):**
@@ -142,3 +140,5 @@ if __name__ == "__main__":
     # else:
     #    print(f"\nDeliverable file '{final_deliverable_filename}' was expected but not found.")
 ```
+
+**Output:** The final, runnable CrewAI Python script code block.
