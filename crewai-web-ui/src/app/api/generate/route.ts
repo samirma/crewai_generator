@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import OpenAI from 'openai'; // Added for DeepSeek
+import fs from 'fs/promises';
+import path from 'path';
 
 // Helper function to interact with LLMs
 // No changes to interactWithLLM itself in this step, but it will receive fullPrompt directly.
@@ -10,6 +12,14 @@ async function interactWithLLM(
   mode: string,
   runPhase: number | null
 ): Promise<{ llmResponseText: string; generatedScript?: string }> {
+  try {
+    const inputPath = path.join(process.cwd(), 'llm_input_prompt.txt');
+    await fs.writeFile(inputPath, fullPrompt);
+    console.log('Successfully wrote LLM input to llm_input_prompt.txt');
+  } catch (error) {
+    console.error('Failed to write LLM input to llm_input_prompt.txt:', error);
+  }
+
   const currentModelId = llmModel.toLowerCase(); // Keep for internal logic
   let llmResponseText = "";
   let generatedScript: string | undefined = undefined;
@@ -40,7 +50,6 @@ async function interactWithLLM(
     console.log("Gemini API call completed.");
     if (result.response?.candidates?.[0]?.content?.parts?.[0]?.text) {
       llmResponseText = result.response.candidates[0].content.parts[0].text;
-      console.log("Raw LLM response from Gemini:", llmResponseText);
     } else {
       let detailedError = "No content generated or unexpected response structure.";
       if (result.response && result.response.promptFeedback) {
@@ -73,7 +82,6 @@ async function interactWithLLM(
       console.error("DeepSeek API call via OpenAI SDK successful but response format is unexpected or content is missing.", completion);
       throw new Error("DeepSeek API Error (OpenAI SDK): No content generated or unexpected response structure.");
     }
-    console.log("Raw LLM response from DeepSeek (OpenAI SDK):", llmResponseText);
   } else if (currentModelId.startsWith('ollama/')) {
     const ollamaApiBaseUrl = process.env.OLLAMA_API_BASE_URL || 'http://localhost:11434';
     const ollamaModelName = llmModel.substring('ollama/'.length);
@@ -94,7 +102,6 @@ async function interactWithLLM(
         console.error("Ollama API call successful but response content is missing.", ollamaData);
         throw new Error("Ollama API Error: No content in response.");
     }
-    console.log("Raw LLM response from Ollama:", llmResponseText);
   } else {
     // Unhandled models
     console.warn(`Unhandled model: ${llmModel}. Request mode: ${mode}, phase: ${runPhase}.`);
@@ -130,6 +137,14 @@ async function interactWithLLM(
       }
     }
     // If it was the mock response for unhandled model, generatedScript will be that mock script.
+  }
+
+  try {
+    const outputPath = path.join(process.cwd(), 'llm_output_prompt.txt');
+    await fs.writeFile(outputPath, llmResponseText);
+    console.log('Successfully wrote LLM output to llm_output_prompt.txt');
+  } catch (error) {
+    console.error('Failed to write LLM output to llm_output_prompt.txt:', error);
   }
 
   return { llmResponseText, generatedScript };
