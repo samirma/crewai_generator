@@ -50,6 +50,8 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
     * `reasoner` (Boolean): `True` if the model has strong reasoning capabilities.
     * `multimodal_support` (Boolean): `True` if the model can process images.
     * `temperature` (Number): MUST BE 0.0.
+    * `frequency_penalty` (Number): MUST BE 0.0.
+    * `presence_penalty` (Number): MUST BE 0.0.
     * `api_key_env_var` (String, Optional): Environment variable name for the API key.
     * **Pre-defined List to Use:**
         * `gemini/gemini-2.5-flash-preview-05-20` (reasoner: False, multimodal\_support: True)
@@ -116,3 +118,7 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
         * `context` (Array of Strings, Optional): List of prerequisite `task_identifier`s.
         * `output_pydantic` (String, Optional): The `class_name` of a Pydantic model for structured output.
     * `design_metadata` (Object): Contains contextual information and justifications.
+
+
+
+**Output:** A **single JSON object** named `'Design-Crew-Architecture-Plan'`. This JSON object must be valid and adhere to the section order and schema defined above.
