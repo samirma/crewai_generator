@@ -10,6 +10,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     telnet \
     nmap \
+    libpango-1.0-0 libpangoft2-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf2.0-0  pandoc \
     python3.12 \
     python3-pip \
     python3-dev \
@@ -44,7 +45,7 @@ RUN python -m pip install --upgrade pip && \
     google-generativeai \
     ollama \
     pymupdf \
-    pysqlite3-binary
+    pysqlite3-binary PyPDF2 weasyprint reportlab pdfkit
 
 # The container is now configured to use the venv's python by default.
 # The CMD below is just an example. The command you provide in `docker run` will

@@ -20,13 +20,13 @@ load_dotenv(find_dotenv()) # MUST BE CALLED EARLY
 * Uncomment `from crewai.tools import BaseTool` if `custom_tool_definitions` exists and is not empty in the JSON.
 * Uncomment `from pydantic import BaseModel, Field` if `structured_data_handling.usage` is `true` in the JSON.
 ```python
-from crewai import LLM, Agent, Task, Crew, Process
+from crewai import Agent, Task, Crew, Process
+from crewai import LLM # For LLM section
 # Import specific standard tools (e.g., SerperDevTool) based on the `class_name` values in the JSON's `tool_repository`.
 # from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool
-# from crewai.tools import BaseTool # UNCOMMENT if custom tools are defined
-# from pydantic import BaseModel, Field # UNCOMMENT if Pydantic models are defined
-# from typing import Type, List # UNCOMMENT for advanced type hinting if needed
-from crewai import LLM # Used for LLMs section 
+from crewai.tools import BaseTool # UNCOMMENT if custom tools are defined
+from pydantic import BaseModel, Field # UNCOMMENT if Pydantic models are defined
+from typing import Type, List # UNCOMMENT for advanced type hinting if needed
 ```
 
 **API Key Access:**
@@ -37,15 +37,51 @@ from crewai import LLM # Used for LLMs section
 * For each unique LLM configuration, create an `LLM` instance using the `model`, and `api_key` properties provided in the JSON. The `temperature` MUST BE 0.0.
 
 **Custom Tool & Pydantic Model Definitions (If applicable):**
-* If `structured_data_handling.usage` is `true` in the JSON, iterate through `model_definitions` and generate a Pydantic `BaseModel` class for each object using its `class_name` and `fields`.
-* If the `custom_tool_definitions` key exists and is not empty in the JSON, iterate through the list and generate a Python class for each custom tool.
-    * The class name for the tool MUST be the `class_name` found in the corresponding `tool_repository` entry (which is linked by `tool_id`). The generated class should inherit from `BaseTool`.
-    * **CRITICAL**: Insert the `justification_for_custom_tool` string from the JSON as a prominent comment above the class definition.
-    * The tool's `name` attribute must be set to the value of `name_attribute` from the JSON.
-    * The tool's `description` attribute must be set to the value of `description_attribute` from the JSON.
-    * If `args_pydantic_model` is specified, set the tool's `args_schema` to that Pydantic class.
-    * Define the `_run` method. The method's parameters MUST match the `name` and `python_type` specified in the `run_method_parameters` array.
-    * The body of the `_run` method should be implemented based on the detailed steps provided in the `run_method_logic` string.
+* **First, generate Pydantic Models:** If `structured_data_handling.usage` is `true` in the JSON, iterate through `model_definitions` and generate a Pydantic `BaseModel` class for each. These models may be used by custom tools.
+* **Second, generate Custom Tools:** If the `custom_tool_definitions` key exists and is not empty in the JSON, iterate through the list and generate a Python class for each custom tool using the template below.
+
+*__Custom Tool Generation Template:__*
+```python
+#
+# Use the following template to generate each custom tool.
+# Map the fields from the 'custom_tool_definitions' object in the JSON to the corresponding parts of the class.
+#
+
+# This comment block comes from the 'justification_for_custom_tool' field in the JSON.
+# It explains why this custom tool is necessary.
+
+# If 'args_pydantic_model' is specified in the JSON for this tool,
+# define its Pydantic class first. The class name and its fields
+# come from the 'structured_data_handling.model_definitions' section.
+class <ArgsPydanticModelFromJSON>(BaseModel):
+    """Input schema for <ClassNameFromJSON>."""
+    # The field names, types, and descriptions are defined in the
+    # 'fields' object of the Pydantic model's definition in the JSON.
+    argument_name: str = Field(..., description="Description of the argument.")
+
+
+# The class name for the tool MUST be the 'class_name' found in the
+# corresponding 'tool_repository' entry (linked by 'tool_id').
+class <ClassNameFromJSON>(BaseTool):
+    # The 'name' attribute is set from the 'name_attribute' field in the JSON.
+    name: str = "Name of the tool for the agent to use"
+    # The 'description' attribute is set from the 'description_attribute' field in the JSON.
+    description: str = "Detailed description of what this tool does and when to use it."
+    # The 'args_schema' is set to the Pydantic class defined above.
+    # This comes from the 'args_pydantic_model' field in the JSON.
+    args_schema: Type[BaseModel] = <ArgsPydanticModelFromJSON>
+
+    # The '_run' method's parameters MUST match the 'run_method_parameters' in the JSON.
+    def _run(self, argument_name: str) -> str:
+        # The logic for this method is a direct implementation of the
+        # step-by-step description from the 'run_method_logic' field in the JSON.
+        #
+        # Example logic:
+        # print(f"Executing tool with argument: {argument_name}")
+        # result = f"Tool's result based on {argument_name}"
+        # return result
+        pass
+```
 
 **Tool Instantiation:**
 * Iterate through the `tool_repository` list in the JSON.
@@ -106,5 +142,3 @@ if __name__ == "__main__":
     # else:
     #    print(f"\nDeliverable file '{final_deliverable_filename}' was expected but not found.")
 ```
-
-
