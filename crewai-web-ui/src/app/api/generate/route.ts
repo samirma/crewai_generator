@@ -45,7 +45,7 @@ async function interactWithLLM(
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
       safetySettings,
-      generationConfig: { temperature: 0 },
+      generationConfig: { temperature: 0, frequencyPenalty: 0.0, presencePenalty: 0.0 },
     });
     console.log("Gemini API call completed.");
     if (result.response?.candidates?.[0]?.content?.parts?.[0]?.text) {
@@ -75,6 +75,8 @@ async function interactWithLLM(
       messages: [{ role: "user", content: fullPrompt }],
       temperature: 0,
       stream: false,
+      frequency_penalty: 0.0,
+      presence_penalty: 0.0,
     });
     console.log("DeepSeek API call completed via OpenAI SDK.");
     llmResponseText = completion.choices?.[0]?.message?.content;
@@ -89,7 +91,7 @@ async function interactWithLLM(
     const response = await fetch(`${ollamaApiBaseUrl}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: ollamaModelName, prompt: fullPrompt, stream: false, temperature: 0.0 }),
+      body: JSON.stringify({ model: ollamaModelName, prompt: fullPrompt, stream: false, temperature: 0.0, options: { frequency_penalty: 0.0, presence_penalty: 0.0 } }),
     });
     if (!response.ok) {
       const errorBody = await response.text();
@@ -192,9 +194,28 @@ export async function POST(request: Request) {
       const llmResponseText = llmResult.llmResponseText; // Always present
       let generatedScript = llmResult.generatedScript; // Optional, changed to let
 
+      const inputFilePath = path.join(process.cwd(), 'llm_input_prompt.txt');
+      const outputFilePath = path.join(process.cwd(), 'llm_output_prompt.txt');
+      let llmInputPromptContent = "";
+      let llmOutputPromptContent = "";
+
+      try {
+        llmInputPromptContent = await fs.readFile(inputFilePath, 'utf-8');
+      } catch (error) {
+        console.error('Failed to read llm_input_prompt.txt:', error);
+        // Keep llmInputPromptContent as ""
+      }
+
+      try {
+        llmOutputPromptContent = await fs.readFile(outputFilePath, 'utf-8');
+      } catch (error) {
+        console.error('Failed to read llm_output_prompt.txt:', error);
+        // Keep llmOutputPromptContent as ""
+      }
+
       // Return structure now includes the fullPrompt that was sent in the request
       if (mode === 'advanced' && (runPhase === 1 || runPhase === 2)) {
-        return NextResponse.json({ phase: runPhase, output: llmResponseText, fullPrompt: fullPrompt });
+        return NextResponse.json({ phase: runPhase, output: llmResponseText, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent });
       }
 
       // Ollama-specific LLM configuration injection
@@ -204,7 +225,7 @@ export async function POST(request: Request) {
         const chatOllamaImport = "from crewai.llms import ChatOllama";
 
         // Ensure the comment and the llm assignment are on separate lines in the script
-        const ollamaLLMConfigLine = `# Ollama LLM configuration added by CrewAI Studio\nllm = ChatOllama(model='${ollamaModelName}', base_url='${resolvedOllamaUrl}', temperature=0.0)`;
+        const ollamaLLMConfigLine = `# Ollama LLM configuration added by CrewAI Studio\nllm = ChatOllama(model='${ollamaModelName}', base_url='${resolvedOllamaUrl}', temperature=0.0, frequency_penalty=0.0, presence_penalty=0.0)`;
 
         if (!generatedScript.includes(chatOllamaImport)) {
           // Prepend the import if it's not already there
@@ -246,22 +267,22 @@ export async function POST(request: Request) {
           // However, the current llmResult from interactWithLLM doesn't include phasedOutputs
           // This might need adjustment if simple mode is expected to also return structured task outputs
           // directly from the /api/generate call, or if they are only handled by /api/execute
-          return NextResponse.json({ generatedScript, fullPrompt: fullPrompt /* phasedOutputs: [] an example if needed */ });
+          return NextResponse.json({ generatedScript, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent /* phasedOutputs: [] an example if needed */ });
         } else { // Advanced mode, phase 3
-          return NextResponse.json({ generatedScript, phase: 3, fullPrompt: fullPrompt /* phasedOutputs: [] an example if needed */ });
+          return NextResponse.json({ generatedScript, phase: 3, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent /* phasedOutputs: [] an example if needed */ });
         }
       } else {
         // This case should ideally not be reached if llmModel.startsWith('ollama/') and generatedScript was initially undefined,
         // as the injection logic itself checks for generatedScript.
         // However, if generatedScript was undefined from llmResult and it's not an Ollama model, this path is valid.
         console.error(`Error: generatedScript is undefined for mode='${mode}' and runPhase='${runPhase}'. This should not happen if a script was expected.`);
-        return NextResponse.json({ error: "Failed to process LLM output for script generation." }, { status: 500 });
+        return NextResponse.json({ error: "Failed to process LLM output for script generation.", llmInputPromptContent, llmOutputPromptContent }, { status: 500 });
       }
 
     } catch (apiError) {
       console.error(`Error interacting with LLM for model ${llmModel}:`, apiError);
       const message = apiError instanceof Error ? apiError.message : String(apiError);
-      return NextResponse.json({ error: message, fullPrompt: fullPrompt }, { status: 500 }); // Include fullPrompt for client debugging
+      return NextResponse.json({ error: message, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent }, { status: 500 }); // Include fullPrompt for client debugging
     }
 
   } catch (error) { // Catch-all for errors during request processing (e.g., JSON parsing)
