@@ -71,6 +71,8 @@ export default function Home() {
   const [isLoadingPhase, setIsLoadingPhase] = useState<Record<number, boolean>>({ 1: false, 2: false, 3: false });
   const [displayedPrompt, setDisplayedPrompt] = useState<string>("");
   const [rawLlmResult, setRawLlmResult] = useState<string>("");
+  const [actualLlmInputPrompt, setActualLlmInputPrompt] = useState<string>("");
+  const [actualLlmOutputPrompt, setActualLlmOutputPrompt] = useState<string>("");
   const [defaultPhase1PromptText, setDefaultPhase1PromptText] = useState<string>("");
   const [defaultPhase2PromptText, setDefaultPhase2PromptText] = useState<string>("");
   const [defaultPhase3PromptText, setDefaultPhase3PromptText] = useState<string>("");
@@ -173,6 +175,8 @@ export default function Home() {
     setScriptExecutionError("");
     setModelsError("");
     setRawLlmResult("");
+    setActualLlmInputPrompt("");
+    setActualLlmOutputPrompt("");
   };
 
   const handleSimpleModeSubmit = async () => {
@@ -499,7 +503,9 @@ export default function Home() {
         throw new Error(errorData.error || `API request failed with status ${response.status}`);
       }
       const data = await response.json();
-      setRawLlmResult(JSON.stringify(data, null, 2));
+      // setRawLlmResult(JSON.stringify(data, null, 2));
+      setActualLlmInputPrompt(data.llmInputPromptContent || "");
+      setActualLlmOutputPrompt(data.llmOutputPromptContent || "");
       onSuccess(data);
     } catch (err) {
       console.error("API Request Error:", err);
@@ -592,30 +598,30 @@ export default function Home() {
       </div>
 
       {/* Display Full Prompt Section */}
-      {displayedPrompt && (
+      {actualLlmInputPrompt && (
         <div className="mt-6 mb-8 p-4 border border-slate-300 dark:border-slate-700 rounded-lg shadow">
           <details>
             <summary className="text-lg font-semibold text-slate-700 dark:text-slate-200 cursor-pointer flex justify-between items-center">
               <span>View Full Prompt Sent to LLM</span>
-              <CopyButton textToCopy={displayedPrompt} />
+              <CopyButton textToCopy={actualLlmInputPrompt} />
             </summary>
             <pre className="mt-2 p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
-              {displayedPrompt}
+              {actualLlmInputPrompt}
             </pre>
           </details>
         </div>
       )}
 
     {/* Display Raw LLM Result Section */}
-    {rawLlmResult && (
+    {actualLlmOutputPrompt && (
       <div className="mt-6 mb-8 p-4 border border-slate-300 dark:border-slate-700 rounded-lg shadow">
         <details>
           <summary className="text-lg font-semibold text-slate-700 dark:text-slate-200 cursor-pointer flex justify-between items-center">
             <span>View Raw LLM Result</span>
-            <CopyButton textToCopy={rawLlmResult} />
+            <CopyButton textToCopy={actualLlmOutputPrompt} />
           </summary>
           <pre className="mt-2 p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
-            {rawLlmResult}
+            {actualLlmOutputPrompt}
           </pre>
         </details>
       </div>
