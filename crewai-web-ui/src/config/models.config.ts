@@ -16,6 +16,11 @@ export const staticModels: ModelConfig[] = [
     id: "gemini-2.5-flash-preview-05-20", // Actual ID for API
     name: "Gemini 2.5 Flash Preview 05-20" // Human-readable name
   },
+  {
+    id: "gemini-2.0-flash", // Actual ID for API
+    name: "Gemini gemini-2.0-flash" // Human-readable name
+  },
+
 ];
 
 export async function getOllamaModels(): Promise<ModelConfig[]> {

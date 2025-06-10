@@ -1,10 +1,13 @@
 ## Construct Python Script
 
-**Input:** The complete **'Design-Crew-Architecture-Plan' as a single JSON object**. No other information source should be used.
+**Input:** The complete **'Design-Crew-Architecture-Plan' as a single JSON object** (conforming to the revised schema with `llm_registry` and `constructor_args`). No other information source should be used.
 
 **Process:** Construct the Python script by meticulously implementing all specifications, configurations, and logic detailed in the **entirety of the input JSON plan**. Your exclusive role is to translate the provided architecture plan into code. Do not re-evaluate or change any architectural decisions.
 
 **Script Structure & Content Requirements:**
+
+**JSON Plan Comment Block:**
+* **CRITICAL**: At the absolute top of the generated Python script, insert a multi-line block comment (`"""..."""`) containing the complete input JSON object (`'Design-Crew-Architecture-Plan'`). The JSON inside the comment block should be pretty-printed for maximum readability.
 
 **Environment Setup (Order is CRITICAL):**
 ```python
@@ -28,11 +31,13 @@ from typing import Type, List # UNCOMMENT for advanced type hinting if needed
 ```
 
 **API Key Access:**
-* Use `os.getenv("YOUR_API_KEY_NAME")` for all API keys. The "YOUR_API_KEY_NAME" string comes from properties like `api_key_env_var` in the input JSON. **NO HARDCODED SECRETS.**
+* Use `os.getenv("YOUR_API_KEY_NAME")` for all API keys. The "YOUR_API_KEY_NAME" string comes from properties like `api_key` in the input JSON. **NO HARDCODED SECRETS.**
 
 **LLM Instantiation:**
-* Iterate through the `agent_cadre` list and the `workflow_process.manager_llm_specification` (if it exists) in the input JSON.
-* For each unique LLM configuration, create an `LLM` instance using the `model`, and `api_key` properties provided in the JSON. The `temperature` MUST BE 0.0.
+* Iterate through the `llm_registry` list in the input JSON.
+* For each object in the registry, create an LLM instance.
+* The Python variable for the instance MUST be derived from the `llm_id` (e.g., `llm_id: "gemini_pro_reasoner"` becomes `gemini_pro_reasoner_llm`).
+* Use the `model` and `api_key` properties. The `temperature` MUST BE 0.0 and seed MOST BE 2.
 
 **Custom Tool & Pydantic Model Definitions (If applicable):**
 * **First, generate Pydantic Models:** If `structured_data_handling.usage` is `true` in the JSON, iterate through `model_definitions` and generate a Pydantic `BaseModel` class for each. These models may be used by custom tools.
@@ -86,33 +91,35 @@ class <ClassNameFromJSON>(BaseTool):
 * For each object, instantiate the tool:
     * The Python variable name for the tool instance MUST be the `tool_id`.
     * **CRITICAL**: Before each tool instantiation line, insert the `usage_justification` from the JSON as a Python comment (`#`).
-    * The class to instantiate is specified in the `class_name` property. This applies to both pre-built and custom tools.
-    * If `initialization_params` exists and is not empty, pass its contents as keyword arguments to the class constructor.
-    * When an API key is needed for a parameter (e.g., `os.getenv("SERPER_API_KEY")`), retrieve it from the environment.
+    * The class to instantiate is specified in the `class_name` property.
+    * If `initialization_params` exists, pass its contents as keyword arguments to the class constructor.
 
 **Agent Definitions:**
-* Iterate through the `agent_cadre` list in the JSON.
-* For each agent object, create an `Agent` instance using its `role`, `goal`, and `backstory`.
-* **CRITICAL**: As part of the agent's definition, insert a Python comment block containing the agent's `llm_rationale` and `tool_rationale` from the JSON.
-* Assign the correct pre-instantiated LLM object.
-* To build the agent's `tools` list, find all tasks in the JSON's `task_roster` assigned to this agent's `role`. Collect the unique `enabling_tools` (`tool_id`s) from those tasks and map them to the tool instances you created.
-* Set `verbose=True` and `allow_delegation` based on the JSON properties.
+* Iterate through the `agent_cadre` list.
+* For each agent object:
+    * The variable name MUST be the agent's `role`, formatted as a valid Python variable name (e.g., "Financial Analyst" becomes `financial_analyst_agent`).
+    * **CRITICAL**: Before the agent definition, insert a Python comment block generated from the `design_metadata` object, including the `llm_rationale`, `tool_rationale`, and `delegation_rationale`.
+    * To instantiate the `Agent`, use the keys from the `constructor_args` object as parameters.
+    * **LLM Assignment**: Use the `llm_id` from `constructor_args` to assign the correct, pre-instantiated LLM variable to the `llm` parameter.
+    * **Tool Assignment**: Use the list of `tool_id`s from the `constructor_args.tools` array to build the list of tool instances for the `tools` parameter.
+    * Set `verbose=True` and `allow_delegation` using the values from `constructor_args`.
 
 **Task Definitions:**
-* Iterate through the `task_roster` list in the JSON.
-* For each task object, create a `Task` instance:
-    * The variable name is the `task_identifier`.
-    * Use the `description` and assign the correct agent instance based on `assigned_agent_role`.
-    * The `tools` list for the task must contain the specific tool instances corresponding to the `tool_id`s in the task's `enabling_tools` list. If `enabling_tools` is empty or not present, this MUST be an empty list `[]`.
-    * Set `context` by finding the task instances that match the identifiers in `context_tasks`.
-    * If `output_pydantic_model` is specified, assign the corresponding Pydantic class to the `output_pydantic` parameter.
+* Iterate through the `task_roster` list.
+* For each task object:
+    * The variable name for the instance MUST be the `task_identifier`.
+    * To instantiate the `Task`, use the keys from the `constructor_args` object as parameters.
+    * The `agent` parameter is assigned the agent instance whose `role` matches the `constructor_args.agent` string.
+    * The `tools` list for the task must contain the specific tool instances corresponding to the `tool_id`s in the `constructor_args.tools` list. If the list is empty or not present, this MUST be an empty list `[]`.
+    * Set `context` by finding the task instances that match the identifiers in `constructor_args.context`.
+    * If `constructor_args.output_pydantic` is specified, assign the corresponding Pydantic class to the `output_pydantic` parameter.
 
 **Crew Assembly:**
 * Create the `Crew` instance based on the properties in the input JSON.
 * `agents`: List of all instantiated agent objects.
 * `tasks`: List of all instantiated task objects.
 * `process`: Set based on `workflow_process.selected_process`.
-* `manager_llm`: Assign if `process` is hierarchical.
+* `manager_llm`: If `process` is hierarchical, use the `workflow_process.manager_llm_specification.llm_id` to assign the correct pre-instantiated LLM object.
 * `memory`: Set based on `crew_memory.activation`.
 * `embedder`: If memory is active, configure it using the `crew_memory.embedder_config` object.
 * Set `verbose=True`.
