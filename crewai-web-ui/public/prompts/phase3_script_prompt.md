@@ -99,7 +99,6 @@ class <ClassNameFromJSON>(BaseTool):
     * To instantiate the `Agent`, use the keys from the `constructor_args` object as parameters.
     * **LLM Assignment**: Use the `llm_id` from `constructor_args` to assign the correct, pre-instantiated LLM variable to the `llm` parameter.
     * **Tool Assignment**: Use the list of `tool_id`s from the `constructor_args.tools` array to build the list of tool instances for the `tools` parameter.
-    * Set `verbose=True` and `allow_delegation` based on values of `constructor_args`.
 
 **Task Definitions:**
 * Iterate through the `task_roster` list.
