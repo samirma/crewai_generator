@@ -7,6 +7,8 @@ import { interactWithLLM } from './llm.service'; // Import the refactored functi
 
 // Main API Handler
 export async function POST(request: Request) {
+  let llmInputPromptContent = "";
+  let llmOutputPromptContent = "";
   try {
     const body = await request.json();
     const {
@@ -50,8 +52,6 @@ export async function POST(request: Request) {
 
       const inputFilePath = path.join(process.cwd(), 'llm_input_prompt.txt');
       const outputFilePath = path.join(process.cwd(), 'llm_output_prompt.txt');
-      let llmInputPromptContent = "";
-      let llmOutputPromptContent = "";
 
       try {
         llmInputPromptContent = await fs.readFile(inputFilePath, 'utf-8');
