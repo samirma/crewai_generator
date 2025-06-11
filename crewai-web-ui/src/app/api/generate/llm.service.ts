@@ -87,22 +87,51 @@ export async function interactWithLLM(
   } else if (currentModelId.startsWith('ollama/')) {
     const ollamaApiBaseUrl = process.env.OLLAMA_API_BASE_URL || 'http://localhost:11434';
     const ollamaModelName = llmModel.substring('ollama/'.length);
+    const OLLAMA_TIMEOUT_DURATION = 300000; // 300 seconds
+
     console.log(`Calling Ollama API for model: ${ollamaModelName} at base URL: ${ollamaApiBaseUrl}`);
-    const response = await fetch(`${ollamaApiBaseUrl}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: ollamaModelName, prompt: fullPrompt, stream: false, temperature: 0.0, options: { frequency_penalty: 0.0, presence_penalty: 0.0 } }),
-    });
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(`Ollama API request failed: ${response.status} ${response.statusText}`, errorBody);
-      throw new Error(`Ollama API request failed: ${response.statusText}. Details: ${errorBody}`);
-    }
-    const ollamaData = await response.json();
-    llmResponseText = ollamaData.response;
-    if (!llmResponseText) {
-        console.error("Ollama API call successful but response content is missing.", ollamaData);
-        throw new Error("Ollama API Error: No content in response.");
+
+    const controller = new AbortController();
+    const signal = controller.signal;
+    let timeoutId: NodeJS.Timeout | undefined;
+
+    try {
+      timeoutId = setTimeout(() => {
+        controller.abort();
+      }, OLLAMA_TIMEOUT_DURATION);
+
+      const response = await fetch(`${ollamaApiBaseUrl}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: ollamaModelName, prompt: fullPrompt, stream: false, temperature: 0.0, options: { frequency_penalty: 0.0, presence_penalty: 0.0 } }),
+        signal,
+      });
+
+      clearTimeout(timeoutId);
+      timeoutId = undefined;
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error(`Ollama API request failed: ${response.status} ${response.statusText}`, errorBody);
+        throw new Error(`Ollama API request failed: ${response.statusText}. Details: ${errorBody}`);
+      }
+
+      const ollamaData = await response.json();
+      llmResponseText = ollamaData.response;
+      if (!llmResponseText) {
+          console.error("Ollama API call successful but response content is missing.", ollamaData);
+          throw new Error("Ollama API Error: No content in response.");
+      }
+    } catch (error: any) { // Changed 'any' to 'any' to avoid TS error if 'dom' lib is not included
+      if (timeoutId) { // Ensure timeout is cleared if an error occurs before fetch completes
+        clearTimeout(timeoutId);
+      }
+      if (error.name === 'AbortError') {
+        console.error(`Ollama API request timed out after ${OLLAMA_TIMEOUT_DURATION / 1000} seconds`);
+        throw new Error(`Ollama API request timed out after ${OLLAMA_TIMEOUT_DURATION / 1000} seconds`);
+      }
+      // Re-throw other errors
+      throw error;
     }
   } else {
     // Unhandled models
