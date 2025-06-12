@@ -118,7 +118,7 @@ class <ClassNameFromJSON>(BaseTool):
 * `manager_llm`: If `process` is hierarchical, use the `workflow_process.manager_llm_specification.llm_id` to assign the correct pre-instantiated LLM object.
 * `memory`: Set based on `crew_memory.activation`.
 * `embedder`: If memory is active, configure it using the `crew_memory.embedder_config` object.
-* Set `verbose=True`.
+* Set `verbose=False`.
 
 **Execution Block:**
 ```python
@@ -144,4 +144,4 @@ if __name__ == "__main__":
     #    print(f"\nDeliverable file '{final_deliverable_filename}' was expected but not found.")
 ```
 
-Generate the Python script block for CrewAI based on this as result of this prompt
+**Output:** The Python script block for CrewAI based on this should be the ONLY output generated
