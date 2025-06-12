@@ -11,7 +11,8 @@ export async function interactWithLLM(
   llmModel: string, // Original casing
   mode: string,
   runPhase: number | null
-): Promise<{ llmResponseText: string; generatedScript?: string }> {
+): Promise<{ llmResponseText: string; generatedScript?: string; duration: number }> {
+  const startTime = Date.now();
   try {
     const inputPath = path.join(process.cwd(), 'llm_input_prompt.txt');
     await fs.writeFile(inputPath, fullPrompt);
@@ -152,6 +153,9 @@ export async function interactWithLLM(
     // If it was the mock response for unhandled model, generatedScript will be that mock script via extractScript.
   }
 
+  const endTime = Date.now();
+  const duration = parseFloat(((endTime - startTime) / 1000).toFixed(2));
+
   try {
     const outputPath = path.join(process.cwd(), 'llm_output_prompt.txt');
     await fs.writeFile(outputPath, llmResponseText);
@@ -160,5 +164,5 @@ export async function interactWithLLM(
     console.error('Failed to write LLM output to llm_output_prompt.txt:', error);
   }
 
-  return { llmResponseText, generatedScript };
+  return { llmResponseText, generatedScript, duration };
 }

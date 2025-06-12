@@ -12,7 +12,8 @@ export function handleDockerStream(
   preHostRunResult: StageOutput,
   setupOverallStatus: 'success' | 'failure',
   setupError: string | undefined,
-  retrievedDockerCommand: string | undefined
+  retrievedDockerCommand: string | undefined,
+  scriptStartTime: number // Added to receive the start time
 ): ReadableStream {
   return new ReadableStream({
     async start(controller) {
@@ -129,10 +130,19 @@ export function handleDockerStream(
             setupError          // Error from pre-host run and docker build
           );
 
-          controller.enqueue(`RESULT: ${JSON.stringify(finalResult)}`);
+          const scriptEndTime = Date.now();
+          const scriptExecutionDuration = parseFloat(((scriptEndTime - scriptStartTime) / 1000).toFixed(2));
+          const resultPayload = {
+            ...finalResult,
+            scriptExecutionDuration: scriptExecutionDuration,
+          };
+
+          controller.enqueue(`RESULT: ${JSON.stringify(resultPayload)}`);
           controller.close();
         } catch (e: any) {
           console.error("Error in stream 'end' processing or finalization:", e);
+          const scriptEndTime = Date.now();
+          const scriptExecutionDuration = parseFloat(((scriptEndTime - scriptStartTime) / 1000).toFixed(2));
           // Send a final error to the client if possible
           const errorResult: ExecutionResult = {
             overallStatus: 'failure',
@@ -140,6 +150,7 @@ export function handleDockerStream(
             preHostRun: preHostRunResult,
             preDockerRun: { stdout: Buffer.concat(stdoutChunks).toString('utf-8'), stderr: Buffer.concat(stderrChunks).toString('utf-8'), status: 'unknown', error: `Error during final processing: ${e.message}` },
             mainScript: { stdout: '', stderr: '', status: 'unknown', error: `Error during final processing: ${e.message}` },
+            scriptExecutionDuration: scriptExecutionDuration, // Include duration in error
           };
           try {
             controller.enqueue(`RESULT: ${JSON.stringify(errorResult)}`);
@@ -152,6 +163,8 @@ export function handleDockerStream(
 
       dockerStream!.on('error', (err) => {
         console.error("Docker stream error:", err);
+        const scriptEndTime = Date.now();
+        const scriptExecutionDuration = parseFloat(((scriptEndTime - scriptStartTime) / 1000).toFixed(2));
         // Try to send an error message over the stream before closing it with an error.
         const errorResult: ExecutionResult = {
           overallStatus: 'failure',
@@ -159,6 +172,7 @@ export function handleDockerStream(
           preHostRun: preHostRunResult,
           preDockerRun: { stdout: Buffer.concat(stdoutChunks).toString('utf-8'), stderr: Buffer.concat(stderrChunks).toString('utf-8'), status: 'failure', error: `Docker stream error: ${err.message}` },
           mainScript: { stdout: '', stderr: '', status: 'not_run' },
+          scriptExecutionDuration: scriptExecutionDuration, // Include duration in error
         };
         try {
           controller.enqueue(`RESULT: ${JSON.stringify(errorResult)}`);
