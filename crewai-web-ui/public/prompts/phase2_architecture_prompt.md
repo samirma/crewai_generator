@@ -1,8 +1,9 @@
-## Design Crew Architecture Plan
 
-**Input:** The complete **'Blueprint' document** (in Markdown format). No other information source should be used.
 
-**Process:** Based *solely* on the **complete and detailed 'Blueprint'**, design the optimal CrewAI configuration. This involves developing the complete specifications for tasks, agents, and tools. Your role is exclusively architectural design.
+Instructions markdown:
+```markdown
+
+**Process:** Based *solely* on the previous markdown block, design the optimal CrewAI configuration. This involves developing the complete specifications for tasks, agents, and tools. Your role is exclusively architectural design.
 
 The design process should follow a logical, top-down cascade to ensure robustness and internal consistency. Key considerations include:
 * **Self-Correction:** The architecture must include agents and tasks dedicated to quality assurance and critique.
@@ -13,14 +14,13 @@ The design process should follow a logical, top-down cascade to ensure robustnes
 To improve the robustness of the design, the JSON object's keys MUST be in the following order:
 
 1.  `workflow_process`
-2.  `validation_and_critique_framework`
-3.  `crew_memory`
-4.  `llm_registry`
-5.  `agent_cadre`
-6.  `structured_data_handling`
-7.  `tool_repository`
-8.  `custom_tool_definitions`
-9.  `task_roster`
+2.  `crew_memory`
+3.  `llm_registry`
+4.  `agent_cadre`
+5.  `structured_data_handling`
+6.  `tool_repository`
+7.  `custom_tool_definitions`
+8.  `task_roster`
 
 **'Design-Crew-Architecture-Plan' - JSON Schema:**
 
@@ -30,11 +30,6 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
     * `manager_llm_specification` (Object, Optional): Required if `selected_process` is "Process.hierarchical".
         * `llm_id` (String): The identifier for the manager's LLM, chosen from the `llm_registry`.
         * `rationale` (String): Justification for this manager LLM choice, referencing its capabilities (e.g., 'reasoner') from the `llm_registry`.
-
-* `validation_and_critique_framework` (Object):
-    * `qa_strategy_description` (String): Describe the overall strategy for ensuring the quality and accuracy of the final output.
-    * `critique_cycle_implementation` (String): Detail how critique and feedback loops are structured.
-    * `final_validation_step` (String): Describe the final task that will perform a quality check against the `Blueprint`.
 
 * `crew_memory` (Object, Optional):
     * `activation` (Boolean): `True` to enable memory.
@@ -122,4 +117,7 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
         * `context` (Array of Strings, Optional): List of prerequisite `task_identifier`s.
         * `output_pydantic` (String, Optional): The `class_name` of a Pydantic model for structured output.
 
-**Output:** A **single JSON object** named `'Design-Crew-Architecture-Plan'`. This JSON object must be valid and adhere to the section order and schema defined above and continue the prompt processing
+
+```
+
+Follow the previous instructions markdown to produce a **single JSON object** named `'Design-Crew-Architecture-Plan'.

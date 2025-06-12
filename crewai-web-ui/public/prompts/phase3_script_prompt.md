@@ -96,7 +96,7 @@ class <ClassNameFromJSON>(BaseTool):
 * For each agent object:
     * The variable name MUST be the agent's `role` (from `constructor_args`), formatted as a valid Python variable name (e.g., "Financial Analyst" becomes `financial_analyst_agent`).
     * **CRITICAL**: Before the agent definition, insert a Python comment block generated from the `design_metadata` object, including the `llm_rationale`, `tool_rationale`, and `delegation_rationale`.
-    * To instantiate the `Agent`, use the keys from the `constructor_args` object as parameters.
+    * To instantiate the `Agent`, use the keys from the `constructor_args` object as parameters and convert the values to the appropriate python types.
     * **LLM Assignment**: Use the `llm_id` from `constructor_args` to assign the correct, pre-instantiated LLM variable to the `llm` parameter.
     * **Tool Assignment**: Use the list of `tool_id`s from the `constructor_args.tools` array to build the list of tool instances for the `tools` parameter.
 
@@ -145,5 +145,3 @@ if __name__ == "__main__":
 ```
 
 **Output:** The Python script block for CrewAI based on this should be the ONLY output generated.
-
-**(Autocorrect Note: After generating this block, you will show it in the final output and continue displaying according to the next instructions)**
