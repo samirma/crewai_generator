@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import CopyButton from './components/CopyButton';
+import Timer from './components/Timer'; // <-- Add this line
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
@@ -78,6 +79,8 @@ export default function Home() {
   const [defaultPhase1PromptText, setDefaultPhase1PromptText] = useState<string>("");
   const [defaultPhase2PromptText, setDefaultPhase2PromptText] = useState<string>("");
   const [defaultPhase3PromptText, setDefaultPhase3PromptText] = useState<string>("");
+
+  const isLlmTimerRunning = isLoading || !!isLoadingPhase[1] || !!isLoadingPhase[2] || !!isLoadingPhase[3];
 
   useEffect(() => {
     // Load initialInput from cookie on component mount using helper
@@ -621,8 +624,17 @@ export default function Home() {
         {modelsError && <p className="text-sm text-red-600 dark:text-red-400 mt-1">{modelsError}</p>}
       </div>
 
+      {/* LLM Request Timer */}
+      {isLlmTimerRunning && (
+        <div className="mt-4 mb-4 p-3 border border-blue-300 dark:border-blue-700 rounded-md bg-blue-50 dark:bg-blue-900/30 shadow-sm text-center">
+          <p className="text-sm text-blue-700 dark:text-blue-300">
+            LLM Request Timer: <Timer isRunning={isLlmTimerRunning} className="inline font-semibold" />
+          </p>
+        </div>
+      )}
+
       {/* LLM Request Duration Display */}
-      {llmRequestDuration !== null && (
+      {llmRequestDuration !== null && !isLlmTimerRunning && (
         <div className="mt-4 mb-4 p-3 border border-slate-300 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 shadow-sm text-center">
           <p className="text-sm text-slate-700 dark:text-slate-300">
             LLM request took: <span className="font-semibold">{llmRequestDuration.toFixed(2)}</span> seconds
@@ -853,8 +865,17 @@ export default function Home() {
                   </pre>
                 </div>
               )}
+              {/* Script Execution Timer */}
+              {isExecutingScript && (
+                <div className="mt-2 mb-2 p-2 border border-green-300 dark:border-green-700 rounded-md bg-green-50 dark:bg-green-900/30 shadow-sm text-center">
+                  <p className="text-xs text-green-700 dark:text-green-300">
+                    Script Execution Timer: <Timer isRunning={isExecutingScript} className="inline font-semibold" />
+                  </p>
+                </div>
+              )}
+
               {/* Script Execution Duration Display */}
-              {scriptExecutionDuration !== null && (
+              {scriptExecutionDuration !== null && !isExecutingScript && (
                 <div className="mt-2 mb-2 p-2 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm text-center">
                   <p className="text-xs text-slate-600 dark:text-slate-300">
                     Script execution took: <span className="font-semibold">{scriptExecutionDuration.toFixed(2)}</span> seconds
