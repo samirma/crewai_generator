@@ -73,6 +73,8 @@ export default function Home() {
   const [rawLlmResult, setRawLlmResult] = useState<string>("");
   const [actualLlmInputPrompt, setActualLlmInputPrompt] = useState<string>("");
   const [actualLlmOutputPrompt, setActualLlmOutputPrompt] = useState<string>("");
+  const [llmRequestDuration, setLlmRequestDuration] = useState<number | null>(null);
+  const [scriptExecutionDuration, setScriptExecutionDuration] = useState<number | null>(null);
   const [defaultPhase1PromptText, setDefaultPhase1PromptText] = useState<string>("");
   const [defaultPhase2PromptText, setDefaultPhase2PromptText] = useState<string>("");
   const [defaultPhase3PromptText, setDefaultPhase3PromptText] = useState<string>("");
@@ -177,6 +179,8 @@ export default function Home() {
     setRawLlmResult("");
     setActualLlmInputPrompt("");
     setActualLlmOutputPrompt("");
+    setLlmRequestDuration(null);
+    setScriptExecutionDuration(null);
   };
 
   const handleSimpleModeSubmit = async () => {
@@ -312,6 +316,7 @@ export default function Home() {
     setScriptRunOutput("");
     setPhasedOutputs([]);
     setExecutionOutput("");
+    setScriptExecutionDuration(null); // Reset before new execution
 
     try {
       const response = await fetch('/api/execute', {
@@ -396,6 +401,12 @@ export default function Home() {
               }
               setScriptRunOutput(summary);
 
+              if (finalResult.scriptExecutionDuration !== undefined) {
+                setScriptExecutionDuration(finalResult.scriptExecutionDuration);
+              } else {
+                setScriptExecutionDuration(null);
+              }
+
               if (finalResult.mainScript && finalResult.mainScript.stdout) {
                 const taskOutputs = parsePhasedOutputs(finalResult.mainScript.stdout);
                 setPhasedOutputs(taskOutputs);
@@ -410,6 +421,7 @@ export default function Home() {
             } catch (e) {
               console.error("Error parsing final result JSON:", e);
               setScriptExecutionError("Error parsing final result from script execution.");
+              setScriptExecutionDuration(null); // Also reset on error parsing here
             }
           }
         }
@@ -438,6 +450,12 @@ export default function Home() {
               }
               setScriptRunOutput(summary);
 
+              if (finalResult.scriptExecutionDuration !== undefined) {
+                setScriptExecutionDuration(finalResult.scriptExecutionDuration);
+              } else {
+                setScriptExecutionDuration(null);
+              }
+
               if (finalResult.mainScript && finalResult.mainScript.stdout) {
                 const taskOutputs = parsePhasedOutputs(finalResult.mainScript.stdout);
                 setPhasedOutputs(taskOutputs);
@@ -452,6 +470,7 @@ export default function Home() {
             } catch (e) {
               console.error("Error parsing final result JSON from remaining buffer:", e);
               setScriptExecutionError("Error parsing final result from script execution (buffer).");
+              setScriptExecutionDuration(null); // Also reset on error parsing here
             }
       }
 
@@ -506,6 +525,11 @@ export default function Home() {
       // setRawLlmResult(JSON.stringify(data, null, 2));
       setActualLlmInputPrompt(data.llmInputPromptContent || "");
       setActualLlmOutputPrompt(data.llmOutputPromptContent || "");
+      if (data.duration !== undefined) {
+        setLlmRequestDuration(data.duration);
+      } else {
+        setLlmRequestDuration(null); // Reset if duration is not in response
+      }
       onSuccess(data);
     } catch (err) {
       console.error("API Request Error:", err);
@@ -596,6 +620,15 @@ export default function Home() {
         </select>
         {modelsError && <p className="text-sm text-red-600 dark:text-red-400 mt-1">{modelsError}</p>}
       </div>
+
+      {/* LLM Request Duration Display */}
+      {llmRequestDuration !== null && (
+        <div className="mt-4 mb-4 p-3 border border-slate-300 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 shadow-sm text-center">
+          <p className="text-sm text-slate-700 dark:text-slate-300">
+            LLM request took: <span className="font-semibold">{llmRequestDuration.toFixed(2)}</span> seconds
+          </p>
+        </div>
+      )}
 
       {/* Display Full Prompt Section */}
       {actualLlmInputPrompt && (
@@ -818,6 +851,14 @@ export default function Home() {
                   <pre className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-inner overflow-auto whitespace-pre-wrap text-xs text-slate-600 dark:text-slate-300">
                     {dockerCommandToDisplay}
                   </pre>
+                </div>
+              )}
+              {/* Script Execution Duration Display */}
+              {scriptExecutionDuration !== null && (
+                <div className="mt-2 mb-2 p-2 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm text-center">
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                    Script execution took: <span className="font-semibold">{scriptExecutionDuration.toFixed(2)}</span> seconds
+                  </p>
                 </div>
               )}
               {/* Live Logs */}

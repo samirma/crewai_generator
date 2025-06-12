@@ -18,11 +18,14 @@ export async function POST(request: Request) {
     }
 
     console.log("Received script for execution. Setting up Docker container and stream...");
+    const scriptStartTime = Date.now(); // Record start time before execution setup
     const setupResult = await executePythonScript(scriptContent);
 
     // If setup failed (e.g., pre-host, docker build, container creation failed)
     if (setupResult.overallStatus === 'failure' || !setupResult.container || !setupResult.stream) {
       console.error("Failed to setup Docker execution:", setupResult.error);
+      const scriptEndTime = Date.now();
+      const scriptExecutionDuration = parseFloat(((scriptEndTime - scriptStartTime) / 1000).toFixed(2));
       const finalErrorResult: ExecutionResult = {
         preHostRun: setupResult.preHostRunResult,
         // preDockerRun and mainScript might not have been attempted, initialize them
@@ -30,6 +33,7 @@ export async function POST(request: Request) {
         mainScript: { stdout: '', stderr: '', status: 'not_run', error: setupResult.error ? "Skipped due to setup failure" : undefined },
         overallStatus: 'failure',
         error: setupResult.error || "Unknown error during setup phase.",
+        scriptExecutionDuration: scriptExecutionDuration, // Add duration to error responses too
       };
       return NextResponse.json(finalErrorResult, { status: 500 });
     }
@@ -53,7 +57,8 @@ export async function POST(request: Request) {
       preHostRunResult,
       setupOverallStatus,
       setupError,
-      retrievedDockerCommand
+      retrievedDockerCommand,
+      scriptStartTime // Pass scriptStartTime to handleDockerStream
     );
 
     return new NextResponse(readableStream, {

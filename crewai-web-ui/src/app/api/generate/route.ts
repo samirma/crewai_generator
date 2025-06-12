@@ -46,9 +46,8 @@ export async function POST(request: Request) {
     try {
       // Call interactWithLLM with the fullPrompt received from the client
       // fs and path imports for GoogleGenerativeAI and OpenAI are handled within llm.service.ts
-      const llmResult = await interactWithLLM(fullPrompt, llmModel, mode, runPhase);
-      const llmResponseText = llmResult.llmResponseText; // Always present
-      let generatedScript = llmResult.generatedScript; // Optional, changed to let
+      const { llmResponseText, generatedScript: llmGeneratedScript, duration } = await interactWithLLM(fullPrompt, llmModel, mode, runPhase);
+      let generatedScript = llmGeneratedScript; // Optional, changed to let
 
       const inputFilePath = path.join(process.cwd(), 'llm_input_prompt.txt');
       const outputFilePath = path.join(process.cwd(), 'llm_output_prompt.txt');
@@ -69,7 +68,7 @@ export async function POST(request: Request) {
 
       // Return structure now includes the fullPrompt that was sent in the request
       if (mode === 'advanced' && (runPhase === 1 || runPhase === 2)) {
-        return NextResponse.json({ phase: runPhase, output: llmResponseText, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent });
+        return NextResponse.json({ phase: runPhase, output: llmResponseText, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent, duration });
       }
 
       // Ollama-specific LLM configuration injection block removed
@@ -81,9 +80,9 @@ export async function POST(request: Request) {
           // However, the current llmResult from interactWithLLM doesn't include phasedOutputs
           // This might need adjustment if simple mode is expected to also return structured task outputs
           // directly from the /api/generate call, or if they are only handled by /api/execute
-          return NextResponse.json({ generatedScript, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent /* phasedOutputs: [] an example if needed */ });
+          return NextResponse.json({ generatedScript, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent, duration /* phasedOutputs: [] an example if needed */ });
         } else { // Advanced mode, phase 3
-          return NextResponse.json({ generatedScript, phase: 3, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent /* phasedOutputs: [] an example if needed */ });
+          return NextResponse.json({ generatedScript, phase: 3, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent, duration /* phasedOutputs: [] an example if needed */ });
         }
       } else {
         // This case should ideally not be reached if llmModel.startsWith('ollama/') and generatedScript was initially undefined,
