@@ -196,7 +196,7 @@ export default function Home() {
     resetOutputStates();
 
     const phaseTexts = [defaultPhase1PromptText, defaultPhase2PromptText, defaultPhase3PromptText].filter(text => text); // Filter out any empty/undefined prompts
-    const fullPrompt = constructFrontendPrompt('simple', initialInput, phaseTexts);
+    const fullPrompt = constructFrontendPrompt('simple', initialInput, phaseTexts); // No currentPhase argument for simple mode
     setDisplayedPrompt(fullPrompt);
 
     console.log("Generating simple mode script using combined prompts.");
@@ -249,30 +249,37 @@ export default function Home() {
     }
     // setScriptRunOutput(""), setExecutionOutput(""), setPhasedOutputs([]) are handled by resetOutputStates()
 
-    const phaseTextsForPrompt: string[] = [];
-    const currentPhase1Text = phase1Prompt;
-    const currentPhase2Text = phase2Prompt;
-    const currentPhase3Text = phase3Prompt;
+    let fullPrompt = "";
+    // Ensure phaseXPrompt variables (editable prompts) and phaseXOutput variables (LLM results) are used correctly.
+    // The userInput is passed to constructFrontendPrompt, but it will only be appended if phase is 1.
+    // For phases 2 and 3, the userInput is expected to be part of phase1Output or phase2Output respectively.
 
     if (phase === 1) {
-      if (currentPhase1Text) phaseTextsForPrompt.push(currentPhase1Text);
+      // Phase 1: Uses the editable Phase 1 prompt.
+      // constructFrontendPrompt will append the userInput.
+      fullPrompt = constructFrontendPrompt('advanced', initialInput, [phase1Prompt || defaultPhase1PromptText], 1);
     } else if (phase === 2) {
-      if (currentPhase1Text) phaseTextsForPrompt.push(currentPhase1Text);
-      if (currentPhase2Text) phaseTextsForPrompt.push(currentPhase2Text);
+      // Phase 2: Uses the OUTPUT of Phase 1 (phase1Output) and the editable Phase 2 prompt.
+      // constructFrontendPrompt will NOT append userInput.
+      // Ensure phase1Output is available; if not, it's an error or needs a fallback.
+      // For robustness, consider if phase1Output is empty, what should happen.
+      // Maybe fall back to defaultPhase1PromptText but this might not be ideal as it misses user input.
+      // For now, assume phase1Output will be populated from a successful Phase 1 run.
+      fullPrompt = constructFrontendPrompt('advanced', initialInput, [phase1Output, phase2Prompt || defaultPhase2PromptText], 2);
     } else if (phase === 3) {
-      if (currentPhase1Text) phaseTextsForPrompt.push(currentPhase1Text);
-      if (currentPhase2Text) phaseTextsForPrompt.push(currentPhase2Text);
-      if (currentPhase3Text) phaseTextsForPrompt.push(currentPhase3Text);
+      // Phase 3: Uses the OUTPUT of Phase 2 (phase2Output) and the editable Phase 3 prompt.
+      // constructFrontendPrompt will NOT append userInput.
+      // Assume phase2Output is populated.
+      fullPrompt = constructFrontendPrompt('advanced', initialInput, [phase2Output, phase3Prompt || defaultPhase3PromptText], 3);
     }
+    setDisplayedPrompt(fullPrompt); // Update the displayed prompt
 
-    const fullPrompt = constructFrontendPrompt('advanced', initialInput, phaseTextsForPrompt);
-    setDisplayedPrompt(fullPrompt);
-
+    // The payload remains the same
     let payload: any = {
       llmModel,
       mode: 'advanced',
       runPhase: phase,
-      fullPrompt: fullPrompt, // Send the fully constructed prompt
+      fullPrompt: fullPrompt, // Send the correctly constructed fullPrompt
     };
 
     // Old console.log statements for specific phase generation have been removed.
@@ -489,9 +496,12 @@ export default function Home() {
     }
   };
 
-  const constructFrontendPrompt = (mode: string, userInput: string, phaseTexts: string[]): string => {
+  const constructFrontendPrompt = (mode: string, userInput: string, phaseTexts: string[], currentPhase?: number | null): string => {
     let fullPrompt = phaseTexts.join("\n\n");
-    fullPrompt += `\n\nUser Instruction: @@@${userInput}@@@`;
+
+    if (mode === 'simple' || (mode === 'advanced' && currentPhase === 1)) {
+      fullPrompt += `\n\nUser Instruction: @@@${userInput}@@@`;
+    }
 
     return fullPrompt;
   };
