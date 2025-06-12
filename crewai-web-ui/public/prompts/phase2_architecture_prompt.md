@@ -74,39 +74,45 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
 * `structured_data_handling` (Object, Optional):
     * `usage` (Boolean): `True` if Pydantic models are used.
     * `rationale` (String, Optional): Explanation of how using Pydantic models enhances reliability.
+    * **CRITICAL RULE FOR LISTS:** If a task's `expected_output` is a list of structured items, you MUST define two Pydantic models: 1) A model for the single item, and 2) A "wrapper" model that contains a `typing.List` of the single item model. This wrapper model is what must be used in the `task_roster`.
     * `model_definitions` (Array of Objects, Optional):
         * `class_name` (String): Python class name.
         * `fields` (Object): Dictionary of field names to their Python types.
 
-* `tool_repository` (Array of Objects): Each object defines a unique tool to be instantiated.
-    * `tool_id` (String): A unique identifier for this specific tool instance (e.g., "web\_search\_tool").
-    * `usage_justification` (String): A concise explanation of why this tool is essential for the crew's overall mission.
-    * `analysis_and_decision` (Object): A structured block to ensure rigorous tool selection.
-        * `required_functionality` (String): A clear, one-sentence description of the specific action the tool must perform.
-        * `standard_tool_evaluation` (Array of Objects): An evaluation of relevant standard tools.
-            * `tool_name` (String): Name of a standard tool from the reference list.
-            * `suitability_analysis` (String): Mandatory analysis of WHY this standard tool IS or IS NOT sufficient.
-            * `is_sufficient` (Boolean): `True` or `False`.
-        * `final_decision_rationale` (String): A concluding statement on tool choice.
-    * `is_custom_tool` (Boolean): `True` if no standard tool is sufficient.
-    * `class_name` (String): The exact Python class name to instantiate.
-    * `initialization_params` (Object, Optional): Constructor parameters for the tool.
+* `tool_repository` (Array of Objects): Each object defines a unique tool to be instantiated, separating design rationale from instantiation parameters.
+    * `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
+        * `usage_justification` (String): A concise explanation of why this tool is essential for the crew's overall mission.
+        * `analysis_and_decision` (Object): A structured block to ensure rigorous tool selection.
+            * `required_functionality` (String): A clear, one-sentence description of the specific action the tool must perform.
+            * `standard_tool_evaluation` (Array of Objects): An evaluation of relevant standard tools.
+                * `tool_name` (String): Name of a standard tool from the reference list.
+                * `suitability_analysis` (String): Mandatory analysis of WHY this standard tool IS or IS NOT sufficient.
+                * `is_sufficient` (Boolean): `True` or `False`.
+            * `final_decision_rationale` (String): A concluding statement on tool choice.
+        * `is_custom_tool` (Boolean): `True` if no standard tool is sufficient, derived from the analysis.
+    * `constructor_args` (Object): Contains only the parameters for the tool's class constructor.
+        * `tool_id` (String): A unique identifier for this specific tool instance (e.g., "web\_search\_tool"). This acts as the primary identifier for the tool.
+        * `class_name` (String): The exact Python class name to instantiate.
+        * `initialization_params` (Object, Optional): Constructor parameters for the tool.
 
-* `custom_tool_definitions` (Array of Objects, Optional): Defines the complete implementation for a custom tool.
-    * `tool_id` (String): The identifier that links this definition to the `tool_repository`.
-    * `name_attribute` (String): The value for the tool's `name` attribute.
-    * `description_attribute` (String): The detailed description of the tool's function.
-    * `args_pydantic_model` (String, Optional): The class name of the Pydantic model for args validation.
-    * `justification_for_custom_tool` (String): Explicit justification for needing a custom tool.
-    * `run_method_parameters` (Array of Objects): Parameters for the `_run` method.
-        * `name` (String): Parameter name.
-        * `python_type` (String): Python type hint.
-    * `run_method_logic` (String): A step-by-step description or pseudo-code for the `_run` method.
+* `custom_tool_definitions` (Array of Objects, Optional): Defines the complete implementation for a custom tool, separating justification from implementation details.
+    * `design_metadata` (Object): Contains contextual information and justifications.
+        * `tool_id` (String): The identifier that links this definition back to a `tool_repository` entry.
+        * `justification_for_custom_tool` (String): Explicit justification for why this custom tool is necessary.
+    * `class_definition_args` (Object): Contains all the parameters needed to generate the custom tool's Python class.
+        * `name_attribute` (String): The value for the tool's `name` attribute.
+        * `description_attribute` (String): The detailed description of the tool's function.
+        * `args_pydantic_model` (String, Optional): The class name of the Pydantic model for args validation.
+        * `run_method_parameters` (Array of Objects): Parameters for the `_run` method.
+            * `name` (String): Parameter name.
+            * `python_type` (String): Python type hint.
+        * `run_method_logic` (String): A step-by-step description or pseudo-code for the `_run` method.
 
-* `task_roster` (Array of Objects): Each object represents a task.
-    * `task_identifier` (String): Unique name for the task.
+* `task_roster` (Array of Objects): Each object represents a task, separating design rationale from instantiation parameters.
+    * `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
+        * `task_identifier` (String): A unique name for the task, used for context linking.
         * `quality_gate` (String): A detailed description of the acceptance criteria for the `expected_output`.
-        * `tool_rationale` (String, Optional): Justification for why these specific tools are chosen for this task.
+        * `tool_rationale` (String, Optional): Justification for why specific tools are chosen for this task.
         * `output_pydantic_rationale` (String, Optional): Justification for using a Pydantic model for the output.
     * `constructor_args` (Object): Contains only the parameters for the CrewAI `Task` class constructor.
         * `description` (String): Detailed operational prompt for the agent. For multimodal tasks, this should include placeholders for image inputs.
@@ -115,8 +121,5 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
         * `tools` (Array of Strings, Optional): List of `tool_id`s from the `tool_repository`.
         * `context` (Array of Strings, Optional): List of prerequisite `task_identifier`s.
         * `output_pydantic` (String, Optional): The `class_name` of a Pydantic model for structured output.
-    * `design_metadata` (Object): Contains contextual information and justifications.
 
-
-
-**Output:** A **single JSON object** named `'Design-Crew-Architecture-Plan'`. This JSON object must be valid and adhere to the section order and schema defined above.
+**Output:** A **single JSON object** named `'Design-Crew-Architecture-Plan'`. This JSON object must be valid and adhere to the section order and schema defined above and continue the prompt processing

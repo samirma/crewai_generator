@@ -47,6 +47,8 @@ RUN python -m pip install --upgrade pip && \
     pymupdf \
     pysqlite3-binary PyPDF2 weasyprint reportlab pdfkit
 
+RUN pip install --upgrade chromadb
+
 # The container is now configured to use the venv's python by default.
 # The CMD below is just an example. The command you provide in `docker run` will
 # automatically use the python from the virtual environment.
