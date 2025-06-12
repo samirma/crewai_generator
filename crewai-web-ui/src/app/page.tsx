@@ -5,6 +5,7 @@ import CopyButton from './components/CopyButton';
 import Timer from './components/Timer'; // <-- Add this line
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { buildPrompt } from '../utils/promptUtils';
 
 interface Model {
   id: string;
@@ -186,57 +187,89 @@ export default function Home() {
     setScriptExecutionDuration(null);
   };
 
-  const handleSimpleModeSubmit = async () => {
-    setCookie('initialInstruction', initialInput, 30); // Save cookie on generation trigger
-    if (!llmModel) {
-      setError("Please select an LLM model.");
-      return;
+  // Inside Home component, before handleSimpleModeSubmit and handleRunPhase
+  const handleUnifiedGenerateRequest = async (
+    mode: 'simple' | 'advanced',
+    fullPromptValue: string,
+    onSuccessCallback: (data: any) => void,
+    currentRunPhase?: number | null
+  ) => {
+    // Pre-flight checks (cookie, llmModel) and resetOutputStates() are assumed to be done by callers.
+
+    // 1. Set Loading States
+    if (mode === 'simple') {
+      setIsLoading(true);
+    } else if (currentRunPhase) { // Advanced mode
+      setIsLoadingPhase(prev => ({ ...prev, [currentRunPhase]: true }));
+      setCurrentPhaseRunning(currentRunPhase);
     }
-    setIsLoading(true); // General loading for simple mode
-    resetOutputStates();
 
-    const phaseTexts = [defaultPhase1PromptText, defaultPhase2PromptText, defaultPhase3PromptText].filter(text => text); // Filter out any empty/undefined prompts
-    const fullPrompt = constructFrontendPrompt('simple', initialInput, phaseTexts);
-    setDisplayedPrompt(fullPrompt);
+    // 2. Set Displayed Prompt
+    setDisplayedPrompt(fullPromptValue);
 
-    console.log("Generating simple mode script using combined prompts.");
-
-    const payload = {
-      llmModel,
-      mode: 'simple',
-      fullPrompt: fullPrompt,
+    // 3. Construct Payload
+    const payload: any = {
+      llmModel, // from Home component's state
+      mode: mode,
+      fullPrompt: fullPromptValue,
     };
+    if (mode === 'advanced' && currentRunPhase) {
+      payload.runPhase = currentRunPhase;
+    }
 
+    // 4. Execute API Call (ensure executeGenerateRequest is defined or imported)
     await executeGenerateRequest(
       '/api/generate',
       payload,
       (data) => {
-        setGeneratedScript(data.generatedScript);
-        setPhasedOutputs(data.phasedOutputs || []);
-        // setDisplayedPrompt(data.fullPrompt || ""); // Already set by frontend
-        setExecutionOutput(""); // Clear previous execution outputs
-        setScriptRunOutput(""); // Clear previous script run outputs
+        onSuccessCallback(data);
       },
       (errorMessage) => {
-        setError(errorMessage);
+        setError(errorMessage); // setError from Home component's state
       },
-      () => {
-        setIsLoading(false);
+      () => { // finally handler
+        if (mode === 'simple') {
+          setIsLoading(false);
+        } else if (currentRunPhase) { // Advanced mode
+          setIsLoadingPhase(prev => ({ ...prev, [currentRunPhase]: false }));
+          setCurrentPhaseRunning(null);
+        }
       }
     );
   };
 
-  const handleRunPhase = async (phase: number) => {
-    setCookie('initialInstruction', initialInput, 30); // Save cookie on generation trigger
+  const handleSimpleModeSubmit = async () => {
+    setCookie('initialInstruction', initialInput, 30);
     if (!llmModel) {
       setError("Please select an LLM model.");
       return;
     }
-    setIsLoadingPhase(prev => ({ ...prev, [phase]: true }));
-    setCurrentPhaseRunning(phase);
-    resetOutputStates(); // Reset common outputs and errors
+    resetOutputStates();
 
-    // Clear subsequent phase-specific outputs
+    const fullPrompt = buildPrompt(initialInput, defaultPhase1PromptText, defaultPhase2PromptText, defaultPhase3PromptText);
+
+    await handleUnifiedGenerateRequest(
+      'simple',
+      fullPrompt,
+      (data) => { // onSuccessCallback for simple mode
+        setGeneratedScript(data.generatedScript);
+        setPhasedOutputs(data.phasedOutputs || []);
+        setExecutionOutput("");
+        setScriptRunOutput("");
+      }
+      // No currentRunPhase for simple mode, so it will be undefined
+    );
+  };
+
+  const handleRunPhase = async (phase: number) => {
+    setCookie('initialInstruction', initialInput, 30);
+    if (!llmModel) {
+      setError("Please select an LLM model.");
+      return;
+    }
+    resetOutputStates();
+
+    // Phase-specific output clearing before the main request logic
     if (phase === 1) {
       setPhase1Output("");
       setPhase2Output("");
@@ -244,46 +277,22 @@ export default function Home() {
     } else if (phase === 2) {
       setPhase2Output("");
       // setGeneratedScript(""); // Handled by resetOutputStates
-    } else if (phase === 3) {
-      // setGeneratedScript(""); // Handled by resetOutputStates
     }
-    // setScriptRunOutput(""), setExecutionOutput(""), setPhasedOutputs([]) are handled by resetOutputStates()
+    // No specific output clearing for phase 3 that isn't covered by resetOutputStates
 
-    const phaseTextsForPrompt: string[] = [];
-    const currentPhase1Text = phase1Prompt;
-    const currentPhase2Text = phase2Prompt;
-    const currentPhase3Text = phase3Prompt;
-
+    let fullPromptValue = "";
     if (phase === 1) {
-      if (currentPhase1Text) phaseTextsForPrompt.push(currentPhase1Text);
+      fullPromptValue = buildPrompt(initialInput, phase1Prompt || defaultPhase1PromptText, null, null);
     } else if (phase === 2) {
-      if (currentPhase1Text) phaseTextsForPrompt.push(currentPhase1Text);
-      if (currentPhase2Text) phaseTextsForPrompt.push(currentPhase2Text);
+      fullPromptValue = buildPrompt(initialInput, null, phase2Prompt || defaultPhase2PromptText, null);
     } else if (phase === 3) {
-      if (currentPhase1Text) phaseTextsForPrompt.push(currentPhase1Text);
-      if (currentPhase2Text) phaseTextsForPrompt.push(currentPhase2Text);
-      if (currentPhase3Text) phaseTextsForPrompt.push(currentPhase3Text);
+      fullPromptValue = buildPrompt(initialInput, null, null, phase3Prompt || defaultPhase3PromptText);
     }
 
-    const fullPrompt = constructFrontendPrompt('advanced', initialInput, phaseTextsForPrompt);
-    setDisplayedPrompt(fullPrompt);
-
-    let payload: any = {
-      llmModel,
-      mode: 'advanced',
-      runPhase: phase,
-      fullPrompt: fullPrompt, // Send the fully constructed prompt
-    };
-
-    // Old console.log statements for specific phase generation have been removed.
-    // The backend now handles detailed logging based on source indicators.
-    // Removed old payload construction that sent individual prompts and source indicators.
-
-    await executeGenerateRequest(
-      '/api/generate',
-      payload,
-      (data) => {
-        // setDisplayedPrompt(data.fullPrompt || ""); // Already set by frontend
+    await handleUnifiedGenerateRequest(
+      'advanced',
+      fullPromptValue,
+      (data) => { // onSuccessCallback for advanced mode
         if (phase === 1) {
           setPhase1Output(data.output);
         } else if (phase === 2) {
@@ -291,18 +300,9 @@ export default function Home() {
         } else if (phase === 3) {
           setGeneratedScript(data.generatedScript);
           setPhase3GeneratedTaskOutputs(data.phasedOutputs || []);
-          // setPhasedOutputs(data.phasedOutputs || []); // Removed as per requirement
-          // executionOutput and scriptRunOutput are already cleared by resetOutputStates
-          // and should only be set after script execution, not after phase 3 generation.
         }
       },
-      (errorMessage) => {
-        setError(errorMessage);
-      },
-      () => {
-        setIsLoadingPhase(prev => ({ ...prev, [phase]: false }));
-        setCurrentPhaseRunning(null);
-      }
+      phase // currentRunPhase
     );
   };
 
@@ -487,13 +487,6 @@ export default function Home() {
     } finally {
       setIsExecutingScript(false);
     }
-  };
-
-  const constructFrontendPrompt = (mode: string, userInput: string, phaseTexts: string[]): string => {
-    let fullPrompt = phaseTexts.join("\n\n");
-    fullPrompt += `\n\nUser Instruction: @@@${userInput}@@@`;
-
-    return fullPrompt;
   };
 
   const executeGenerateRequest = async (
