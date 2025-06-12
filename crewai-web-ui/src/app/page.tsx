@@ -493,9 +493,6 @@ export default function Home() {
     let fullPrompt = phaseTexts.join("\n\n");
     fullPrompt += `\n\nUser Instruction: @@@${userInput}@@@`;
 
-    if (mode === 'simple') {
-      fullPrompt += `\n\nGenerate the Python script for CrewAI based on this. Ensure each task's output is clearly marked with '### CREWAI_TASK_OUTPUT_MARKER: <task_name> ###' on a new line, followed by the task's output on subsequent lines.`;
-    }
     return fullPrompt;
   };
 

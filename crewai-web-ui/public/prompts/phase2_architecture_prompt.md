@@ -55,9 +55,7 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
     * `api_key_env_var` (String, Optional): Environment variable name for the API key.
     * **Pre-defined List to Use:**
         * `gemini/gemini-2.5-flash-preview-05-20` (reasoner: False, multimodal\_support: True)
-        * `gemini/gemini-2.5-pro-preview-06-05` (reasoner: True, multimodal\_support: True)
         * `deepseek/deepseek-chat` (reasoner: False, multimodal\_support: False)
-        * `deepseek/deepseek-reasoner` (reasoner: True, multimodal\_support: False)
 
 * `agent_cadre` (Array of Objects): Each object represents an agent. The structure separates constructor arguments from design rationale.
     * `design_metadata` (Object): Contains contextual information and justifications, not used for code generation.
