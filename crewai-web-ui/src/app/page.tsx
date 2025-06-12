@@ -282,11 +282,11 @@ export default function Home() {
 
     let fullPromptValue = "";
     if (phase === 1) {
-      fullPromptValue = buildPrompt(initialInput, phase1Prompt || defaultPhase1PromptText, null, null);
+      fullPromptValue = buildPrompt(initialInput, phase1Prompt , null, null);
     } else if (phase === 2) {
-      fullPromptValue = buildPrompt(initialInput, null, phase2Prompt || defaultPhase2PromptText, null);
+      fullPromptValue = buildPrompt(initialInput, phase1Prompt, phase2Prompt, null);
     } else if (phase === 3) {
-      fullPromptValue = buildPrompt(initialInput, null, null, phase3Prompt || defaultPhase3PromptText);
+      fullPromptValue = buildPrompt(initialInput, phase1Prompt, phase2Prompt, phase3Prompt);
     }
 
     await handleUnifiedGenerateRequest(
