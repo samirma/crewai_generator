@@ -49,7 +49,6 @@ export default function Home() {
   const [llmModel, setLlmModel] = useState<string>("");
   const [generatedScript, setGeneratedScript] = useState<string>("");
   const [executionOutput, setExecutionOutput] = useState<string>(""); // Used for simple mode's docker output
-  const [scriptRunOutput, setScriptRunOutput] = useState<string>(""); // For "Run Script" button (Phase 3 or simple mode)
   const [isExecutingScript, setIsExecutingScript] = useState<boolean>(false);
   const [scriptExecutionError, setScriptExecutionError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false); // General loading for simple mode
@@ -77,6 +76,8 @@ export default function Home() {
   const [actualLlmOutputPrompt, setActualLlmOutputPrompt] = useState<string>("");
   const [llmRequestDuration, setLlmRequestDuration] = useState<number | null>(null);
   const [scriptExecutionDuration, setScriptExecutionDuration] = useState<number | null>(null);
+  const [hasExecutionAttempted, setHasExecutionAttempted] = useState<boolean>(false);
+  const [scriptTimerKey, setScriptTimerKey] = useState<number>(0);
   const [defaultPhase1PromptText, setDefaultPhase1PromptText] = useState<string>("");
   const [defaultPhase2PromptText, setDefaultPhase2PromptText] = useState<string>("");
   const [defaultPhase3PromptText, setDefaultPhase3PromptText] = useState<string>("");
@@ -176,7 +177,6 @@ export default function Home() {
     setGeneratedScript("");
     setExecutionOutput("");
     setPhasedOutputs([]);
-    setScriptRunOutput("");
     setDisplayedPrompt("");
     setScriptExecutionError("");
     setModelsError("");
@@ -255,7 +255,6 @@ export default function Home() {
         setGeneratedScript(data.generatedScript);
         setPhasedOutputs(data.phasedOutputs || []);
         setExecutionOutput("");
-        setScriptRunOutput("");
       }
       // No currentRunPhase for simple mode, so it will be undefined
     );
@@ -308,15 +307,16 @@ export default function Home() {
 
 
   const handleExecuteScript = async () => {
+    setHasExecutionAttempted(true);
     if (!generatedScript) {
       setScriptExecutionError("No script to execute.");
       return;
     }
     setIsExecutingScript(true);
+    setScriptTimerKey(prevKey => prevKey + 1); // Increment key here
     setScriptExecutionError("");
     setScriptLogOutput([]);
     setDockerCommandToDisplay(""); // Reset Docker command display
-    setScriptRunOutput("");
     setPhasedOutputs([]);
     setExecutionOutput("");
     setScriptExecutionDuration(null); // Reset before new execution
@@ -394,15 +394,6 @@ export default function Home() {
           } else if (line.startsWith("RESULT: ")) {
             try {
               const finalResult = JSON.parse(line.substring("RESULT: ".length));
-              let summary = `Overall Status: ${finalResult.overallStatus}\n`;
-              if (finalResult.mainScript) {
-                summary += `Stdout:\n${finalResult.mainScript.stdout || ""}\n`;
-                summary += `Stderr:\n${finalResult.mainScript.stderr || ""}\n`;
-              }
-              if (finalResult.error) {
-                summary += `Error: ${finalResult.error}\n`;
-              }
-              setScriptRunOutput(summary);
 
               if (finalResult.scriptExecutionDuration !== undefined) {
                 setScriptExecutionDuration(finalResult.scriptExecutionDuration);
@@ -443,15 +434,6 @@ export default function Home() {
       } else if (buffer.startsWith("RESULT: ")) {
          try {
               const finalResult = JSON.parse(buffer.substring("RESULT: ".length));
-              let summary = `Overall Status: ${finalResult.overallStatus}\n`;
-              if (finalResult.mainScript) {
-                summary += `Stdout:\n${finalResult.mainScript.stdout || ""}\n`;
-                summary += `Stderr:\n${finalResult.mainScript.stderr || ""}\n`;
-              }
-              if (finalResult.error) {
-                summary += `Error: ${finalResult.error}\n`;
-              }
-              setScriptRunOutput(summary);
 
               if (finalResult.scriptExecutionDuration !== undefined) {
                 setScriptExecutionDuration(finalResult.scriptExecutionDuration);
@@ -834,7 +816,7 @@ export default function Home() {
 
       {/* Output sections: Generated Script and Script Execution Output / Phased Outputs */}
       {/* These are shown for both simple mode and advanced mode (phase 3) */}
-      {(generatedScript || scriptLogOutput.length > 0 || scriptRunOutput || phasedOutputs.length > 0) && (
+      {(generatedScript || scriptLogOutput.length > 0 || phasedOutputs.length > 0) && (
          <div className="grid md:grid-cols-2 gap-6 mt-10 mb-8">
           <div>
             <label htmlFor="scriptExecutionArea" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
@@ -856,10 +838,10 @@ export default function Home() {
                 </div>
               )}
               {/* Script Execution Timer */}
-              {isExecutingScript && (
+              {(isExecutingScript || (hasExecutionAttempted && scriptExecutionDuration !== null)) && (
                 <div className="mt-2 mb-2 p-2 border border-green-300 dark:border-green-700 rounded-md bg-green-50 dark:bg-green-900/30 shadow-sm text-center">
                   <p className="text-xs text-green-700 dark:text-green-300">
-                    Script Execution Timer: <Timer isRunning={isExecutingScript} className="inline font-semibold" />
+                    Script Execution Timer: <Timer key={scriptTimerKey} isRunning={isExecutingScript} className="inline font-semibold" />
                   </p>
                 </div>
               )}
@@ -889,21 +871,6 @@ export default function Home() {
                 )}
               </div>
 
-              {/* Final Summary */}
-              {scriptRunOutput && (
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300">
-                      Final Summary:
-                    </h3>
-                    <CopyButton textToCopy={scriptRunOutput} />
-                  </div>
-                  <pre className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-inner overflow-auto whitespace-pre-wrap text-xs text-slate-600 dark:text-slate-300">
-                    {scriptRunOutput}
-                  </pre>
-                </div>
-              )}
-
               {/* Phased Outputs */}
               {phasedOutputs.length > 0 && (
                 <div>
@@ -925,32 +892,35 @@ export default function Home() {
               )}
             </div>
           </div>
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label htmlFor="generatedScript" className="block text-base font-medium text-slate-700 dark:text-slate-300">
-                {advancedMode && currentPhaseRunning === 3 ? "Phase 3 Generated Python Script" : (advancedMode ? "Generated Python Script (Phase 3)" : "Generated Python Script (Simple Mode)")}
-              </label>
-              <CopyButton textToCopy={generatedScript} />
-            </div>
-            <div className="w-full p-4 border border-slate-200 rounded-md bg-slate-800 shadow-sm overflow-auto min-h-[160px] dark:border-slate-700">
-              <SyntaxHighlighter
-                language="python"
-                style={atomDark}
-                showLineNumbers={true}
-                wrapLines={true} // Wraps lines that exceed the width
-                lineProps={{ style: { whiteSpace: 'pre-wrap', wordBreak: 'break-all' } }} // Ensures lines wrap correctly
-                customStyle={{
-                  margin: 0, // Remove default margin from pre tag
-                  backgroundColor: 'transparent', // Inherit background from parent div
-                  height: 'auto', // Allow height to adjust to content or minHeight
-                  minHeight: '140px', // Approximate original content area minus padding
-                  overflow: 'auto', // Ensure scrolling if content overflows
-                }}
-                codeTagProps={{ style: { fontFamily: 'inherit' } }} // Use consistent font
-              >
-                {generatedScript || "# Python script output will appear here"}
-              </SyntaxHighlighter>
-            </div>
+          <div> {/* This is the main container for this part of the UI, likely a grid column */}
+            <details className="border border-slate-200 dark:border-slate-700 rounded-md shadow-sm mb-2" open> {/* Added mb-2 for spacing before button, open by default */}
+              <summary className="flex justify-between items-center p-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded-t-md"> {/* Apply rounding to top if details is rounded */}
+                <span className="text-base font-medium text-slate-700 dark:text-slate-300">
+                  {/* Use the dynamic labelText here */}
+                  {advancedMode && currentPhaseRunning === 3 ? "Phase 3 Generated Python Script" : (advancedMode ? "Generated Python Script (Phase 3)" : "Generated Python Script (Simple Mode)")}
+                </span>
+                <CopyButton textToCopy={generatedScript} />
+              </summary>
+              <div className="w-full p-4 bg-slate-800 dark:bg-slate-800 overflow-auto min-h-[160px] rounded-b-md"> {/* Removed individual border/shadow, ensure bottom rounding */}
+                <SyntaxHighlighter
+                  language="python"
+                  style={atomDark}
+                  showLineNumbers={true}
+                  wrapLines={true}
+                  lineProps={{ style: { whiteSpace: 'pre-wrap', wordBreak: 'break-all' } }}
+                  customStyle={{
+                    margin: 0,
+                    backgroundColor: 'transparent',
+                    height: 'auto',
+                    minHeight: '140px',
+                    overflow: 'auto',
+                  }}
+                  codeTagProps={{ style: { fontFamily: 'inherit' } }}
+                >
+                  {generatedScript || "# Python script output will appear here"}
+                </SyntaxHighlighter>
+              </div>
+            </details>
             <button
               type="button"
               onClick={handleExecuteScript}
