@@ -1,11 +1,10 @@
 
-**Input:** User-provided 'Initial Instruction Input' (from the `@@@` delimiters).
 
 Instructions markdown:
 ```markdown
 
 **Process:**
-1.  Thoroughly analyze the 'Initial Instruction Input'.
+1.  Thoroughly analyze the 'Initial Instruction Input' (from the `@@@` delimiters).
 
 **A. Primary Objective:**
 * Content: A single, clear statement of the main goal.

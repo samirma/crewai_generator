@@ -50,7 +50,9 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
     * `api_key_env_var` (String, Optional): Environment variable name for the API key.
     * **Pre-defined List to Use:**
         * `gemini/gemini-2.5-flash-preview-05-20` (reasoner: False, multimodal\_support: True)
+        * `gemini/gemini-2.5-pro-preview-06-05` (reasoner: True, multimodal\_support: True)
         * `deepseek/deepseek-chat` (reasoner: False, multimodal\_support: False)
+        * `deepseek/deepseek-reasoner` (reasoner: True, multimodal\_support: False)
 
 * `agent_cadre` (Array of Objects): Each object represents an agent. The structure separates constructor arguments from design rationale.
     * `design_metadata` (Object): Contains contextual information and justifications, not used for code generation.
@@ -79,12 +81,12 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
         * `usage_justification` (String): A concise explanation of why this tool is essential for the crew's overall mission.
         * `analysis_and_decision` (Object): A structured block to ensure rigorous tool selection.
             * `required_functionality` (String): A clear, one-sentence description of the specific action the tool must perform.
-            * `standard_tool_evaluation` (Array of Objects): An evaluation of relevant standard tools.
-                * `tool_name` (String): Name of a standard tool from the reference list.
-                * `suitability_analysis` (String): Mandatory analysis of WHY this standard tool IS or IS NOT sufficient.
-                * `is_sufficient` (Boolean): `True` or `False`.
+            * `crewai_tool_evaluation` (Array of Objects): An evaluation of relevant crewai tools.
+                * `is_valid_crewai_tool` (Boolean): `True` or `False`.
+                * `tool_name` (String): Name of a crewai tool from the reference list.
+                * `suitability_analysis` (String): Mandatory analysis of WHY this crewai tool IS or IS NOT sufficient.
             * `final_decision_rationale` (String): A concluding statement on tool choice.
-        * `is_custom_tool` (Boolean): `True` if no standard tool is sufficient, derived from the analysis.
+        * `is_custom_tool` (Boolean): `True` if no CrewAI tool is sufficient, derived from the analysis.
     * `constructor_args` (Object): Contains only the parameters for the tool's class constructor.
         * `tool_id` (String): A unique identifier for this specific tool instance (e.g., "web\_search\_tool"). This acts as the primary identifier for the tool.
         * `class_name` (String): The exact Python class name to instantiate.
