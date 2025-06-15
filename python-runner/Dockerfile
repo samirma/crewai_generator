@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     vim \
     wget \
+    curl \
     sqlite3 \
     # LaTeX for PDF generation (provides pdflatex)
     texlive-latex-extra \
