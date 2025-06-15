@@ -117,7 +117,7 @@ class <ClassNameFromJSON>(BaseTool):
 * `process`: Set based on `workflow_process.selected_process`.
 * `manager_llm`: If `process` is hierarchical, use the `workflow_process.manager_llm_specification.llm_id` to assign the correct pre-instantiated LLM object.
 * `memory`: Set based on `crew_memory.activation`.
-* `embedder`: If memory is active, configure it using the `crew_memory.embedder_config` object.
+* `embedder`: If memory is active, configure it using the `crew_memory.embedder_config` object and set the url to be for the use attribute you should use attribute url = f"http://{os.environ['OLLAMA_HOST']}/api/embeddings".
 * Set `verbose=False`.
 
 **Execution Block:**
