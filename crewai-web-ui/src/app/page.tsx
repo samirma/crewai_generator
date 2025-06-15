@@ -17,6 +17,15 @@ interface PhasedOutput {
   output: string;
 }
 
+interface MultiStepPhase {
+  id: string;
+  prompt: string;
+  output: string;
+  isRunning: boolean;
+  duration: number | null;
+  error: string | null;
+}
+
 const DEFAULT_PHASE1_PROMPT_FILENAME = "phase1_blueprint_prompt.md";
 const DEFAULT_PHASE2_PROMPT_FILENAME = "phase2_architecture_prompt.md";
 const DEFAULT_PHASE3_PROMPT_FILENAME = "phase3_script_prompt.md";
@@ -62,6 +71,8 @@ export default function Home() {
 
   // Advanced Mode State
   const [advancedMode, setAdvancedMode] = useState<boolean>(false);
+  const [executionMode, setExecutionMode] = useState<"singleStep" | "multiStep">("singleStep");
+  const [multiStepPhases, setMultiStepPhases] = useState<MultiStepPhase[]>([]);
   const [phase1Prompt, setPhase1Prompt] = useState<string>("");
   const [phase2Prompt, setPhase2Prompt] = useState<string>("");
   const [phase3Prompt, setPhase3Prompt] = useState<string>("");
@@ -82,7 +93,7 @@ export default function Home() {
   const [defaultPhase2PromptText, setDefaultPhase2PromptText] = useState<string>("");
   const [defaultPhase3PromptText, setDefaultPhase3PromptText] = useState<string>("");
 
-  const isLlmTimerRunning = isLoading || !!isLoadingPhase[1] || !!isLoadingPhase[2] || !!isLoadingPhase[3];
+  const isLlmTimerRunning = isLoading || !!isLoadingPhase[1] || !!isLoadingPhase[2] || !!isLoadingPhase[3] || multiStepPhases.some(p => p.isRunning);
 
   useEffect(() => {
     // Load initialInput from cookie on component mount using helper
@@ -172,6 +183,32 @@ export default function Home() {
     fetchInitialPrompts();
   }, []);
 
+  const handleAddPhase = () => {
+    setMultiStepPhases(prevPhases => [
+      ...prevPhases,
+      {
+        id: `phase-${Date.now()}`, // Simple unique ID
+        prompt: "",
+        output: "",
+        isRunning: false,
+        duration: null,
+        error: null,
+      }
+    ]);
+  };
+
+  const handleRemovePhase = (id: string) => {
+    setMultiStepPhases(prevPhases => prevPhases.filter(phase => phase.id !== id));
+  };
+
+  const handlePhasePromptChange = (id: string, prompt: string) => {
+    setMultiStepPhases(prevPhases =>
+      prevPhases.map(phase =>
+        phase.id === id ? { ...phase, prompt } : phase
+      )
+    );
+  };
+
   const resetOutputStates = () => {
     setError("");
     setGeneratedScript("");
@@ -189,51 +226,81 @@ export default function Home() {
 
   // Inside Home component, before handleSimpleModeSubmit and handleRunPhase
   const handleUnifiedGenerateRequest = async (
-    mode: 'simple' | 'advanced',
+    mode: 'simple' | 'advanced' | 'multiStep',
     fullPromptValue: string,
     onSuccessCallback: (data: any) => void,
-    currentRunPhase?: number | null
+    currentRunPhase?: number | null, // For advanced single-step
+    currentPhaseId?: string | null // For multi-step
   ) => {
     // Pre-flight checks (cookie, llmModel) and resetOutputStates() are assumed to be done by callers.
+    const startTime = Date.now();
 
     // 1. Set Loading States
     if (mode === 'simple') {
       setIsLoading(true);
-    } else if (currentRunPhase) { // Advanced mode
+    } else if (mode === 'advanced' && currentRunPhase) {
       setIsLoadingPhase(prev => ({ ...prev, [currentRunPhase]: true }));
       setCurrentPhaseRunning(currentRunPhase);
+    } else if (mode === 'multiStep' && currentPhaseId) {
+      setMultiStepPhases(prevPhases =>
+        prevPhases.map(p =>
+          p.id === currentPhaseId ? { ...p, isRunning: true, duration: null, error: null } : p
+        )
+      );
     }
 
-    // 2. Set Displayed Prompt
+    // 2. Set Displayed Prompt (Consider if this is needed for multi-step or if phase-specific display is enough)
     setDisplayedPrompt(fullPromptValue);
 
     // 3. Construct Payload
     const payload: any = {
-      llmModel, // from Home component's state
-      mode: mode,
+      llmModel,
       fullPrompt: fullPromptValue,
+      mode: mode === 'multiStep' ? 'advanced' : mode, // API might expect 'advanced' for multi-step phase processing
     };
     if (mode === 'advanced' && currentRunPhase) {
-      payload.runPhase = currentRunPhase;
+      payload.runPhase = currentRunPhase; // This might need adjustment if API changes for multi-step
     }
+    // Add any specific payload properties for multi-step if needed by the API
+    // For now, we assume the API handles the prompt as is for each multi-step phase.
 
-    // 4. Execute API Call (ensure executeGenerateRequest is defined or imported)
+    // 4. Execute API Call
     await executeGenerateRequest(
       '/api/generate',
       payload,
-      (data) => {
-        onSuccessCallback(data);
+      (data) => { // onSuccess
+        const endTime = Date.now();
+        const duration = (endTime - startTime) / 1000;
+        if (mode === 'multiStep' && currentPhaseId) {
+          setMultiStepPhases(prevPhases =>
+            prevPhases.map(p =>
+              p.id === currentPhaseId ? { ...p, output: data.output, duration, isRunning: false } : p
+            )
+          );
+        }
+        onSuccessCallback(data); // Call original success callback
       },
-      (errorMessage) => {
-        setError(errorMessage); // setError from Home component's state
+      (errorMessage) => { // onError
+        const endTime = Date.now();
+        const duration = (endTime - startTime) / 1000;
+        if (mode === 'multiStep' && currentPhaseId) {
+          setMultiStepPhases(prevPhases =>
+            prevPhases.map(p =>
+              p.id === currentPhaseId ? { ...p, error: errorMessage, duration, isRunning: false } : p
+            )
+          );
+        }
+        setError(errorMessage); // Set global error or phase-specific error
       },
       () => { // finally handler
         if (mode === 'simple') {
           setIsLoading(false);
-        } else if (currentRunPhase) { // Advanced mode
+        } else if (mode === 'advanced' && currentRunPhase) {
           setIsLoadingPhase(prev => ({ ...prev, [currentRunPhase]: false }));
           setCurrentPhaseRunning(null);
         }
+        // For multi-step, isRunning is set within onSuccess/onError for that specific phase.
+        // No global loading state needs to be reset here for multi-step, unless you add one.
       }
     );
   };
@@ -305,6 +372,87 @@ export default function Home() {
     );
   };
 
+  const handleMultiStepSubmit = async () => {
+    setCookie('initialInstruction', initialInput, 30);
+    if (!llmModel) {
+      setError("Please select an LLM model for multi-step execution.");
+      return;
+    }
+    if (multiStepPhases.length === 0) {
+      setError("Please add at least one phase for multi-step execution.");
+      return;
+    }
+
+    resetOutputStates();
+    // Reset errors, outputs, and duration for all multi-step phases before starting
+    setMultiStepPhases(prevPhases =>
+      prevPhases.map(p => ({ ...p, output: "", error: null, duration: null, isRunning: false }))
+    );
+
+    let previousPhaseOutput = ""; // Holds the output of the last successful phase
+
+    for (let i = 0; i < multiStepPhases.length; i++) {
+      // Get the current phase from the potentially updated state list
+      // This is to ensure we're using the latest version of the phase object
+      const currentPhase = multiStepPhases[i];
+
+      // Construct the prompt for the current phase
+      let currentPhasePromptInput = "";
+      if (i === 0) {
+        currentPhasePromptInput = `Initial User Instruction: ${initialInput}\n\nPhase 1 Prompt: ${currentPhase.prompt}`;
+      } else {
+        currentPhasePromptInput = `Previous Phase Output:\n${previousPhaseOutput}\n\nPhase ${i + 1} Prompt: ${currentPhase.prompt}`;
+      }
+
+      let phaseSucceeded = false;
+      await handleUnifiedGenerateRequest(
+        'multiStep', // mode
+        currentPhasePromptInput, // fullPromptValue
+        (data) => { // onSuccessCallback
+          // data.output is the output from the LLM for the current phase
+          previousPhaseOutput = data.output;
+          phaseSucceeded = true;
+          // Individual phase state (isRunning=false, output, duration) is set within handleUnifiedGenerateRequest
+        },
+        null, // currentRunPhase (not applicable for multi-step)
+        currentPhase.id // currentPhaseId (crucial for handleUnifiedGenerateRequest to update the correct phase)
+      );
+
+      // After the API call, check if the phase succeeded.
+      // We determine this by seeing if an error was set on the phase object by handleUnifiedGenerateRequest's error callback.
+      // Need to get the latest state of the phase. Since setState in handleUnifiedGenerateRequest is async,
+      // we will read the multiStepPhases state again.
+      // A more direct way would be for handleUnifiedGenerateRequest to return success/failure.
+      // For now, we re-check the state. This is a bit indirect.
+
+      // Find the phase in the *updated* state to check its error status
+      const updatedPhases = await new Promise<MultiStepPhase[]>(resolve => {
+        setMultiStepPhases(currentPhases => {
+          resolve(currentPhases);
+          return currentPhases; // No change, just using the callback to get the latest state
+        });
+      });
+      const executedPhase = updatedPhases.find(p => p.id === currentPhase.id);
+
+      if (executedPhase && executedPhase.error) {
+        setError(`Error in Phase ${i + 1} ("${currentPhase.prompt.substring(0, 20)}..."): ${executedPhase.error}. Halting.`);
+        // Ensure all phases are marked as not running if one fails and we break
+        setMultiStepPhases(prevPhases => prevPhases.map(p => ({ ...p, isRunning: false })));
+        break; // Stop execution of subsequent phases
+      }
+
+      if (!phaseSucceeded && !(executedPhase && executedPhase.error)) {
+        // This case might occur if handleUnifiedGenerateRequest neither succeeded nor explicitly set an error on the phase
+        // (e.g. an unexpected issue).
+        setError(`Phase ${i + 1} ("${currentPhase.prompt.substring(0, 20)}...") did not complete successfully. Halting.`);
+        setMultiStepPhases(prevPhases => prevPhases.map(p => ({ ...p, isRunning: false })));
+        break;
+      }
+      // If phaseSucceeded is true, previousPhaseOutput is set, and loop continues.
+    }
+    // Final cleanup: ensure all phases are marked as not running (e.g. after successful completion of all)
+    setMultiStepPhases(prevPhases => prevPhases.map(p => ({ ...p, isRunning: false })));
+  };
 
   const handleExecuteScript = async () => {
     setHasExecutionAttempted(true);
@@ -520,36 +668,63 @@ export default function Home() {
     <main className="container mx-auto p-6 md:p-8">
       <h1 className="text-3xl md:text-4xl font-bold mb-10 text-center text-slate-700 dark:text-slate-200">CrewAI Studio</h1>
 
-      {/* Mode Toggle */}
+      {/* Execution Mode Toggle */}
       <div className="mb-8 flex items-center justify-center space-x-4">
-        <label htmlFor="modeToggle" className="text-base font-medium text-slate-700 dark:text-slate-300">
-          Simple Mode
+        <label htmlFor="executionModeToggle" className="text-base font-medium text-slate-700 dark:text-slate-300">
+          Single-Step
         </label>
         <div
-          className={`relative inline-flex items-center h-6 rounded-full w-11 cursor-pointer transition-colors duration-300 ease-in-out ${advancedMode ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}
+          className={`relative inline-flex items-center h-6 rounded-full w-11 cursor-pointer transition-colors duration-300 ease-in-out ${executionMode === 'multiStep' ? 'bg-purple-600' : 'bg-slate-300 dark:bg-slate-600'}`}
           onClick={() => {
-            setAdvancedMode(!advancedMode);
-            // Clear errors and outputs when toggling mode
+            setExecutionMode(executionMode === 'singleStep' ? 'multiStep' : 'singleStep');
             resetOutputStates();
             setPhase1Output("");
             setPhase2Output("");
-            // Other states like generatedScript, executionOutput, etc., are covered by resetOutputStates
+            // TODO: Reset multiStepPhases state if needed
+            setMultiStepPhases([]); // Reset multi-step phases when toggling execution mode
           }}
         >
           <span
-            className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-300 ease-in-out ${advancedMode ? 'translate-x-6' : 'translate-x-1'}`}
+            className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-300 ease-in-out ${executionMode === 'multiStep' ? 'translate-x-6' : 'translate-x-1'}`}
           />
         </div>
-        <label htmlFor="modeToggle" className="text-base font-medium text-slate-700 dark:text-slate-300">
-          Advanced Mode
+        <label htmlFor="executionModeToggle" className="text-base font-medium text-slate-700 dark:text-slate-300">
+          Multi-Step
         </label>
-        <input type="checkbox" id="modeToggle" className="sr-only" checked={advancedMode} onChange={() => setAdvancedMode(!advancedMode)} />
+        <input type="checkbox" id="executionModeToggle" className="sr-only" checked={executionMode === 'multiStep'} onChange={() => setExecutionMode(executionMode === 'singleStep' ? 'multiStep' : 'singleStep')} />
       </div>
 
+      {executionMode === 'singleStep' && (
+        <>
+          {/* Simple/Advanced Mode Toggle */}
+          <div className="mb-8 flex items-center justify-center space-x-4">
+            <label htmlFor="modeToggle" className="text-base font-medium text-slate-700 dark:text-slate-300">
+              Simple Mode
+            </label>
+            <div
+              className={`relative inline-flex items-center h-6 rounded-full w-11 cursor-pointer transition-colors duration-300 ease-in-out ${advancedMode ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}
+              onClick={() => {
+                setAdvancedMode(!advancedMode);
+                resetOutputStates();
+                setPhase1Output("");
+                setPhase2Output("");
+              }}
+            >
+              <span
+                className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-300 ease-in-out ${advancedMode ? 'translate-x-6' : 'translate-x-1'}`}
+              />
+            </div>
+            <label htmlFor="modeToggle" className="text-base font-medium text-slate-700 dark:text-slate-300">
+              Advanced Mode
+            </label>
+            <input type="checkbox" id="modeToggle" className="sr-only" checked={advancedMode} onChange={() => setAdvancedMode(!advancedMode)} />
+          </div>
+        </>
+      )}
 
       <div className="mb-8">
         <label htmlFor="initialInstruction" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
-          {advancedMode ? "Initial User Instruction (for Phase 1)" : "Initial Instruction Input"}
+          {executionMode === 'multiStep' ? "Initial User Instruction (for Multi-Step)" : (advancedMode ? "Initial User Instruction (for Phase 1)" : "Initial Instruction Input")}
         </label>
         <div style={{ position: 'relative' }}>
           <textarea
@@ -644,7 +819,7 @@ export default function Home() {
       </div>
     )}
 
-      {!advancedMode && (
+      {executionMode === 'singleStep' && !advancedMode && (
         <div className="mb-8">
           <button
             type="button"
@@ -657,7 +832,7 @@ export default function Home() {
         </div>
       )}
 
-      {advancedMode && (
+      {executionMode === 'singleStep' && advancedMode && (
         <div className="space-y-10">
           {/* Phase 1 */}
           <div className="p-6 border border-slate-300 dark:border-slate-700 rounded-lg shadow">
@@ -799,6 +974,81 @@ export default function Home() {
         </div>
       )}
 
+      {executionMode === 'multiStep' && (
+        <div className="space-y-10">
+          {/* Placeholder for Multi-Step UI */}
+          <div className="p-6 border border-purple-300 dark:border-purple-700 rounded-lg shadow">
+            <h2 className="text-2xl font-semibold mb-4 text-purple-700 dark:text-purple-200">Multi-Step Execution</h2>
+
+            {multiStepPhases.map((phase, index) => (
+              <div key={phase.id} className="p-4 border border-slate-300 dark:border-slate-700 rounded-lg shadow mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">Phase {index + 1}</h3>
+                  <button
+                    onClick={() => handleRemovePhase(phase.id)}
+                    className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-500"
+                  >
+                    Remove Phase
+                  </button>
+                </div>
+                <textarea
+                  value={phase.prompt}
+                  onChange={(e) => handlePhasePromptChange(phase.id, e.target.value)}
+                  rows={4}
+                  className="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500 mb-3"
+                  placeholder={`Enter prompt for Phase ${index + 1}...`}
+                  // disabled={phase.isRunning || isLoading} // TODO: Consider overall loading state
+                />
+                {phase.isRunning && (
+                  <div className="mt-2 mb-2 p-2 border border-blue-300 dark:border-blue-700 rounded-md bg-blue-50 dark:bg-blue-900/30 shadow-sm text-center">
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      <Timer isRunning={phase.isRunning} className="inline font-semibold" />
+                    </p>
+                  </div>
+                )}
+                {phase.duration !== null && !phase.isRunning && (
+                  <div className="mt-2 mb-2 p-2 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm text-center">
+                    <p className="text-xs text-slate-600 dark:text-slate-300">
+                      Phase duration: <span className="font-semibold">{phase.duration.toFixed(2)}</span> seconds
+                    </p>
+                  </div>
+                )}
+                {phase.output && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Output:</label>
+                    <pre className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
+                      {phase.output}
+                    </pre>
+                  </div>
+                )}
+                {phase.error && (
+                  <div className="mt-2 p-2 border border-red-400 bg-red-100 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-500/50 dark:text-red-400">
+                    <p className="font-semibold text-xs">Error:</p>
+                    <p className="text-xs">{phase.error}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            <button
+              onClick={handleAddPhase}
+              className="w-full bg-green-500 hover:bg-green-600 text-white font-medium px-4 py-2 rounded-md shadow-sm transition duration-150 ease-in-out mb-4"
+              // disabled={isLoading} // TODO: Consider overall loading state
+            >
+              Add Phase
+            </button>
+
+            <button
+              type="button"
+      onClick={handleMultiStepSubmit}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold px-5 py-2.5 rounded-md shadow-md transition duration-150 ease-in-out disabled:opacity-50 focus:ring-4 focus:ring-purple-300 focus:outline-none dark:focus:ring-purple-800"
+      disabled={isLoading || modelsLoading || !llmModel || multiStepPhases.length === 0 || multiStepPhases.some(p => p.isRunning)}
+            >
+      {multiStepPhases.some(p => p.isRunning) ? 'Running Multi-Step...' : 'Run Multi-Step (All Phases)'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="mt-8 mb-8 p-4 border border-red-400 bg-red-100 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-500/50 dark:text-red-400">
@@ -820,7 +1070,10 @@ export default function Home() {
          <div className="grid md:grid-cols-2 gap-6 mt-10 mb-8">
           <div>
             <label htmlFor="scriptExecutionArea" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
-              {advancedMode && currentPhaseRunning === 3 ? "Phase 3 Script Execution Output" : (advancedMode ? "Script Execution Output (Phase 3)" : "Script Execution Output (Simple Mode)")}
+              {executionMode === 'singleStep' && advancedMode && currentPhaseRunning === 3 ? "Phase 3 Script Execution Output" :
+               (executionMode === 'singleStep' && advancedMode ? "Script Execution Output (Phase 3)" :
+               (executionMode === 'singleStep' && !advancedMode ? "Script Execution Output (Simple Mode)" :
+               "Script Execution Output"))}
             </label>
             <div id="scriptExecutionArea" className="space-y-4 p-4 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 shadow-sm min-h-[160px]">
               {/* Display Docker Command */}
@@ -897,7 +1150,10 @@ export default function Home() {
               <summary className="flex justify-between items-center p-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded-t-md"> {/* Apply rounding to top if details is rounded */}
                 <span className="text-base font-medium text-slate-700 dark:text-slate-300">
                   {/* Use the dynamic labelText here */}
-                  {advancedMode && currentPhaseRunning === 3 ? "Phase 3 Generated Python Script" : (advancedMode ? "Generated Python Script (Phase 3)" : "Generated Python Script (Simple Mode)")}
+                  {executionMode === 'singleStep' && advancedMode && currentPhaseRunning === 3 ? "Phase 3 Generated Python Script" :
+                   (executionMode === 'singleStep' && advancedMode ? "Generated Python Script (Phase 3)" :
+                   (executionMode === 'singleStep' && !advancedMode ? "Generated Python Script (Simple Mode)" :
+                   "Generated Python Script"))}
                 </span>
                 <CopyButton textToCopy={generatedScript} />
               </summary>
@@ -924,7 +1180,7 @@ export default function Home() {
             <button
               type="button"
               onClick={handleExecuteScript}
-              disabled={!generatedScript || isExecutingScript || (advancedMode && currentPhaseRunning !== null && currentPhaseRunning !== 3) }
+              disabled={!generatedScript || isExecutingScript || (executionMode === 'singleStep' && advancedMode && currentPhaseRunning !== null && currentPhaseRunning !== 3) }
               className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2.5 rounded-md shadow-md transition duration-150 ease-in-out disabled:opacity-50 focus:ring-4 focus:ring-green-300 focus:outline-none dark:focus:ring-green-800"
             >
               {isExecutingScript ? 'Executing Script...' : 'Run This Script (Locally via API)'}
