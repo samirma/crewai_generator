@@ -28,7 +28,7 @@ from typing import Type, List # UNCOMMENT for advanced type hinting if needed
 ```
 
 **API Key Access:**
-* Use `os.getenv("YOUR_API_KEY_NAME")` for all API keys. The "YOUR_API_KEY_NAME" string comes from properties like `api_key` in the input JSON. **NO HARDCODED SECRETS.**
+* Use `os.getenv("YOUR_API_KEY_NAME")` for all API keys, "GEMINI_API_KEY" for gemini and "DEEPSEEK_API_KEY" for deepseek models. The "YOUR_API_KEY_NAME" string comes from properties like `api_key` in the input JSON. **NO HARDCODED SECRETS.**
 
 **LLM Instantiation:**
 * Iterate through the `llm_registry` list in the input JSON.

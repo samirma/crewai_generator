@@ -45,6 +45,7 @@ RUN python -m pip install --upgrade pip && \
     google-generativeai \
     ollama \
     pymupdf \
+    odfpy \
     PyPDF2 weasyprint reportlab pdfkit
 
 RUN pip install --upgrade chromadb
