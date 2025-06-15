@@ -8,6 +8,9 @@ export async function processDockerStreamAndFinalize(
   initialOverallStatus: 'success' | 'failure', // This reflects status *before* docker execution
   initialResultError?: string     // Error from pre-docker stages
 ): Promise<ExecutionResult> {
+  console.log("processDockerStreamAndFinalize received containerStdout:", containerStdout);
+  console.log("processDockerStreamAndFinalize received containerStderr:", containerStderr);
+  console.log("processDockerStreamAndFinalize received containerStatusCode:", containerStatusCode);
 
   const result: ExecutionResult = {
     preHostRun: preHostRunResult,
@@ -86,6 +89,7 @@ export async function processDockerStreamAndFinalize(
   // If preDockerRun never even started (no skip, no start marker), its status remains 'not_run'.
   // mainScriptOutputCandidate remains the full containerStdout in this case.
 
+  console.log("mainScriptOutputCandidate before parsing:", mainScriptOutputCandidate);
   // Process Main Script Output (only if preDockerRun didn't critically fail and set overallStatus to failure)
   if (result.overallStatus === 'success') {
     result.mainScript.status = 'running'; // Initial status, assuming it will run or attempt to
@@ -111,7 +115,8 @@ export async function processDockerStreamAndFinalize(
           if (mainScriptOutputCandidate.trim()) { // Capture output even if markers are missing
                result.mainScript.stdout = mainScriptOutputCandidate.trim();
           }
-          result.overallStatus = 'failure';
+          // DO NOT set result.overallStatus = 'failure' here anymore.
+          // It will be determined by containerStatusCode and final checks.
       } else {
           // preDockerRun might be 'not_run', or 'running' (implying it consumed everything or failed early).
           // In this case, mainScript is effectively 'not_run'.
@@ -120,6 +125,7 @@ export async function processDockerStreamAndFinalize(
     }
   }
 
+  console.log("After main script parsing - result.mainScript.status:", result.mainScript?.status, "result.mainScript.error:", result.mainScript?.error, "result.overallStatus:", result.overallStatus);
   // Final status check using container's exit code
   // This is crucial for stages that were 'running' or for overall script success/failure
   if (containerStatusCode === 0) {
@@ -141,6 +147,16 @@ export async function processDockerStreamAndFinalize(
             mainScriptOutputCandidate.indexOf(MAIN_SCRIPT_START_MARKER) === -1 &&
             mainScriptOutputCandidate.indexOf(PRE_DOCKER_START_MARKER) === -1 &&
             mainScriptOutputCandidate.indexOf(PRE_DOCKER_SKIP_MARKER) === -1 ) {
+           result.mainScript.stdout = mainScriptOutputCandidate.trim();
+        }
+      } else if (result.mainScript.status === 'failure' &&
+                 result.mainScript.error === "Main script start marker not found." &&
+                 (result.preDockerRun.status === 'success' || result.preDockerRun.status === 'skipped')) {
+        // Main script "failed" due to missing START marker, but container itself succeeded.
+        // The overallStatus is 'success' (because containerStatusCode === 0 and no prior stage failed it).
+        // mainScript.status remains 'failure' to indicate the marker issue.
+        result.mainScript.exitCode = 0;
+        if (!result.mainScript.stdout && mainScriptOutputCandidate.trim()) { // Capture stdout if it was missed
            result.mainScript.stdout = mainScriptOutputCandidate.trim();
         }
       }
@@ -193,10 +209,17 @@ export async function processDockerStreamAndFinalize(
 
   // Final consolidation of overallStatus based on stage statuses.
   // This is important if preHostRun failed, this ensures overallStatus remains failure.
-  if (result.preHostRun?.status === 'failure' ||
-      result.preDockerRun?.status === 'failure' ||
-      result.mainScript?.status === 'failure') {
+  if (result.preHostRun?.status === 'failure' || result.preDockerRun?.status === 'failure') {
     result.overallStatus = 'failure';
+  } else if (result.mainScript?.status === 'failure') {
+    // If mainScript failed, only set overallStatus to failure if it's not the specific "missing start marker with container success" case.
+    // The mainScript.exitCode would be 0 in the "acceptable" failure case.
+    if (!(result.mainScript.error === "Main script start marker not found." && result.mainScript.exitCode === 0)) {
+      result.overallStatus = 'failure';
+    }
+    // If it was the acceptable failure (missing start marker but container succeeded),
+    // and overallStatus was 'success' (due to containerStatusCode === 0 and no prior stage failure),
+    // it will remain 'success'.
   }
 
   // If overallStatus is failure but no top-level error is set, try to find a stage-specific error.
@@ -213,6 +236,6 @@ export async function processDockerStreamAndFinalize(
           result.error = "An unspecified error occurred during execution. Check stage details.";
       }
   }
-  // console.log("Processed execution result (after parsing):", JSON.stringify(result, null, 2));
+  console.log("Final processed execution result (after parsing):", JSON.stringify(result, null, 2));
   return result;
 }
