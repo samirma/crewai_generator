@@ -81,6 +81,7 @@ export default function Home() {
   const [defaultPhase1PromptText, setDefaultPhase1PromptText] = useState<string>("");
   const [defaultPhase2PromptText, setDefaultPhase2PromptText] = useState<string>("");
   const [defaultPhase3PromptText, setDefaultPhase3PromptText] = useState<string>("");
+  const [generationStrategy, setGenerationStrategy] = useState<'singleStep' | 'multiStep'>('singleStep');
 
   const isLlmTimerRunning = isLoading || !!isLoadingPhase[1] || !!isLoadingPhase[2] || !!isLoadingPhase[3];
 
@@ -212,6 +213,7 @@ export default function Home() {
       llmModel, // from Home component's state
       mode: mode,
       fullPrompt: fullPromptValue,
+      generationStrategy: generationStrategy, // Added generationStrategy
     };
     if (mode === 'advanced' && currentRunPhase) {
       payload.runPhase = currentRunPhase;
@@ -246,18 +248,84 @@ export default function Home() {
     }
     resetOutputStates();
 
-    const fullPrompt = buildPrompt(initialInput, defaultPhase1PromptText, defaultPhase2PromptText, defaultPhase3PromptText);
+    if (generationStrategy === 'multiStep') {
+      setIsLoading(true);
+      setActualLlmInputPrompt(""); // Clear any previously displayed full prompt
 
-    await handleUnifiedGenerateRequest(
-      'simple',
-      fullPrompt,
-      (data) => { // onSuccessCallback for simple mode
-        setGeneratedScript(data.generatedScript);
-        setPhasedOutputs(data.phasedOutputs || []);
-        setExecutionOutput("");
-      }
-      // No currentRunPhase for simple mode, so it will be undefined
-    );
+      const onErrorSimpleMultiStep = (errorMessage: string) => {
+        setError(errorMessage);
+        setIsLoading(false);
+      };
+
+      // Phase 1 Call
+      const p1Prompt = buildPrompt(initialInput, defaultPhase1PromptText, null, null, null, 1);
+      setActualLlmInputPrompt(p1Prompt); // Display P1 prompt
+      const p1Payload = { llmModel, mode: 'advanced', fullPrompt: p1Prompt, runPhase: 1, generationStrategy };
+
+      await executeGenerateRequest('/api/generate', p1Payload,
+        async (dataP1) => { // onSuccessP1
+          setPhase1Output(dataP1.output);
+          // Display P1 output as the "raw LLM output" for this step
+          setActualLlmOutputPrompt(dataP1.llmOutputPromptContent || dataP1.output);
+          if (dataP1.duration) setLlmRequestDuration(dataP1.duration);
+          console.log("Simple Multi-Step P1 OK, output:", dataP1.output);
+
+          // Phase 2 Call
+          const p2Prompt = buildPrompt(initialInput, null, defaultPhase2PromptText, null, dataP1.output, 2);
+          setActualLlmInputPrompt(p2Prompt); // Display P2 prompt
+          const p2Payload = { llmModel, mode: 'advanced', fullPrompt: p2Prompt, runPhase: 2, generationStrategy };
+
+          await executeGenerateRequest('/api/generate', p2Payload,
+            async (dataP2) => { // onSuccessP2
+              setPhase2Output(dataP2.output);
+              // Display P2 output
+              setActualLlmOutputPrompt(dataP2.llmOutputPromptContent || dataP2.output);
+              if (dataP2.duration) setLlmRequestDuration(dataP2.duration);
+              console.log("Simple Multi-Step P2 OK, output:", dataP2.output);
+
+              // Phase 3 Call
+              const p3Prompt = buildPrompt(initialInput, null, null, defaultPhase3PromptText, dataP2.output, 3);
+              setActualLlmInputPrompt(p3Prompt); // Display P3 prompt
+              const p3Payload = { llmModel, mode: 'advanced', fullPrompt: p3Prompt, runPhase: 3, generationStrategy };
+
+              await executeGenerateRequest('/api/generate', p3Payload,
+                (dataP3) => { // onSuccessP3
+                  setGeneratedScript(dataP3.generatedScript);
+                  setPhasedOutputs(dataP3.phasedOutputs || []);
+                  // Display P3 output (script)
+                  setActualLlmOutputPrompt(dataP3.llmOutputPromptContent || dataP3.generatedScript);
+                  if (dataP3.duration) setLlmRequestDuration(dataP3.duration);
+                  setExecutionOutput("");
+                  setIsLoading(false); // End of successful sequence
+                  console.log("Simple Multi-Step P3 OK, script generated.");
+                },
+                onErrorSimpleMultiStep,
+                () => { /* onFinally for P3 - setIsLoading handled by success/error */ }
+              );
+            },
+            onErrorSimpleMultiStep,
+            () => { /* onFinally for P2 */ }
+          );
+        },
+        onErrorSimpleMultiStep,
+        () => { /* onFinally for P1 */ }
+      );
+
+    } else { // 'singleStep' strategy
+      setIsLoading(true); // Ensure loading state is set for single step too
+      const fullPrompt = buildPrompt(initialInput, defaultPhase1PromptText, defaultPhase2PromptText, defaultPhase3PromptText, null, undefined);
+      await handleUnifiedGenerateRequest(
+        'simple',
+        fullPrompt,
+        (data) => { // onSuccessCallback for simple mode
+          setGeneratedScript(data.generatedScript);
+          setPhasedOutputs(data.phasedOutputs || []);
+          setExecutionOutput("");
+          // setIsLoading(false); // setIsLoading is handled by handleUnifiedGenerateRequest's finally block
+        }
+        // No currentRunPhase for simple mode, so it will be undefined
+      );
+    }
   };
 
   const handleRunPhase = async (phase: number) => {
@@ -280,12 +348,22 @@ export default function Home() {
     // No specific output clearing for phase 3 that isn't covered by resetOutputStates
 
     let fullPromptValue = "";
-    if (phase === 1) {
-      fullPromptValue = buildPrompt(initialInput, phase1Prompt , null, null);
-    } else if (phase === 2) {
-      fullPromptValue = buildPrompt(initialInput, phase1Prompt, phase2Prompt, null);
-    } else if (phase === 3) {
-      fullPromptValue = buildPrompt(initialInput, phase1Prompt, phase2Prompt, phase3Prompt);
+    if (generationStrategy === 'multiStep') {
+      if (phase === 1) {
+        fullPromptValue = buildPrompt(initialInput, phase1Prompt, null, null, null, 1);
+      } else if (phase === 2) {
+        fullPromptValue = buildPrompt(initialInput, null, phase2Prompt, null, phase1Output, 2);
+      } else if (phase === 3) {
+        fullPromptValue = buildPrompt(initialInput, null, null, phase3Prompt, phase2Output, 3);
+      }
+    } else { // singleStep strategy
+      if (phase === 1) {
+        fullPromptValue = buildPrompt(initialInput, phase1Prompt, null, null, null, undefined);
+      } else if (phase === 2) {
+        fullPromptValue = buildPrompt(initialInput, phase1Prompt, phase2Prompt, null, null, undefined);
+      } else if (phase === 3) {
+        fullPromptValue = buildPrompt(initialInput, phase1Prompt, phase2Prompt, phase3Prompt, null, undefined);
+      }
     }
 
     await handleUnifiedGenerateRequest(
@@ -544,6 +622,39 @@ export default function Home() {
           Advanced Mode
         </label>
         <input type="checkbox" id="modeToggle" className="sr-only" checked={advancedMode} onChange={() => setAdvancedMode(!advancedMode)} />
+      </div>
+
+      {/* Generation Strategy Selector */}
+      <div className="mb-8 flex items-center justify-center space-x-4">
+        <span className="text-base font-medium text-slate-700 dark:text-slate-300">Generation Strategy:</span>
+        <div>
+          <input
+            type="radio"
+            id="singleStepStrategy"
+            name="generationStrategy"
+            value="singleStep"
+            checked={generationStrategy === 'singleStep'}
+            onChange={() => {
+              setGenerationStrategy('singleStep');
+              resetOutputStates();
+            }}
+            className="mr-1"
+          />
+          <label htmlFor="singleStepStrategy" className="mr-3 text-sm font-medium text-slate-700 dark:text-slate-300">Single Step</label>
+          <input
+            type="radio"
+            id="multiStepStrategy"
+            name="generationStrategy"
+            value="multiStep"
+            checked={generationStrategy === 'multiStep'}
+            onChange={() => {
+              setGenerationStrategy('multiStep');
+              resetOutputStates();
+            }}
+            className="mr-1"
+          />
+          <label htmlFor="multiStepStrategy" className="text-sm font-medium text-slate-700 dark:text-slate-300">Multi-Step</label>
+        </div>
       </div>
 
 
