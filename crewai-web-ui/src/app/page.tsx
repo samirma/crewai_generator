@@ -82,7 +82,21 @@ export default function Home() {
   const [defaultPhase2PromptText, setDefaultPhase2PromptText] = useState<string>("");
   const [defaultPhase3PromptText, setDefaultPhase3PromptText] = useState<string>("");
 
-  const isLlmTimerRunning = isLoading || !!isLoadingPhase[1] || !!isLoadingPhase[2] || !!isLoadingPhase[3];
+  // New state variables for Multi-Step Mode
+  const [currentOperatingMode, setCurrentOperatingMode] = useState<string>('simple'); // 'simple', 'advanced', 'multistep'
+  const [multiStepPhase1_Input, setMultiStepPhase1_Input] = useState<string>("");
+  const [multiStepPhase1_Output, setMultiStepPhase1_Output] = useState<string>("");
+  const [multiStepPhase2_Input, setMultiStepPhase2_Input] = useState<string>("");
+  const [multiStepPhase2_Output, setMultiStepPhase2_Output] = useState<string>("");
+  const [multiStepPhase3_Input, setMultiStepPhase3_Input] = useState<string>("");
+  const [multiStepPhase3_Output, setMultiStepPhase3_Output] = useState<string>("");
+  const [isLoadingMultiStepPhase_1, setIsLoadingMultiStepPhase_1] = useState<boolean>(false);
+  const [isLoadingMultiStepPhase_2, setIsLoadingMultiStepPhase_2] = useState<boolean>(false);
+  const [isLoadingMultiStepPhase_3, setIsLoadingMultiStepPhase_3] = useState<boolean>(false);
+  const [multiStepPhase_Durations, setMultiStepPhase_Durations] = useState<Record<number, number | null>>({ 1: null, 2: null, 3: null });
+  const [multiStepPhase_Timers_Running, setMultiStepPhase_Timers_Running] = useState<Record<number, boolean>>({ 1: false, 2: false, 3: false });
+
+  const isLlmTimerRunning = isLoading || !!isLoadingPhase[1] || !!isLoadingPhase[2] || !!isLoadingPhase[3] || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3;
 
   useEffect(() => {
     // Load initialInput from cookie on component mount using helper
@@ -185,6 +199,147 @@ export default function Home() {
     setActualLlmOutputPrompt("");
     setLlmRequestDuration(null);
     setScriptExecutionDuration(null);
+
+    // Clear multi-step states
+    setMultiStepPhase1_Input("");
+    setMultiStepPhase1_Output("");
+    setMultiStepPhase2_Input("");
+    setMultiStepPhase2_Output("");
+    setMultiStepPhase3_Input("");
+    setMultiStepPhase3_Output("");
+    setIsLoadingMultiStepPhase_1(false);
+    setIsLoadingMultiStepPhase_2(false);
+    setIsLoadingMultiStepPhase_3(false);
+    setMultiStepPhase_Durations({ 1: null, 2: null, 3: null });
+    setMultiStepPhase_Timers_Running({ 1: false, 2: false, 3: false });
+  };
+
+  const handleMultiStepPhaseExecution = async (phase: number) => {
+    setCookie('initialInstruction', initialInput, 30); // Persist initial input
+    if (!llmModel) {
+      setError("Please select an LLM model.");
+      return;
+    }
+
+    // Reset general error/prompt displays for a fresh call information
+    setError("");
+    setScriptExecutionError("");
+    setActualLlmInputPrompt(""); // Cleared before new API call info is shown
+    setActualLlmOutputPrompt(""); // Cleared before new API call info is shown
+
+    // Set loading states for the current phase
+    if (phase === 1) setIsLoadingMultiStepPhase_1(true);
+    else if (phase === 2) setIsLoadingMultiStepPhase_2(true);
+    else if (phase === 3) setIsLoadingMultiStepPhase_3(true);
+
+    setMultiStepPhase_Timers_Running(prev => ({ ...prev, [phase]: true }));
+    setMultiStepPhase_Durations(prev => ({ ...prev, [phase]: null })); // Reset duration for current phase
+
+    // Clear input/outputs of current and subsequent phases to ensure fresh data
+    if (phase === 1) {
+      setMultiStepPhase1_Input(""); setMultiStepPhase1_Output("");
+      setMultiStepPhase2_Input(""); setMultiStepPhase2_Output(""); // Clear phase 2 input/output
+      setMultiStepPhase3_Input(""); setMultiStepPhase3_Output(""); // Clear phase 3 input/output
+      setGeneratedScript(""); // Clear final script from any previous runs
+      setPhase3GeneratedTaskOutputs([]); // Clear any associated task outputs
+    } else if (phase === 2) {
+      setMultiStepPhase2_Input(""); setMultiStepPhase2_Output("");
+      setMultiStepPhase3_Input(""); setMultiStepPhase3_Output(""); // Clear phase 3 input/output
+      setGeneratedScript("");
+      setPhase3GeneratedTaskOutputs([]);
+    } else if (phase === 3) {
+      setMultiStepPhase3_Input(""); setMultiStepPhase3_Output("");
+      setGeneratedScript("");
+      setPhase3GeneratedTaskOutputs([]);
+    }
+
+    let fullPromptValue = "";
+    try {
+      // Prompt construction and input state update
+      if (phase === 1) {
+        if (!initialInput.trim() || !phase1Prompt.trim()) {
+          setError("Initial input and Phase 1 prompt cannot be empty.");
+          throw new Error("Prompt validation failed for Phase 1.");
+        }
+        fullPromptValue = buildPrompt(initialInput, phase1Prompt, null, null);
+        setMultiStepPhase1_Input(fullPromptValue);
+      } else if (phase === 2) {
+        if (!multiStepPhase1_Output.trim()) {
+          setError("Phase 1 output is missing. Cannot run Phase 2.");
+          throw new Error("Missing Phase 1 output for Phase 2.");
+        }
+        if (!phase2Prompt.trim()) {
+          setError("Phase 2 prompt cannot be empty.");
+          throw new Error("Prompt validation failed for Phase 2.");
+        }
+        fullPromptValue = multiStepPhase1_Output + "\n\n" + phase2Prompt;
+        setMultiStepPhase2_Input(fullPromptValue);
+      } else if (phase === 3) {
+        if (!multiStepPhase2_Output.trim()) {
+          setError("Phase 2 output is missing. Cannot run Phase 3.");
+          throw new Error("Missing Phase 2 output for Phase 3.");
+        }
+        if (!phase3Prompt.trim()) {
+          setError("Phase 3 prompt cannot be empty.");
+          throw new Error("Prompt validation failed for Phase 3.");
+        }
+        fullPromptValue = multiStepPhase2_Output + "\n\n" + phase3Prompt;
+        setMultiStepPhase3_Input(fullPromptValue);
+      } else {
+        setError("Invalid phase number provided.");
+        throw new Error("Invalid phase number.");
+      }
+
+      const payload = {
+        llmModel,
+        mode: 'advanced', // Multi-step uses 'advanced' API mode with phase distinction
+        fullPrompt: fullPromptValue,
+        runPhase: phase, // This tells the backend which phase logic to mimic if needed
+      };
+
+      await executeGenerateRequest(
+        '/api/generate',
+        payload,
+        (data) => { // onSuccess callback
+          setMultiStepPhase_Durations(prev => ({ ...prev, [phase]: data.duration !== undefined ? data.duration : null }));
+
+          if (phase === 1) {
+            setMultiStepPhase1_Output(data.output || "");
+          } else if (phase === 2) {
+            setMultiStepPhase2_Output(data.output || "");
+          } else if (phase === 3) {
+            setMultiStepPhase3_Output(data.generatedScript || "");
+            // Also set generatedScript for compatibility with existing script execution UI
+            setGeneratedScript(data.generatedScript || "");
+            if (data.phasedOutputs) { // In case phase 3 also returns phased outputs
+              setPhase3GeneratedTaskOutputs(data.phasedOutputs);
+            }
+          }
+        },
+        (errorMessage) => { // onError callback
+          setError(errorMessage);
+          // Note: executeGenerateRequest already handles its own internal 'finally' for loading states,
+          // but we have phase-specific ones here.
+        }
+      );
+
+    } catch (err) {
+      if (err instanceof Error && !error) { // Set error only if not already set by deeper calls
+        setError(err.message);
+      }
+      // Ensure loading state is reset for current phase if error occurs before/during API call setup
+      // This is a safeguard. executeGenerateRequest's finally should handle it if the call was made.
+      if (phase === 1) setIsLoadingMultiStepPhase_1(false);
+      else if (phase === 2) setIsLoadingMultiStepPhase_2(false);
+      else if (phase === 3) setIsLoadingMultiStepPhase_3(false);
+      setMultiStepPhase_Timers_Running(prev => ({ ...prev, [phase]: false }));
+    } finally {
+      // Ensure loading state is reset for current phase after API call completes or if an error occurred
+      if (phase === 1) setIsLoadingMultiStepPhase_1(false);
+      else if (phase === 2) setIsLoadingMultiStepPhase_2(false);
+      else if (phase === 3) setIsLoadingMultiStepPhase_3(false);
+      setMultiStepPhase_Timers_Running(prev => ({ ...prev, [phase]: false }));
+    }
   };
 
   // Inside Home component, before handleSimpleModeSubmit and handleRunPhase
@@ -308,7 +463,9 @@ export default function Home() {
 
   const handleExecuteScript = async () => {
     setHasExecutionAttempted(true);
-    if (!generatedScript) {
+    const scriptToExecute = currentOperatingMode === 'multistep' ? multiStepPhase3_Output : generatedScript;
+
+    if (!scriptToExecute) {
       setScriptExecutionError("No script to execute.");
       return;
     }
@@ -327,7 +484,7 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ script: generatedScript }),
+        body: JSON.stringify({ script: scriptToExecute }),
       });
 
       if (!response.ok) {
@@ -520,36 +677,47 @@ export default function Home() {
     <main className="container mx-auto p-6 md:p-8">
       <h1 className="text-3xl md:text-4xl font-bold mb-10 text-center text-slate-700 dark:text-slate-200">CrewAI Studio</h1>
 
-      {/* Mode Toggle */}
-      <div className="mb-8 flex items-center justify-center space-x-4">
-        <label htmlFor="modeToggle" className="text-base font-medium text-slate-700 dark:text-slate-300">
-          Simple Mode
-        </label>
-        <div
-          className={`relative inline-flex items-center h-6 rounded-full w-11 cursor-pointer transition-colors duration-300 ease-in-out ${advancedMode ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}
-          onClick={() => {
-            setAdvancedMode(!advancedMode);
-            // Clear errors and outputs when toggling mode
-            resetOutputStates();
-            setPhase1Output("");
-            setPhase2Output("");
-            // Other states like generatedScript, executionOutput, etc., are covered by resetOutputStates
-          }}
-        >
-          <span
-            className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-300 ease-in-out ${advancedMode ? 'translate-x-6' : 'translate-x-1'}`}
-          />
+      {/* Operating Mode Selection */}
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold mb-3 text-center text-slate-700 dark:text-slate-200">Operating Mode</h2>
+        <div className="flex items-center justify-center space-x-2 md:space-x-4">
+          {(['simple', 'advanced', 'multistep'] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => {
+                setCurrentOperatingMode(mode);
+                resetOutputStates(); // Reset common outputs
+                // Clear mode-specific outputs
+                if (mode === 'simple') {
+                  setPhase1Output(""); setPhase2Output(""); // Clear advanced
+                  setMultiStepPhase1_Output(""); setMultiStepPhase2_Output(""); setMultiStepPhase3_Output(""); // Clear multistep
+                } else if (mode === 'advanced') {
+                  setGeneratedScript(""); setPhasedOutputs([]); // Clear simple
+                  setMultiStepPhase1_Output(""); setMultiStepPhase2_Output(""); setMultiStepPhase3_Output(""); // Clear multistep
+                } else if (mode === 'multistep') {
+                  setGeneratedScript(""); setPhasedOutputs([]); // Clear simple
+                  setPhase1Output(""); setPhase2Output(""); // Clear advanced
+                }
+              }}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors duration-150 ease-in-out
+                ${currentOperatingMode === mode
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200'
+                }
+                focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50`}
+            >
+              {mode === 'simple' && "Simple Mode"}
+              {mode === 'advanced' && "Advanced Mode"}
+              {mode === 'multistep' && "Multi-Step Mode"}
+            </button>
+          ))}
         </div>
-        <label htmlFor="modeToggle" className="text-base font-medium text-slate-700 dark:text-slate-300">
-          Advanced Mode
-        </label>
-        <input type="checkbox" id="modeToggle" className="sr-only" checked={advancedMode} onChange={() => setAdvancedMode(!advancedMode)} />
       </div>
 
-
+      {/* Shared Prompt Editing Area - initialInput always visible */}
       <div className="mb-8">
         <label htmlFor="initialInstruction" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
-          {advancedMode ? "Initial User Instruction (for Phase 1)" : "Initial Instruction Input"}
+          {currentOperatingMode === 'advanced' || currentOperatingMode === 'multistep' ? "Initial User Instruction (for Phase 1)" : "Initial Instruction Input"}
         </label>
         <div style={{ position: 'relative' }}>
           <textarea
@@ -560,7 +728,7 @@ export default function Home() {
           placeholder="Enter your initial instructions here..."
           value={initialInput}
           onChange={(e) => setInitialInput(e.target.value)}
-          disabled={isLoading || isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3]}
+          disabled={isLoading || isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3] || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
           ></textarea>
           <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
             <CopyButton textToCopy={initialInput} />
@@ -578,7 +746,7 @@ export default function Home() {
           className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 bg-white hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
           value={llmModel}
           onChange={(e) => setLlmModel(e.target.value)}
-          disabled={isLoading || modelsLoading || modelsError !== "" || isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3]}
+          disabled={isLoading || modelsLoading || modelsError !== "" || isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3] || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
         >
           {modelsLoading && <option value="">Loading models...</option>}
           {modelsError && <option value="">Error loading models</option>}
@@ -644,7 +812,56 @@ export default function Home() {
       </div>
     )}
 
-      {!advancedMode && (
+      {/* Shared Prompt Editing Area for Advanced and Multi-Step Modes */}
+      {(currentOperatingMode === 'advanced' || currentOperatingMode === 'multistep') && (
+        <div className="space-y-6 mb-8">
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label htmlFor="phase1Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 1 Prompt (Blueprint Definition)</label>
+              <CopyButton textToCopy={phase1Prompt} />
+            </div>
+            <textarea
+              id="phase1Prompt"
+              value={phase1Prompt}
+              onChange={(e) => setPhase1Prompt(e.target.value)}
+              rows={8}
+              className="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
+              disabled={isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3] || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
+            />
+          </div>
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label htmlFor="phase2Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 2 Prompt (Architecture Design / Elaboration)</label>
+              <CopyButton textToCopy={phase2Prompt} />
+            </div>
+            <textarea
+              id="phase2Prompt"
+              value={phase2Prompt}
+              onChange={(e) => setPhase2Prompt(e.target.value)}
+              rows={8}
+              className="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
+              disabled={isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3] || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
+            />
+          </div>
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label htmlFor="phase3Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 3 Prompt (Script Generation / Final Output)</label>
+              <CopyButton textToCopy={phase3Prompt} />
+            </div>
+            <textarea
+              id="phase3Prompt"
+              value={phase3Prompt}
+              onChange={(e) => setPhase3Prompt(e.target.value)}
+              rows={8}
+              className="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
+              disabled={isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3] || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Simple Mode UI */}
+      {currentOperatingMode === 'simple' && (
         <div className="mb-8">
           <button
             type="button"
@@ -657,45 +874,34 @@ export default function Home() {
         </div>
       )}
 
-      {advancedMode && (
+      {/* Advanced Mode UI */}
+      {currentOperatingMode === 'advanced' && (
         <div className="space-y-10">
           {/* Phase 1 */}
           <div className="p-6 border border-slate-300 dark:border-slate-700 rounded-lg shadow">
             <h2 className="text-2xl font-semibold mb-4 text-slate-700 dark:text-slate-200">Phase 1: Define Blueprint</h2>
-            <div className="flex justify-between items-center mb-1">
-              <label htmlFor="phase1Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 1 Prompt (Blueprint Definition)</label>
-              <CopyButton textToCopy={phase1Prompt} />
-            </div>
-            <textarea
-              id="phase1Prompt"
-              value={phase1Prompt}
-              onChange={(e) => setPhase1Prompt(e.target.value)}
-              rows={8}
-              className="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500 mb-3"
-              disabled={isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3]}
-            />
+            {/* Prompt Textarea for Phase 1 is now in the shared section */}
             <button
               onClick={() => handleRunPhase(1)}
-              disabled={isLoadingPhase[1] || modelsLoading || !llmModel || isLoadingPhase[2] || isLoadingPhase[3]}
+              disabled={isLoadingPhase[1] || modelsLoading || !llmModel || isLoadingPhase[2] || isLoadingPhase[3] || !initialInput || !phase1Prompt}
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-indigo-400 focus:outline-none dark:focus:ring-indigo-700 mt-3"
             >
               {isLoadingPhase[1] ? 'Running Phase 1...' : 'Run Phase 1 (Define Blueprint)'}
             </button>
             {phase1Output && (
-              <div className="mt-4"> {/* Added a wrapper div for margin consistency */}
-                <details>
+              <div className="mt-4">
+                <details open>
                   <summary className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer flex justify-between items-center mb-1">
                     <span>Phase 1 Output (Blueprint)</span>
                     <CopyButton textToCopy={phase1Output} />
                   </summary>
                   <pre
-                    id="phase1Output" // id can remain for anchoring if needed, or be removed
-                    className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 mt-2" // Added mt-2 for spacing from summary
+                    className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 mt-2"
                   >{phase1Output || "Blueprint output will appear here..."}</pre>
                 </details>
               </div>
             )}
-            {!phase1Output && ( // Fallback for when phase1Output is empty
+            {!phase1Output && (
                 <div className="mt-4">
                     <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Phase 1 Output (Blueprint)</label>
                     <pre
@@ -708,40 +914,28 @@ export default function Home() {
           {/* Phase 2 */}
           <div className="p-6 border border-slate-300 dark:border-slate-700 rounded-lg shadow">
             <h2 className="text-2xl font-semibold mb-4 text-slate-700 dark:text-slate-200">Phase 2: Design Crew Architecture Plan</h2>
-            <div className="flex justify-between items-center mb-1">
-              <label htmlFor="phase2Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 2 Prompt (Architecture Design)</label>
-              <CopyButton textToCopy={phase2Prompt} />
-            </div>
-            <textarea
-              id="phase2Prompt"
-              value={phase2Prompt}
-              onChange={(e) => setPhase2Prompt(e.target.value)}
-              rows={8}
-              className="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500 mb-3"
-              disabled={isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3]}
-            />
+            {/* Prompt Textarea for Phase 2 is now in the shared section */}
             <button
               onClick={() => handleRunPhase(2)}
-              disabled={isLoadingPhase[2] || modelsLoading || !llmModel || isLoadingPhase[1] || isLoadingPhase[3]}
+              disabled={isLoadingPhase[2] || modelsLoading || !llmModel || isLoadingPhase[1] || isLoadingPhase[3] || !phase1Output || !phase2Prompt}
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-indigo-400 focus:outline-none dark:focus:ring-indigo-700 mt-3"
             >
               {isLoadingPhase[2] ? 'Running Phase 2...' : 'Run Phase 2 (Design Architecture)'}
             </button>
             {phase2Output && (
-              <div className="mt-4"> {/* Added a wrapper div for margin consistency */}
-                <details>
+              <div className="mt-4">
+                <details open>
                   <summary className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer flex justify-between items-center mb-1">
                     <span>Phase 2 Output (Architecture Plan)</span>
                     <CopyButton textToCopy={phase2Output} />
                   </summary>
                   <pre
-                    id="phase2Output" // id can remain or be removed
-                    className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 mt-2" // Added mt-2 for spacing
+                    className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 mt-2"
                   >{phase2Output || "Architecture plan output will appear here..."}</pre>
                 </details>
               </div>
             )}
-            {!phase2Output && ( // Fallback for when phase2Output is empty
+            {!phase2Output && (
                 <div className="mt-4">
                     <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Phase 2 Output (Architecture Plan)</label>
                     <pre
@@ -754,29 +948,17 @@ export default function Home() {
           {/* Phase 3 */}
           <div className="p-6 border border-slate-300 dark:border-slate-700 rounded-lg shadow">
             <h2 className="text-2xl font-semibold mb-4 text-slate-700 dark:text-slate-200">Phase 3: Construct Python Script</h2>
-            <div className="flex justify-between items-center mb-1">
-              <label htmlFor="phase3Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 3 Prompt (Script Generation)</label>
-              <CopyButton textToCopy={phase3Prompt} />
-            </div>
-            <textarea
-              id="phase3Prompt"
-              value={phase3Prompt}
-              onChange={(e) => setPhase3Prompt(e.target.value)}
-              rows={8}
-              className="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500 mb-3"
-              disabled={isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3]}
-            />
+            {/* Prompt Textarea for Phase 3 is now in the shared section */}
             <button
               onClick={() => handleRunPhase(3)}
-              disabled={isLoadingPhase[3] || modelsLoading || !llmModel || isLoadingPhase[1] || isLoadingPhase[2]}
+              disabled={isLoadingPhase[3] || modelsLoading || !llmModel || isLoadingPhase[1] || isLoadingPhase[2] || !phase2Output || !phase3Prompt}
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-indigo-400 focus:outline-none dark:focus:ring-indigo-700 mt-3"
             >
-              {isLoadingPhase[3] ? 'Running Phase 3...' : 'Run Phase 3 (Generate & Execute Script)'}
+              {isLoadingPhase[3] ? 'Running Phase 3...' : 'Run Phase 3 (Generate Script)'}
             </button>
-            
             {phase3GeneratedTaskOutputs && phase3GeneratedTaskOutputs.length > 0 && (
               <div className="mt-6">
-                <label htmlFor="phase3GeneratedOutput" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Phase 3 Generation - Predicted Task Outputs</label>
+                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Phase 3 Generation - Predicted Task Outputs</label>
                 <ul className="space-y-2 p-3 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 shadow-inner min-h-[100px]">
                   {phase3GeneratedTaskOutputs.map((out, index) => (
                     <li key={index} className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm relative">
@@ -794,11 +976,77 @@ export default function Home() {
                 </ul>
               </div>
             )}
-            {/* Phase 3 output uses existing generatedScript and scriptRunOutput areas */}
           </div>
         </div>
       )}
 
+      {/* Multi-Step Mode UI */}
+      {currentOperatingMode === 'multistep' && (
+        <div className="space-y-10">
+          {[1, 2, 3].map((phase) => (
+            <details key={phase} className="p-6 border border-slate-300 dark:border-slate-700 rounded-lg shadow" open>
+              <summary className="text-2xl font-semibold text-slate-700 dark:text-slate-200 cursor-pointer">
+                Multi-Step Phase {phase}: {phase === 1 ? "Define Blueprint" : phase === 2 ? "Elaborate / Refine" : "Generate Final Output"}
+              </summary>
+              <div className="mt-4 space-y-4">
+                <button
+                  onClick={() => handleMultiStepPhaseExecution(phase)}
+                  disabled={
+                    (phase === 1 && (isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3 || !initialInput || !phase1Prompt)) ||
+                    (phase === 2 && (isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3 || !multiStepPhase1_Output || !phase2Prompt)) ||
+                    (phase === 3 && (isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3 || !multiStepPhase2_Output || !phase3Prompt))
+                  }
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-purple-400 focus:outline-none dark:focus:ring-purple-700"
+                >
+                  {isLoadingMultiStepPhase_1 && phase === 1 && 'Running Phase 1...'}
+                  {isLoadingMultiStepPhase_2 && phase === 2 && 'Running Phase 2...'}
+                  {isLoadingMultiStepPhase_3 && phase === 3 && 'Running Phase 3...'}
+                  {!((isLoadingMultiStepPhase_1 && phase === 1) || (isLoadingMultiStepPhase_2 && phase === 2) || (isLoadingMultiStepPhase_3 && phase === 3)) && `Run Multi-Step Phase ${phase}`}
+                </button>
+
+                <div className="mt-2 mb-2 p-2 border border-purple-300 dark:border-purple-700 rounded-md bg-purple-50 dark:bg-purple-900/30 shadow-sm text-center">
+                  <p className="text-xs text-purple-700 dark:text-purple-300">
+                    Phase {phase} LLM Request Timer: <Timer isRunning={multiStepPhase_Timers_Running[phase]} className="inline font-semibold" />
+                  </p>
+                </div>
+                {multiStepPhase_Durations[phase] !== null && (
+                  <div className="mt-2 mb-2 p-2 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm text-center">
+                    <p className="text-xs text-slate-600 dark:text-slate-300">
+                      Phase {phase} LLM request took: <span className="font-semibold">{multiStepPhase_Durations[phase]?.toFixed(2)} seconds</span>
+                    </p>
+                  </div>
+                )}
+
+                <details className="mt-4">
+                  <summary className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer flex justify-between items-center mb-1">
+                    <span>View Input for Phase {phase}</span>
+                    <CopyButton textToCopy={
+                      phase === 1 ? multiStepPhase1_Input :
+                      phase === 2 ? multiStepPhase2_Input :
+                      multiStepPhase3_Input
+                    } />
+                  </summary>
+                  <pre className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 mt-2">
+                    {(phase === 1 ? multiStepPhase1_Input : phase === 2 ? multiStepPhase2_Input : multiStepPhase3_Input) || "Input will appear here..."}
+                  </pre>
+                </details>
+
+                <details className="mt-4" open>
+                  <summary className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer flex justify-between items-center mb-1">
+                    <span>View Output of Phase {phase}</span>
+                    <CopyButton textToCopy={
+                      phase === 1 ? multiStepPhase1_Output : phase === 2 ? multiStepPhase2_Output : multiStepPhase3_Output
+                    } />
+                  </summary>
+                  <pre className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 mt-2">
+                    {(phase === 1 ? multiStepPhase1_Output : phase === 2 ? multiStepPhase2_Output : multiStepPhase3_Output) || "Output will appear here..."}
+                  </pre>
+                </details>
+              </div>
+            </details>
+          ))}
+        </div>
+      )}
 
       {error && (
         <div className="mt-8 mb-8 p-4 border border-red-400 bg-red-100 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-500/50 dark:text-red-400">
@@ -815,12 +1063,16 @@ export default function Home() {
       )}
 
       {/* Output sections: Generated Script and Script Execution Output / Phased Outputs */}
-      {/* These are shown for both simple mode and advanced mode (phase 3) */}
-      {(generatedScript || scriptLogOutput.length > 0 || phasedOutputs.length > 0) && (
+      {((currentOperatingMode !== 'multistep' && (generatedScript || scriptLogOutput.length > 0 || phasedOutputs.length > 0)) ||
+        (currentOperatingMode === 'multistep' && (multiStepPhase3_Output || scriptLogOutput.length > 0 || phasedOutputs.length > 0))) && (
          <div className="grid md:grid-cols-2 gap-6 mt-10 mb-8">
           <div>
             <label htmlFor="scriptExecutionArea" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
-              {advancedMode && currentPhaseRunning === 3 ? "Phase 3 Script Execution Output" : (advancedMode ? "Script Execution Output (Phase 3)" : "Script Execution Output (Simple Mode)")}
+              {currentOperatingMode === 'advanced' && isLoadingPhase[3] ? "Phase 3 Script Execution Output" :
+               currentOperatingMode === 'advanced' ? "Script Execution Output (Phase 3)" :
+               currentOperatingMode === 'multistep' && isLoadingMultiStepPhase_3 ? "Multi-Step Phase 3 Script Execution Output" :
+               currentOperatingMode === 'multistep' ? "Script Execution Output (Multi-Step Phase 3)" :
+               "Script Execution Output (Simple Mode)"}
             </label>
             <div id="scriptExecutionArea" className="space-y-4 p-4 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 shadow-sm min-h-[160px]">
               {/* Display Docker Command */}
@@ -893,38 +1145,39 @@ export default function Home() {
             </div>
           </div>
           <div> {/* This is the main container for this part of the UI, likely a grid column */}
-            <details className="border border-slate-200 dark:border-slate-700 rounded-md shadow-sm mb-2" open> {/* Added mb-2 for spacing before button, open by default */}
-              <summary className="flex justify-between items-center p-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded-t-md"> {/* Apply rounding to top if details is rounded */}
+            <details className="border border-slate-200 dark:border-slate-700 rounded-md shadow-sm mb-2" open>
+              <summary className="flex justify-between items-center p-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded-t-md">
                 <span className="text-base font-medium text-slate-700 dark:text-slate-300">
-                  {/* Use the dynamic labelText here */}
-                  {advancedMode && currentPhaseRunning === 3 ? "Phase 3 Generated Python Script" : (advancedMode ? "Generated Python Script (Phase 3)" : "Generated Python Script (Simple Mode)")}
+                  {currentOperatingMode === 'multistep' ? "Generated Python Script (Multi-Step Phase 3)" :
+                   currentOperatingMode === 'advanced' && isLoadingPhase[3] ? "Phase 3 Generated Python Script" :
+                   currentOperatingMode === 'advanced' ? "Generated Python Script (Phase 3)" :
+                   "Generated Python Script (Simple Mode)"}
                 </span>
-                <CopyButton textToCopy={generatedScript} />
+                <CopyButton textToCopy={currentOperatingMode === 'multistep' ? multiStepPhase3_Output : generatedScript} />
               </summary>
-              <div className="w-full p-4 bg-slate-800 dark:bg-slate-800 overflow-auto min-h-[160px] rounded-b-md"> {/* Removed individual border/shadow, ensure bottom rounding */}
+              <div className="w-full p-4 bg-slate-800 dark:bg-slate-800 overflow-auto min-h-[160px] rounded-b-md">
                 <SyntaxHighlighter
                   language="python"
                   style={atomDark}
                   showLineNumbers={true}
                   wrapLines={true}
                   lineProps={{ style: { whiteSpace: 'pre-wrap', wordBreak: 'break-all' } }}
-                  customStyle={{
-                    margin: 0,
-                    backgroundColor: 'transparent',
-                    height: 'auto',
-                    minHeight: '140px',
-                    overflow: 'auto',
-                  }}
+                  customStyle={{ margin: 0, backgroundColor: 'transparent', height: 'auto', minHeight: '140px', overflow: 'auto' }}
                   codeTagProps={{ style: { fontFamily: 'inherit' } }}
                 >
-                  {generatedScript || "# Python script output will appear here"}
+                  {(currentOperatingMode === 'multistep' ? multiStepPhase3_Output : generatedScript) || "# Python script output will appear here"}
                 </SyntaxHighlighter>
               </div>
             </details>
             <button
               type="button"
-              onClick={handleExecuteScript}
-              disabled={!generatedScript || isExecutingScript || (advancedMode && currentPhaseRunning !== null && currentPhaseRunning !== 3) }
+              onClick={() => handleExecuteScript()} // Pass script explicitly if needed, or handle inside
+              disabled={
+                isExecutingScript ||
+                (currentOperatingMode === 'multistep' ? !multiStepPhase3_Output : !generatedScript) ||
+                (currentOperatingMode === 'advanced' && (isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3])) ||
+                (currentOperatingMode === 'multistep' && (isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3))
+              }
               className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2.5 rounded-md shadow-md transition duration-150 ease-in-out disabled:opacity-50 focus:ring-4 focus:ring-green-300 focus:outline-none dark:focus:ring-green-800"
             >
               {isExecutingScript ? 'Executing Script...' : 'Run This Script (Locally via API)'}
@@ -935,3 +1188,36 @@ export default function Home() {
     </main>
   );
 }
+
+// Helper function to parse phased outputs from script stdout
+// This function needs to be defined outside the component or imported
+const parsePhasedOutputs = (stdout: string): PhasedOutput[] => {
+  const outputs: PhasedOutput[] = [];
+  // Example parsing logic, adjust based on actual stdout format
+  // This is a placeholder and might need refinement
+  const lines = stdout.split('\n');
+  let currentTaskName = "Unknown Task";
+  let currentOutput = "";
+
+  for (const line of lines) {
+    // Assuming task names might be prefixed, e.g., "TASK_START: Task Name"
+    // Or you might have a more structured output.
+    // This is highly dependent on how your `main.py` in crewAI prints information.
+    if (line.includes("crewAI Task Output:")) { // A potential marker for task output
+      if (currentOutput) { // Save previous task's output
+        outputs.push({ taskName: currentTaskName, output: currentOutput.trim() });
+      }
+      // Attempt to extract a task name, this is a guess.
+      // You might need a more robust way to identify tasks.
+      const nameMatch = line.match(/Task Name: (.*?)(?:\s|$)/);
+      currentTaskName = nameMatch ? nameMatch[1] : "Unnamed Task";
+      currentOutput = line.substring(line.indexOf("crewAI Task Output:") + "crewAI Task Output:".length);
+    } else {
+      currentOutput += `\n${line}`;
+    }
+  }
+  if (currentOutput.trim()) { // Add the last collected output
+    outputs.push({ taskName: currentTaskName, output: currentOutput.trim() });
+  }
+  return outputs;
+};
