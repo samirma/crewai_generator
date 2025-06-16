@@ -1,10 +1,6 @@
 
 
-Instructions markdown:
-```markdown
-
-**Process:**
-1.  Thoroughly analyze the 'Initial Instruction Input' (from the `@@@` delimiters).
+Use the 'Initial Instruction Input' (from the `@@@` delimiters) to develop a well detailed blueprimt document.
 
 **A. Primary Objective:**
 * Content: A single, clear statement of the main goal.
@@ -42,6 +38,3 @@ Instructions markdown:
     * This outline **MUST** incorporate any technical specifications identified in Section C.
     * Detail the logical flow of data and operations between steps.
 
-```
-
-Follow the previous instructions markdown to produce a markdown block called 'Blueprint'.

@@ -1,9 +1,6 @@
 
 
-Instructions markdown:
-```markdown
-
-**Process:** The complete previous **'Blueprint' document** (in Markdown format), design the optimal CrewAI configuration. This involves developing the complete specifications for tasks, agents, and tools. Your role is exclusively architectural design.
+Use the previous document as a blueprint to achieve the goal described there, to design the optimal CrewAI configuration in a JSON object. This involves developing the complete specifications for tasks, agents, and tools. Your role is exclusively architectural design.
 
 The design process should follow a logical, top-down cascade to ensure robustness and internal consistency. Key considerations include:
 * **Self-Correction:** The architecture must include agents and tasks dedicated to quality assurance and critique.
@@ -118,7 +115,3 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
         * `context` (Array of Strings, Optional): List of prerequisite `task_identifier`s.
         * `output_pydantic` (String, Optional): The `class_name` of a Pydantic model for structured output.
 
-
-```
-
-Follow the previous instructions markdown to produce a **single JSON object** named `'Design-Crew-Architecture-Plan'.

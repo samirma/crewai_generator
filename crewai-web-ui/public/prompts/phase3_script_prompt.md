@@ -1,8 +1,5 @@
-## Construct Python Script
 
-**Input:** The complete **'Design-Crew-Architecture-Plan' as a single JSON object** (conforming to the revised schema with `llm_registry` and `constructor_args`). No other information source should be used.
-
-**Process:** Construct the Python script by meticulously implementing all specifications, configurations, and logic detailed in the **entirety of the input JSON plan**. Your exclusive role is to translate the provided architecture plan into code. Do not re-evaluate or change any architectural decisions.
+Use the previous json to construct the Python script by meticulously implementing all specifications, configurations, and logic detailed in the . Your exclusive role is to translate the provided architecture plan into code. Do not re-evaluate or change any architectural decisions.
 
 **Script Structure & Content Requirements:**
 
@@ -74,6 +71,7 @@ class <ClassNameFromJSON>(BaseTool):
     # The '_run' method's parameters MUST match the 'class_definition_args.run_method_parameters' in the JSON.
     # Implementted python logic for this method is a direct implementation of the
     # step-by-step description from the 'class_definition_args.run_method_logic' field in the JSON.
+    # External commands should use parameters that ensure no human interaction is required. 
     def _run(self, argument_name: str) -> str:
         pass
 ```
@@ -112,7 +110,7 @@ class <ClassNameFromJSON>(BaseTool):
 * `process`: Set based on `workflow_process.selected_process`.
 * `manager_llm`: If `process` is hierarchical, use the `workflow_process.manager_llm_specification.llm_id` to assign the correct pre-instantiated LLM object.
 * `memory`: Set based on `crew_memory.activation`.
-* `embedder`: If memory is active, configure it using the `crew_memory.embedder_config` object and set the url to be for the use attribute you should use attribute url = f"http://{os.environ['OLLAMA_HOST']}/api/embeddings".
+* `embedder`: If memory is active, configure it using the `crew_memory.embedder_config` object and set the url to be for the use attribute you should use attribute url = f"http://{os.getenv['OLLAMA_HOST']}/api/embeddings".
 * Set `verbose=False`.
 
 **Execution Block:**
