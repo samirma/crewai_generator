@@ -96,7 +96,25 @@ export default function Home() {
   const [multiStepPhase_Durations, setMultiStepPhase_Durations] = useState<Record<number, number | null>>({ 1: null, 2: null, 3: null });
   const [multiStepPhase_Timers_Running, setMultiStepPhase_Timers_Running] = useState<Record<number, boolean>>({ 1: false, 2: false, 3: false });
 
-  const isLlmTimerRunning = isLoading || !!isLoadingPhase[1] || !!isLoadingPhase[2] || !!isLoadingPhase[3] || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3;
+  // State for Simple Multi-Step Mode
+  const [simpleMultiStepPhase1_Input, setSimpleMultiStepPhase1_Input] = useState<string>("");
+  const [simpleMultiStepPhase1_Output, setSimpleMultiStepPhase1_Output] = useState<string>("");
+  const [simpleMultiStepPhase1_Duration, setSimpleMultiStepPhase1_Duration] = useState<number | null>(null);
+  const [isLoadingSimpleMultiStepPhase1, setIsLoadingSimpleMultiStepPhase1] = useState<boolean>(false);
+
+  const [simpleMultiStepPhase2_Input, setSimpleMultiStepPhase2_Input] = useState<string>("");
+  const [simpleMultiStepPhase2_Output, setSimpleMultiStepPhase2_Output] = useState<string>("");
+  const [simpleMultiStepPhase2_Duration, setSimpleMultiStepPhase2_Duration] = useState<number | null>(null);
+  const [isLoadingSimpleMultiStepPhase2, setIsLoadingSimpleMultiStepPhase2] = useState<boolean>(false);
+
+  const [simpleMultiStepPhase3_Input, setSimpleMultiStepPhase3_Input] = useState<string>("");
+  const [simpleMultiStepPhase3_Output, setSimpleMultiStepPhase3_Output] = useState<string>("");
+  const [simpleMultiStepPhase3_Duration, setSimpleMultiStepPhase3_Duration] = useState<number | null>(null);
+  const [isLoadingSimpleMultiStepPhase3, setIsLoadingSimpleMultiStepPhase3] = useState<boolean>(false);
+  const [hasSimpleMultiStepAttempted, setHasSimpleMultiStepAttempted] = useState<boolean>(false);
+
+
+  const isLlmTimerRunning = isLoading || !!isLoadingPhase[1] || !!isLoadingPhase[2] || !!isLoadingPhase[3] || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3 || isLoadingSimpleMultiStepPhase1 || isLoadingSimpleMultiStepPhase2 || isLoadingSimpleMultiStepPhase3;
 
   useEffect(() => {
     // Load initialInput from cookie on component mount using helper
@@ -212,6 +230,21 @@ export default function Home() {
     setIsLoadingMultiStepPhase_3(false);
     setMultiStepPhase_Durations({ 1: null, 2: null, 3: null });
     setMultiStepPhase_Timers_Running({ 1: false, 2: false, 3: false });
+
+    // Reset Simple Multi-Step states
+    setSimpleMultiStepPhase1_Input("");
+    setSimpleMultiStepPhase1_Output("");
+    setSimpleMultiStepPhase1_Duration(null);
+    setIsLoadingSimpleMultiStepPhase1(false);
+    setSimpleMultiStepPhase2_Input("");
+    setSimpleMultiStepPhase2_Output("");
+    setSimpleMultiStepPhase2_Duration(null);
+    setIsLoadingSimpleMultiStepPhase2(false);
+    setSimpleMultiStepPhase3_Input("");
+    setSimpleMultiStepPhase3_Output("");
+    setSimpleMultiStepPhase3_Duration(null);
+    setIsLoadingSimpleMultiStepPhase3(false);
+    setHasSimpleMultiStepAttempted(false);
   };
 
   const handleMultiStepPhaseExecution = async (phase: number) => {
@@ -412,6 +445,130 @@ export default function Home() {
         setExecutionOutput("");
       }
       // No currentRunPhase for simple mode, so it will be undefined
+    );
+  };
+
+  const handleSimpleModeMultiStepSubmit = async () => {
+    setCookie('initialInstruction', initialInput, 30);
+    if (!llmModel) {
+      setError("Please select an LLM model.");
+      return;
+    }
+    setHasSimpleMultiStepAttempted(true); // Mark that an attempt has been made
+    resetOutputStates(); // This will also clear the new simpleMultiStep states, but we set attempted true above
+
+    // --- Phase 1 ---
+    setIsLoadingSimpleMultiStepPhase1(true);
+    setSimpleMultiStepPhase1_Input(""); // Clear previous input/output for this phase
+    setSimpleMultiStepPhase1_Output("");
+    setSimpleMultiStepPhase1_Duration(null);
+    setSimpleMultiStepPhase2_Input(""); // Clear subsequent phases' data
+    setSimpleMultiStepPhase2_Output("");
+    setSimpleMultiStepPhase2_Duration(null);
+    setSimpleMultiStepPhase3_Input("");
+    setSimpleMultiStepPhase3_Output("");
+    setSimpleMultiStepPhase3_Duration(null);
+    setGeneratedScript(""); // Clear final script
+
+    const phase1PromptValue = buildPrompt(initialInput, defaultPhase1PromptText, null, null);
+    setSimpleMultiStepPhase1_Input(phase1PromptValue);
+    setActualLlmInputPrompt(phase1PromptValue); // Show user what's being sent
+
+    // Phase 1 Execution
+    executeGenerateRequest(
+      '/api/generate',
+      { llmModel, mode: 'advanced', fullPrompt: phase1PromptValue, runPhase: 1 },
+      (phase1Data) => { // Phase 1 onSuccess
+        const phase1DataOutput = phase1Data.output;
+        setSimpleMultiStepPhase1_Output(phase1DataOutput || "");
+        setSimpleMultiStepPhase1_Duration(phase1Data.duration !== undefined ? phase1Data.duration : null);
+        setActualLlmOutputPrompt(phase1Data.llmOutputPromptContent || "");
+
+        if (phase1DataOutput && phase1DataOutput.trim() !== "") {
+          // --- Phase 2 ---
+          setIsLoadingSimpleMultiStepPhase2(true);
+          setSimpleMultiStepPhase2_Input("");
+          setSimpleMultiStepPhase2_Output("");
+          setSimpleMultiStepPhase2_Duration(null);
+          setSimpleMultiStepPhase3_Input("");
+          setSimpleMultiStepPhase3_Output("");
+          setSimpleMultiStepPhase3_Duration(null);
+          setGeneratedScript("");
+
+          const phase2PromptValue = (phase1DataOutput || "") + "\n\n" + defaultPhase2PromptText;
+          setSimpleMultiStepPhase2_Input(phase2PromptValue);
+          setActualLlmInputPrompt(phase2PromptValue); // Show user for phase 2
+
+          executeGenerateRequest(
+            '/api/generate',
+            { llmModel, mode: 'advanced', fullPrompt: phase2PromptValue, runPhase: 2 },
+            (phase2Data) => { // Phase 2 onSuccess
+              const phase2DataOutput = phase2Data.output;
+              setSimpleMultiStepPhase2_Output(phase2DataOutput || "");
+              setSimpleMultiStepPhase2_Duration(phase2Data.duration !== undefined ? phase2Data.duration : null);
+              setActualLlmOutputPrompt(phase2Data.llmOutputPromptContent || "");
+
+              if (phase2DataOutput && phase2DataOutput.trim() !== "") {
+                // --- Phase 3 ---
+                setIsLoadingSimpleMultiStepPhase3(true);
+                setSimpleMultiStepPhase3_Input("");
+                setSimpleMultiStepPhase3_Output("");
+                setSimpleMultiStepPhase3_Duration(null);
+                setGeneratedScript("");
+
+                const phase3PromptValue = (phase2DataOutput || "") + "\n\n" + defaultPhase3PromptText;
+                setSimpleMultiStepPhase3_Input(phase3PromptValue);
+                setActualLlmInputPrompt(phase3PromptValue); // Show user for phase 3
+
+                executeGenerateRequest(
+                  '/api/generate',
+                  { llmModel, mode: 'advanced', fullPrompt: phase3PromptValue, runPhase: 3 },
+                  (phase3Data) => { // Phase 3 onSuccess
+                    const phase3GeneratedScript = phase3Data.generatedScript;
+                    setSimpleMultiStepPhase3_Output(phase3GeneratedScript || "");
+                    setGeneratedScript(phase3GeneratedScript || "");
+                    setSimpleMultiStepPhase3_Duration(phase3Data.duration !== undefined ? phase3Data.duration : null);
+                    if (phase3Data.phasedOutputs) setPhasedOutputs(phase3Data.phasedOutputs);
+                    setActualLlmOutputPrompt(phase3Data.llmOutputPromptContent || "");
+
+                    if (!phase3GeneratedScript || phase3GeneratedScript.trim() === "") {
+                      setError("Phase 3 failed to produce a script. Please check the logs or try again.");
+                    }
+                  },
+                  (errorMessage) => { // Phase 3 onError
+                    setError(`Phase 3 failed: ${errorMessage}`);
+                    setSimpleMultiStepPhase3_Output("");
+                    setGeneratedScript("");
+                  },
+                  () => { // Phase 3 onFinally
+                    setIsLoadingSimpleMultiStepPhase3(false);
+                  }
+                );
+              } else {
+                setError("Phase 2 failed to produce an output. Please check the logs or try again.");
+                setIsLoadingSimpleMultiStepPhase2(false); // Ensure loading is stopped
+              }
+            },
+            (errorMessage) => { // Phase 2 onError
+              setError(`Phase 2 failed: ${errorMessage}`);
+              setSimpleMultiStepPhase2_Output("");
+            },
+            () => { // Phase 2 onFinally
+              setIsLoadingSimpleMultiStepPhase2(false);
+            }
+          );
+        } else {
+          setError("Phase 1 failed to produce an output. Please check the logs or try again.");
+          setIsLoadingSimpleMultiStepPhase1(false); // Ensure loading is stopped
+        }
+      },
+      (errorMessage) => { // Phase 1 onError
+        setError(`Phase 1 failed: ${errorMessage}`);
+        setSimpleMultiStepPhase1_Output("");
+      },
+      () => { // Phase 1 onFinally
+        setIsLoadingSimpleMultiStepPhase1(false);
+      }
     );
   };
 
@@ -728,7 +885,7 @@ export default function Home() {
           placeholder="Enter your initial instructions here..."
           value={initialInput}
           onChange={(e) => setInitialInput(e.target.value)}
-          disabled={isLoading || isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3] || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
+          disabled={isLoading || isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3] || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3 || isLoadingSimpleMultiStepPhase1 || isLoadingSimpleMultiStepPhase2 || isLoadingSimpleMultiStepPhase3}
           ></textarea>
           <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
             <CopyButton textToCopy={initialInput} />
@@ -746,7 +903,7 @@ export default function Home() {
           className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 bg-white hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
           value={llmModel}
           onChange={(e) => setLlmModel(e.target.value)}
-          disabled={isLoading || modelsLoading || modelsError !== "" || isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3] || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
+          disabled={isLoading || modelsLoading || modelsError !== "" || isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3] || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3 || isLoadingSimpleMultiStepPhase1 || isLoadingSimpleMultiStepPhase2 || isLoadingSimpleMultiStepPhase3}
         >
           {modelsLoading && <option value="">Loading models...</option>}
           {modelsError && <option value="">Error loading models</option>}
@@ -862,15 +1019,83 @@ export default function Home() {
 
       {/* Simple Mode UI */}
       {currentOperatingMode === 'simple' && (
-        <div className="mb-8">
+        <div className="mb-8 flex space-x-2"> {/* Modified this line to use flex and add spacing */}
           <button
             type="button"
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-md shadow-md transition duration-150 ease-in-out disabled:opacity-50 focus:ring-4 focus:ring-blue-300 focus:outline-none dark:focus:ring-blue-800"
             onClick={handleSimpleModeSubmit}
-            disabled={isLoading || modelsLoading || !llmModel}
+            disabled={isLoading || modelsLoading || !llmModel || isLoadingSimpleMultiStepPhase1 || isLoadingSimpleMultiStepPhase2 || isLoadingSimpleMultiStepPhase3}
           >
-            {isLoading ? 'Generating (Simple Mode)...' : (modelsLoading ? 'Loading models...' : 'Run Simple Mode')}
+            {isLoading || isLoadingSimpleMultiStepPhase1 || isLoadingSimpleMultiStepPhase2 || isLoadingSimpleMultiStepPhase3 ? 'Generating...' : (modelsLoading ? 'Loading models...' : 'Run Simple Mode')}
           </button>
+          {/* New Button Added Here */}
+          <button
+            type="button"
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2.5 rounded-md shadow-md transition duration-150 ease-in-out disabled:opacity-50 focus:ring-4 focus:ring-green-300 focus:outline-none dark:focus:ring-green-800"
+            onClick={handleSimpleModeMultiStepSubmit}
+            disabled={isLoading || modelsLoading || !llmModel || isLoadingSimpleMultiStepPhase1 || isLoadingSimpleMultiStepPhase2 || isLoadingSimpleMultiStepPhase3}
+          >
+            {isLoadingSimpleMultiStepPhase1 ? 'Running Phase 1...' : isLoadingSimpleMultiStepPhase2 ? 'Running Phase 2...' : isLoadingSimpleMultiStepPhase3 ? 'Running Phase 3...' : (isLoading ? 'Generating...' : 'Run Simple Mode with Multi step')}
+          </button>
+        </div>
+      )}
+
+      {/* Simple Mode - Multi-step Execution Details */}
+      {currentOperatingMode === 'simple' && hasSimpleMultiStepAttempted && (
+        <div className="my-8 p-4 border border-slate-300 dark:border-slate-700 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4 text-center text-slate-700 dark:text-slate-200">
+            Simple Mode - Multi-step Execution Details
+          </h2>
+          <div className="space-y-6">
+            {[1, 2, 3].map((phase) => {
+              const phaseName = phase === 1 ? "Blueprint Definition" : phase === 2 ? "Architecture Elaboration" : "Script Generation";
+              const isLoadingPhase = phase === 1 ? isLoadingSimpleMultiStepPhase1 : phase === 2 ? isLoadingSimpleMultiStepPhase2 : isLoadingSimpleMultiStepPhase3;
+              const phaseInput = phase === 1 ? simpleMultiStepPhase1_Input : phase === 2 ? simpleMultiStepPhase2_Input : simpleMultiStepPhase3_Input;
+              const phaseOutput = phase === 1 ? simpleMultiStepPhase1_Output : phase === 2 ? simpleMultiStepPhase2_Output : simpleMultiStepPhase3_Output;
+              const phaseDuration = phase === 1 ? simpleMultiStepPhase1_Duration : phase === 2 ? simpleMultiStepPhase2_Duration : simpleMultiStepPhase3_Duration;
+
+              return (
+                <details key={phase} className="p-4 border border-slate-200 dark:border-slate-600 rounded-md shadow-sm" open>
+                  <summary className="text-lg font-semibold text-slate-700 dark:text-slate-200 cursor-pointer">
+                    Phase {phase}: {phaseName}
+                    {isLoadingPhase && <span className="ml-2 text-sm text-blue-500">(Running...)</span>}
+                  </summary>
+                  <div className="mt-3 space-y-3">
+                    {phaseDuration !== null && !isLoadingPhase && (
+                      <div className="p-2 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700/50 text-xs text-slate-600 dark:text-slate-300">
+                        LLM request took: <span className="font-semibold">{phaseDuration.toFixed(2)} seconds</span>
+                      </div>
+                    )}
+                    {phaseInput && (
+                      <details className="mt-2">
+                        <summary className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer flex justify-between items-center">
+                          <span>View Input for Phase {phase}</span>
+                          <CopyButton textToCopy={phaseInput} />
+                        </summary>
+                        <pre className="w-full mt-1 p-2 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-800 shadow-inner overflow-auto whitespace-pre-wrap min-h-[80px] text-xs">
+                          {phaseInput}
+                        </pre>
+                      </details>
+                    )}
+                    {phaseOutput && (
+                      <details className="mt-2" open>
+                        <summary className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer flex justify-between items-center">
+                          <span>View Output of Phase {phase}</span>
+                          <CopyButton textToCopy={phaseOutput} />
+                        </summary>
+                        <pre className="w-full mt-1 p-2 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-800 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] text-xs">
+                          {phaseOutput}
+                        </pre>
+                      </details>
+                    )}
+                    {!phaseInput && !phaseOutput && !isLoadingPhase && (
+                       <p className="text-sm text-slate-500 dark:text-slate-400">Phase {phase} has not run or produced output yet.</p>
+                    )}
+                  </div>
+                </details>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -1176,7 +1401,8 @@ export default function Home() {
                 isExecutingScript ||
                 (currentOperatingMode === 'multistep' ? !multiStepPhase3_Output : !generatedScript) ||
                 (currentOperatingMode === 'advanced' && (isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3])) ||
-                (currentOperatingMode === 'multistep' && (isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3))
+                (currentOperatingMode === 'multistep' && (isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3)) ||
+                (currentOperatingMode === 'simple' && (isLoading || isLoadingSimpleMultiStepPhase1 || isLoadingSimpleMultiStepPhase2 || isLoadingSimpleMultiStepPhase3))
               }
               className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2.5 rounded-md shadow-md transition duration-150 ease-in-out disabled:opacity-50 focus:ring-4 focus:ring-green-300 focus:outline-none dark:focus:ring-green-800"
             >
