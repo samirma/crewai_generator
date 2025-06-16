@@ -3,7 +3,7 @@
 Instructions markdown:
 ```markdown
 
-**Process:** Based *solely* on the previous markdown block, design the optimal CrewAI configuration. This involves developing the complete specifications for tasks, agents, and tools. Your role is exclusively architectural design.
+**Process:** The complete previous **'Blueprint' document** (in Markdown format), design the optimal CrewAI configuration. This involves developing the complete specifications for tasks, agents, and tools. Your role is exclusively architectural design.
 
 The design process should follow a logical, top-down cascade to ensure robustness and internal consistency. Key considerations include:
 * **Self-Correction:** The architecture must include agents and tasks dedicated to quality assurance and critique.
@@ -58,7 +58,6 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
     * `design_metadata` (Object): Contains contextual information and justifications, not used for code generation.
         * `multimodal` (Boolean): `True` ONLY if this agent needs to process both text and images.
         * `llm_rationale` (String): Justification for the chosen `llm_id`. If `multimodal` is `True`, this rationale MUST confirm the selected model has `multimodal_support=True`. It should also reference the model's 'reasoner' capability.
-        * `tool_rationale` (String): Explanation of why this agent's toolkit is essential for its goal.
         * `delegation_rationale` (String): Justification for the `allow_delegation` setting.
     * `constructor_args` (Object): Contains only the parameters for the CrewAI `Agent` class constructor.
         * `role` (String): Concise functional title. This acts as the primary identifier for the agent.

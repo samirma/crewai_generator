@@ -72,14 +72,9 @@ class <ClassNameFromJSON>(BaseTool):
     args_schema: Type[BaseModel] = <ArgsPydanticModelFromJSON>
 
     # The '_run' method's parameters MUST match the 'class_definition_args.run_method_parameters' in the JSON.
+    # Implementted python logic for this method is a direct implementation of the
+    # step-by-step description from the 'class_definition_args.run_method_logic' field in the JSON.
     def _run(self, argument_name: str) -> str:
-        # The logic for this method is a direct implementation of the
-        # step-by-step description from the 'class_definition_args.run_method_logic' field in the JSON.
-        #
-        # Example logic:
-        # print(f"Executing tool with argument: {argument_name}")
-        # result = f"Tool's result based on {argument_name}"
-        # return result
         pass
 ```
 

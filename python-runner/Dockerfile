@@ -47,7 +47,7 @@ RUN python -m pip install --upgrade pip && \
     ollama \
     pymupdf \
     odfpy \
-    pypdf weasyprint reportlab pdfkit
+    PyPDF2 weasyprint reportlab pdfkit
 
 RUN pip install --upgrade chromadb
 
