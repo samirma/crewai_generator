@@ -143,7 +143,7 @@ class <ClassNameFromJSON>(BaseTool):
 *   `embedder`: If `crew_memory.activation` is `True`, create an `embedder` dictionary for the `Crew` constructor.
     *   This dictionary should be built from the `crew_memory.embedder_config` object in the JSON.
     *   **CRITICAL:** In the `config` sub-dictionary, if a `base_url_env_var` key exists (e.g., for 'ollama'), replace it with a `base_url` key in the Python code. The value must be an f-string that constructs the URL, e.g., `f"http://{OLLAMA_HOST}"`, using the environment variable name from the JSON.
-*   Set `verbose=False`.
+*   Set `verbose=True`.
 
 **Execution Block:**
 ```python

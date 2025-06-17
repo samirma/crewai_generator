@@ -69,8 +69,6 @@ This is a vast and extensive collection of tools for interacting with a wide arr
 * **Database Tools:**
     * `QueryCassandraDatabaseTool` (supports\_embedding: `False`)
     * `QuerySQLDataBaseTool` (supports\_embedding: `False`)
-* **Code Execution & Analysis:**
-    * `PythonREPLTool` (supports\_embedding: `False`)
 * **Web Scraping & Browse:**
     * `RequestsGetTool`, `RequestsPostTool` (supports\_embedding: `False`)
     * `PlaywrightBrowser` tools (supports\_embedding: `False`)
@@ -106,7 +104,8 @@ This is a vast and extensive collection of tools for interacting with a wide arr
     * `presence_penalty` (Number): MUST BE 0.0.
     * `api_key_env_var` (String, Optional): Environment variable name for the API key.
     * **Pre-defined List to Use:**
-        * `gemini/gemini-2.5-flash-preview-05-20` (reasoner: False, multimodal\_support: True)
+        * `gemini/gemini-2.0-flash-lite` (reasoner: False, multimodal\_support: True)
+        * `gemini/gemini-2.5-flash-preview-05-20` (reasoner: True, multimodal\_support: True)
         * `gemini/gemini-2.5-pro-preview-06-05` (reasoner: True, multimodal\_support: True)
         * `deepseek/deepseek-chat` (reasoner: False, multimodal\_support: False)
         * `deepseek/deepseek-reasoner` (reasoner: True, multimodal\_support: False)
@@ -149,7 +148,7 @@ This is a vast and extensive collection of tools for interacting with a wide arr
         * `class_name` (String): The exact Python class name to instantiate. **This must be a verbatim, up-to-date class name from the `crewai_tools` or `langchain_community.tools` library.**
         * `initialization_params` (Object, Optional): Constructor parameters for the tool.
             **CRITICAL RULE for Embedding-Supported Tools:** If `design_metadata.is_custom_embedding_supported` is `True` and `crew_memory.activation` is `True`, this object MUST contain a `config` key. The `config` object must be structured with two keys: `llm` and `embedder`.
-                - The `llm` object must be built using the details from the `llm_registry` entry matching `design_metadata.tool_llm_specification.llm_id`. It must have a google `provider` and model = "gemini/gemini-2.5-flash-preview-05-20" and a `config` sub-object containing `model`, `temperature`, and `api_key_env_var`.
+                - The `llm` object must be built using the details from the `llm_registry` entry matching `design_metadata.tool_llm_specification.llm_id`. It must have a google `provider` and model = "gemini/gemini-2.0-flash-lite" and a `config` sub-object containing `model`, `temperature`, and `api_key_env_var`.
                 - The `embedder` object must be a direct copy of the `crew_memory.embedder_config` object.
 
 * `custom_tool_definitions` (Array of Objects):
