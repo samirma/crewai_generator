@@ -11,17 +11,16 @@ load_dotenv(find_dotenv()) # MUST BE CALLED EARLY
 ```
 
 **Core Imports:**
-* Based on the input JSON, import all necessary libraries.
-* For all tools specified in `tool_repository`, import the class specified in `constructor_args.class_name` directly from `crewai_tools`.
-* Uncomment `from crewai.tools import BaseTool` if `custom_tool_definitions` exists and is not empty in the JSON.
-* Uncomment `from pydantic import BaseModel, Field` if custom tools with arguments are defined.
+*   Based on the input JSON, import all necessary libraries.
+*   For all tools specified in `tool_repository`, import the class specified in `constructor_args.class_name` directly from `crewai_tools`.
+*   Uncomment `from crewai.tools import BaseTool` if `custom_tool_definitions` exists and is not empty in the JSON.
+*   Uncomment `from pydantic import BaseModel, Field` if custom tools with arguments are defined.
 
 ```python
 from crewai import Agent, Task, Crew, Process
 from crewai import LLM # For LLM section
 
 # Corrected Example: Import specific standard tools based on `class_name`.
-# Note the updated names like FileReadTool and FileWriteTool.
 from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool
 
 # from crewai.tools import BaseTool # UNCOMMENT if custom tools are defined
@@ -30,7 +29,7 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool
 ```
 
 **API Key Access:**
-* Use `os.getenv("YOUR_API_KEY_NAME")` for all API keys, "GEMINI_API_KEY" for gemini and "DEEPSEEK_API_KEY" for deepseek models. The "YOUR_API_KEY_NAME" string comes from properties like `api_key` in the input JSON. **NO HARDCODED SECRETS.**
+*   Use `os.getenv("YOUR_API_KEY_NAME")` for all API keys, "GEMINI_API_KEY" for gemini and "DEEPSEEK_API_KEY" for deepseek models. The "YOUR_API_KEY_NAME" string comes from properties like `api_key` in the input JSON. **NO HARDCODED SECRETS.**
 
 **LLM Instantiation:**
 * Iterate through the `llm_registry` list in the input JSON.
@@ -39,8 +38,8 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool
 * Use the `model` and `api_key` properties. The `temperature` MUST BE 0.0 and seed MOST BE 2.
 
 **Custom Tool & Pydantic Model Definitions (If applicable):**
-* **First, generate Pydantic Models:** If `structured_data_handling.usage` is `true` in the JSON, iterate through `model_definitions` and generate a Pydantic `BaseModel` class for each. These models may be used by custom tools.
-* **Second, generate Custom Tools:** If the `custom_tool_definitions` key exists and is not empty in the JSON, iterate through the list and generate a Python class for each custom tool using the template below.
+*   **First, generate Pydantic Models:** If `structured_data_handling.usage` is `true` in the JSON, iterate through `model_definitions` and generate a Pydantic `BaseModel` class for each. These models may be used by custom tools.
+*   **Second, generate Custom Tools:** If the `custom_tool_definitions` key exists and is not empty in the JSON, iterate through the list and generate a Python class for each custom tool using the template below.
 
 *__Custom Tool Generation Template:__*
 ```python
@@ -87,41 +86,46 @@ class <ClassNameFromJSON>(BaseTool):
 ```
 
 **Tool Instantiation:**
-* Iterate through the `tool_repository` list in the JSON.
-* For each object, instantiate the tool:
-    * The Python variable name for the tool instance MUST be the `tool_id` from the `constructor_args` object.
-    * **CRITICAL**: Before each tool instantiation line, insert the `tool_selection_justification` from the `design_metadata` object as a Python comment (`#`).
-    * The class to instantiate is specified in the `class_name` property within `constructor_args`.
-    * If `initialization_params` exists within `constructor_args`, pass its contents as keyword arguments to the class constructor.
+*   Iterate through the `tool_repository` list in the JSON.
+*   For each object, instantiate the tool:
+    *   The Python variable name for the tool instance MUST be the `tool_id` from the `constructor_args` object.
+    *   **CRITICAL**: Before each tool instantiation line, insert the `tool_selection_justification` from the `design_metadata` object as a Python comment (`#`).
+    *   The class to instantiate is specified in the `class_name` property within `constructor_args`.
+    *   If `initialization_params` exists within `constructor_args`, pass its contents as keyword arguments to the class constructor.
+        *   **Special Handling for `config`:** If `initialization_params` contains a `config` object (for embedding-supported tools), generate the Python `dict` for it with the following transformations:
+            *   **For the `llm` config:** In the `config` sub-dictionary, replace the `api_key_env_var` key from the JSON with an `api_key` key in Python, and set its value to `os.getenv("...")`, using the environment variable name from the JSON.
+            *   **For the `embedder` config:** In the `config` sub-dictionary, if a `base_url_env_var` key exists, replace it with a `base_url` key in Python. Set its value to an f-string like `f"http://{{{OLLAMA_HOST}}}"`, using the environment variable name from the JSON as the variable inside the f-string.
 
 **Agent Definitions:**
-* Iterate through the `agent_cadre` list.
-* For each agent object:
-    * The variable name MUST be the agent's `role` (from `constructor_args`), formatted as a valid Python variable name (e.g., "Financial Analyst" becomes `financial_analyst_agent`).
-    * **CRITICAL**: Before the agent definition, insert a Python comment block generated from the `design_metadata` object, including the `llm_rationale`, `tool_rationale`, and `delegation_rationale`.
-    * To instantiate the `Agent`, use the keys from the `constructor_args` object as parameters and convert the values to the appropriate python types.
-    * **LLM Assignment**: Use the `llm_id` from `constructor_args` to assign the correct, pre-instantiated LLM variable to the `llm` parameter.
-    * **Tool Assignment**: Use the list of `tool_id`s from the `constructor_args.tools` array to build the list of tool instances for the `tools` parameter.
+*   Iterate through the `agent_cadre` list.
+*   For each agent object:
+    *   The variable name MUST be the agent's `role` (from `constructor_args`), formatted as a valid Python variable name (e.g., "Financial Analyst" becomes `financial_analyst_agent`).
+    *   **CRITICAL**: Before the agent definition, insert a Python comment block generated from the `design_metadata` object, including the `llm_rationale`, `tool_rationale`, and `delegation_rationale`.
+    *   To instantiate the `Agent`, use the keys from the `constructor_args` object as parameters and convert the values to the appropriate python types.
+    *   **LLM Assignment**: Use the `llm_id` from `constructor_args` to assign the correct, pre-instantiated LLM variable to the `llm` parameter.
+    *   **Tool Assignment**: Use the list of `tool_id`s from the `constructor_args.tools` array to build the list of tool instances for the `tools` parameter.
 
 **Task Definitions:**
-* Iterate through the `task_roster` list.
-* For each task object:
-    * The variable name for the instance MUST be the `task_identifier` from the task's `design_metadata` object.
-    * To instantiate the `Task`, use the keys from the `constructor_args` object as parameters.
-    * The `agent` parameter is assigned the agent instance whose `role` matches the `constructor_args.agent` string.
-    * The `tools` list for the task must contain the specific tool instances corresponding to the `tool_id`s in the `constructor_args.tools` list. If the list is empty or not present, this MUST be an empty list `[]`.
-    * Set `context` by finding the task instances that match the identifiers in `constructor_args.context`.
-    * If `constructor_args.output_pydantic` is specified, assign the corresponding Pydantic class to the `output_pydantic` parameter.
+*   Iterate through the `task_roster` list.
+*   For each task object:
+    *   The variable name for the instance MUST be the `task_identifier` from the task's `design_metadata` object.
+    *   To instantiate the `Task`, use the keys from the `constructor_args` object as parameters.
+    *   The `agent` parameter is assigned the agent instance whose `role` matches the `constructor_args.agent` string.
+    *   The `tools` list for the task must contain the specific tool instances corresponding to the `tool_id`s in the `constructor_args.tools` list. If the list is empty or not present, this MUST be an empty list `[]`.
+    *   Set `context` by finding the task instances that match the identifiers in `constructor_args.context`.
+    *   If `constructor_args.output_pydantic` is specified, assign the corresponding Pydantic class to the `output_pydantic` parameter.
 
 **Crew Assembly:**
-* Create the `Crew` instance based on the properties in the input JSON.
-* `agents`: List of all instantiated agent objects.
-* `tasks`: List of all instantiated task objects.
-* `process`: Set based on `workflow_process.selected_process`.
-* `manager_llm`: If `process` is hierarchical, use the `workflow_process.manager_llm_specification.llm_id` to assign the correct pre-instantiated LLM object.
-* `memory`: Set based on `crew_memory.activation`.
-* `embedder`: If memory is active, configure it using the `crew_memory.embedder_config` object and set the url to be for the use attribute you should use attribute url = f"http://{os.getenv['OLLAMA_HOST']}/api/embeddings".
-* Set `verbose=False`.
+*   Create the `Crew` instance based on the properties in the input JSON.
+*   `agents`: List of all instantiated agent objects.
+*   `tasks`: List of all instantiated task objects.
+*   `process`: Set based on `workflow_process.selected_process`.
+*   `manager_llm`: If `process` is hierarchical, use the `workflow_process.manager_llm_specification.llm_id` to assign the correct pre-instantiated LLM object.
+*   `memory`: Set based on `crew_memory.activation`.
+*   `embedder`: If `crew_memory.activation` is `True`, create an `embedder` dictionary for the `Crew` constructor.
+    *   This dictionary should be built from the `crew_memory.embedder_config` object in the JSON.
+    *   **CRITICAL:** In the `config` sub-dictionary, if a `base_url_env_var` key exists (e.g., for 'ollama'), replace it with a `base_url` key in the Python code. The value must be an f-string that constructs the URL, e.g., `f"http://{OLLAMA_HOST}"`, using the environment variable name from the JSON.
+*   Set `verbose=False`.
 
 **Execution Block:**
 ```python
