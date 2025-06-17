@@ -191,7 +191,14 @@ export async function processDockerStreamAndFinalize(
               result.preDockerRun.status = 'failure';
               result.preDockerRun.exitCode = containerStatusCode;
           }
-           if (result.mainScript.status === 'not_run' && (result.preDockerRun.status === 'success' || result.preDockerRun.status === 'skipped' || preDockerStartIdx === -1)) { // It was attempted or preDocker skipped
+           // When containerStatusCode != 0, and we are in this else block, it means:
+           // - preDockerRun.status was NOT 'running'
+           // - mainScript.status was NOT 'success' or 'running'
+           // - preDockerRun.status was NOT 'success' or 'skipped'
+           // Therefore, preDockerRun.status can only be 'failure' or 'not_run'.
+           // The original condition `(result.preDockerRun.status === 'success' || result.preDockerRun.status === 'skipped' || preDockerStartIdx === -1)`
+           // simplifies to `(preDockerStartIdx === -1)` because the first two parts of the OR are always false here.
+           if (result.mainScript.status === 'not_run' && (preDockerStartIdx === -1)) { // It was attempted (mainScript) and preDocker was not started (marker not found)
               result.mainScript.status = 'failure';
               result.mainScript.exitCode = containerStatusCode;
            }
