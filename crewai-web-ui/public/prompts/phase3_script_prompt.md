@@ -32,10 +32,28 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool
 *   Use `os.getenv("YOUR_API_KEY_NAME")` for all API keys, "GEMINI_API_KEY" for gemini and "DEEPSEEK_API_KEY" for deepseek models. The "YOUR_API_KEY_NAME" string comes from properties like `api_key` in the input JSON. **NO HARDCODED SECRETS.**
 
 **LLM Instantiation:**
-* Iterate through the `llm_registry` list in the input JSON.
-* For each object in the registry, create an LLM instance.
-* The Python variable for the instance MUST be derived from the `llm_id` (e.g., `llm_id: "gemini_pro_reasoner"` becomes `gemini_pro_reasoner_llm`).
-* Use the `model` and `api_key` properties. The `temperature` MUST BE 0.0 and seed MOST BE 2.
+*   Generate Python code to initialize multiple LLM instances compatible with the `crewai.LLM` class.
+*   Iterate through the `llm_registry` list from the input JSON.
+*   For each LLM object, create a Python variable. The variable name MUST be the `llm_id` followed by `_llm` (e.g., `llm_id: "gemini_pro_reasoner"` becomes the variable `gemini_pro_reasoner_llm`).
+*   Each instance should be created by calling the `LLM` class. The parameters for the `LLM` constructor should be taken directly from the corresponding keys in each JSON object:
+    *   `model`: Use the value from the `model` key.
+    *   `temperature`: Use the value from the `temperature` key.
+    *   `frequency_penalty`: Use the value from the `frequency_penalty` key.
+    *   `presence_penalty`: Use the value from the `presence_penalty` key.
+    *   `api_key`: Use the value from the `api_key_env_var` key. This value is the name of a Python variable that holds the API key (e.g., if `api_key_env_var` is `"GOOGLE_API_KEY"`, the code should use the variable `GOOGLE_API_KEY`).
+    *   `seed`: This MUST be a fixed value of `2`.
+
+**Example of the expected output format for one entry:**
+```python
+# For the entry with llm_id: "gemini_flash_multimodal"
+gemini_flash_multimodal_llm = LLM(
+    model="gemini/gemini-2.5-flash-preview-05-20",
+    api_key=GOOGLE_API_KEY,
+    temperature=0.0,
+    frequency_penalty=0.0,
+    presence_penalty=0.0,
+    seed=2
+)
 
 **Custom Tool & Pydantic Model Definitions (If applicable):**
 *   **First, generate Pydantic Models:** If `structured_data_handling.usage` is `true` in the JSON, iterate through `model_definitions` and generate a Pydantic `BaseModel` class for each. These models may be used by custom tools.
