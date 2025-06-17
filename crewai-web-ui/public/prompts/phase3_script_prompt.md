@@ -22,7 +22,7 @@ from crewai import LLM # For LLM section
 
 # Corrected Example: Import specific standard tools based on `class_name`.
 # Note the updated names like FileReadTool and FileWriteTool.
-from crewai_tools import SerperDevTool, FileWriteTool, FileReadTool
+from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool
 
 # from crewai.tools import BaseTool # UNCOMMENT if custom tools are defined
 # from pydantic import BaseModel, Field # UNCOMMENT if Pydantic models are defined

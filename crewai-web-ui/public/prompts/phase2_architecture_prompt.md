@@ -1,5 +1,4 @@
 
-
 Use the previous document as a blueprint to achieve the goal described there, to design the optimal CrewAI configuration in a JSON object. This involves developing the complete specifications for tasks, agents, and tools. Your role is exclusively architectural design.
 
 The design process should follow a logical, top-down cascade to ensure robustness and internal consistency. Key considerations include:
@@ -18,6 +17,65 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
 6.  `tool_repository`
 7.  `custom_tool_definitions`
 8.  `task_roster`
+
+### **Canonical Tool Library for Evaluation**
+
+To ensure a realistic and grounded design, all tool selections must be made **exclusively** from the following canonical list of available tools from the `crewai_tools` and `langchain_community.tools` libraries. The `tool_selection_justification` field within the `tool_repository` must reference this list for its evaluation.
+
+#### `crewai_tools`
+
+This library offers a suite of curated, high-level tools that are foundational for many agent-based workflows.
+
+* **Search & Scraping Tools:**
+    * `SerperDevTool`
+    * `ScrapeWebsiteTool`
+    * `WebsiteSearchTool`
+    * `BrowserbaseTool`
+    * `CodeDocsSearchTool`
+* **File & Data Tools:**
+    * `PDFSearchTool`
+    * `FileReadTool`
+    * `FileWriterTool`
+    * `DirectoryReadTool`
+    * `CSVSearchTool`
+    * `DOCXSearchTool`
+    * `JSONSearchTool`
+    * `MDXSearchTool`
+    * `RagTool`
+    * `TXTSearchTool`
+    * `XMLSearchTool`
+* **Code Tools:**
+    * `CodeInterpreterTool`
+    * `GithubSearchTool`
+
+#### `langchain_community.tools`
+
+This is a vast and extensive collection of tools for interacting with a wide array of external APIs, databases, and other utilities. The following is a categorized sample to illustrate the breadth of available integrations.
+
+* **Web Search:**
+    * `BingSearchRun` & `BingSearchResults`
+    * `BraveSearch`
+    * `DuckDuckGoSearchRun` & `DuckDuckGoSearchResults`
+    * `GoogleSearchRun` & `GoogleSearchResults`
+    * `MetaphorSearch`
+* **API Integrations:**
+    * `ArxivQueryRun`
+    * `OpenWeatherMapQueryRun`
+    * `PubMedQueryRun`
+    * `ShellTool`
+    * `WikipediaQueryRun`
+    * `WolframAlphaQueryRun`
+    * `YouTubeSearchTool`
+* **Database Tools:**
+    * `QueryCassandraDatabaseTool`
+    * `QuerySQLDataBaseTool`
+* **Code Execution & Analysis:**
+    * `PythonREPLTool`
+* **Web Scraping & Browse:**
+    * `RequestsGetTool`, `RequestsPostTool`
+    * `PlaywrightBrowser` tools
+
+---
 
 **'Design-Crew-Architecture-Plan' - JSON Schema:**
 
@@ -76,13 +134,13 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
     * `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
         * `required_functionality` (String): A clear, one-sentence description of the specific action the tool must perform.
         * `crewai_tool_evaluation` (Array of Objects): An evaluation of relevant crewai tools.
-            * `tool_selection_justification` (String): Review all available tools exclusively within the `crewai_tools` and `langchain_community.tools` modules to identify the most suitable one. Provide a mandatory analysis explaining why each tool is or isn't sufficient.
+            * `tool_selection_justification` (String): Review the **Canonical Tool Library** provided above to identify the most suitable tool. Your analysis MUST explain why your chosen tool from this list is optimal and why other relevant tools from the same list are not sufficient.
             * `is_valid_availiable_tool` (Boolean): `True` or `False`.
-            * `tool_name` (String): The exact, importable CrewAI tool class (e.g., 'SerperDevTool', 'FileWriteTool'). **Crucially, this name must match the latest library version.**
+            * `tool_name` (String): The exact, importable CrewAI tool class. **Crucially, this name must match the latest library version.**
         * `is_custom_tool` (Boolean): `True` if no available tool is sufficient, derived from the analysis.
     * `constructor_args` (Object): Contains only the parameters for the tool's class constructor.
         * `tool_id` (String): A unique identifier for this specific tool instance (e.g., "web_search_tool"). This acts as the primary identifier for the tool.
-        * `class_name` (String): The exact Python class name to instantiate (e.g., `FileWriteTool`). **This must be a verbatim, up-to-date class name from the `crewai_tools` or `langchain_community.tools` library.**
+        * `class_name` (String): The exact Python class name to instantiate. **This must be a verbatim, up-to-date class name from the `crewai_tools` or `langchain_community.tools` library.**
         * `initialization_params` (Object, Optional): Constructor parameters for the tool.
 
 * `custom_tool_definitions` (Array of Objects):
@@ -95,7 +153,7 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
             * `python_type` (String): The parameter's Python type hint (e.g., "str").
             * `description` (String): A description for the Pydantic `Field`.
         * `run_method_logic` (String)
-        
+
 * `task_roster` (Array of Objects): Each object represents a task, separating design rationale from instantiation parameters.
     * `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
         * `task_identifier` (String): A unique name for the task, used for context linking.
@@ -109,4 +167,3 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
         * `tools` (Array of Strings, Optional): List of `tool_id`s from the `tool_repository`.
         * `context` (Array of Strings, Optional): List of prerequisite `task_identifier`s.
         * `output_pydantic` (String, Optional): The `class_name` of a Pydantic model for structured output.
-
