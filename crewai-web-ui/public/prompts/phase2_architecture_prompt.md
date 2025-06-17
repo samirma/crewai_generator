@@ -74,33 +74,28 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
 
 * `tool_repository` (Array of Objects): Each object defines a unique tool to be instantiated, separating design rationale from instantiation parameters.
     * `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
-        * `usage_justification` (String): A concise explanation of why this tool is essential for the crew's overall mission.
-        * `analysis_and_decision` (Object): A structured block to ensure rigorous tool selection.
-            * `required_functionality` (String): A clear, one-sentence description of the specific action the tool must perform.
-            * `crewai_tool_evaluation` (Array of Objects): An evaluation of relevant crewai tools.
-                * `is_valid_crewai_tool` (Boolean): `True` or `False`.
-                * `tool_name` (String): Name of a crewai tool from the reference list.
-                * `suitability_analysis` (String): Mandatory analysis of WHY this crewai tool IS or IS NOT sufficient.
-            * `final_decision_rationale` (String): A concluding statement on tool choice.
-        * `is_custom_tool` (Boolean): `True` if no CrewAI tool is sufficient, derived from the analysis.
+        * `required_functionality` (String): A clear, one-sentence description of the specific action the tool must perform.
+        * `crewai_tool_evaluation` (Array of Objects): An evaluation of relevant crewai tools.
+            * `tool_selection_justification` (String): Review all available tools exclusively within the `crewai_tools` and `langchain_community.tools` modules to identify the most suitable one. Provide a mandatory analysis explaining why each tool is or isn't sufficient.
+            * `is_valid_availiable_tool` (Boolean): `True` or `False`.
+            * `tool_name` (String): The exact, importable CrewAI tool class (e.g., 'SerperDevTool', 'FileWriteTool'). **Crucially, this name must match the latest library version.**
+        * `is_custom_tool` (Boolean): `True` if no available tool is sufficient, derived from the analysis.
     * `constructor_args` (Object): Contains only the parameters for the tool's class constructor.
-        * `tool_id` (String): A unique identifier for this specific tool instance (e.g., "web\_search\_tool"). This acts as the primary identifier for the tool.
-        * `class_name` (String): The exact Python class name to instantiate.
+        * `tool_id` (String): A unique identifier for this specific tool instance (e.g., "web_search_tool"). This acts as the primary identifier for the tool.
+        * `class_name` (String): The exact Python class name to instantiate (e.g., `FileWriteTool`). **This must be a verbatim, up-to-date class name from the `crewai_tools` or `langchain_community.tools` library.**
         * `initialization_params` (Object, Optional): Constructor parameters for the tool.
 
-* `custom_tool_definitions` (Array of Objects, Optional): Defines the complete implementation for a custom tool, separating justification from implementation details.
-    * `design_metadata` (Object): Contains contextual information and justifications.
-        * `tool_id` (String): The identifier that links this definition back to a `tool_repository` entry.
-        * `justification_for_custom_tool` (String): Explicit justification for why this custom tool is necessary.
-    * `class_definition_args` (Object): Contains all the parameters needed to generate the custom tool's Python class.
-        * `name_attribute` (String): The value for the tool's `name` attribute.
-        * `description_attribute` (String): The detailed description of the tool's function.
-        * `args_pydantic_model` (String, Optional): The class name of the Pydantic model for args validation.
-        * `run_method_parameters` (Array of Objects): Parameters for the `_run` method.
-            * `name` (String): Parameter name.
-            * `python_type` (String): Python type hint.
-        * `run_method_logic` (String): A step-by-step description or pseudo-code for the `_run` method.
-
+* `custom_tool_definitions` (Array of Objects):
+    * `class_definition_args` (Object):
+        * `name_attribute` (String)
+        * `description_attribute` (String)
+        * `args_pydantic_model` (String): **(Now Mandatory if arguments exist)** The class name for the Pydantic arguments model (e.g., "PDFDownloaderToolArgs").
+        * `run_method_parameters` (Array of Objects): **(Newly Added Field)** Defines the parameters for the `_run` method.
+            * `name` (String): The parameter's name (e.g., "url").
+            * `python_type` (String): The parameter's Python type hint (e.g., "str").
+            * `description` (String): A description for the Pydantic `Field`.
+        * `run_method_logic` (String)
+        
 * `task_roster` (Array of Objects): Each object represents a task, separating design rationale from instantiation parameters.
     * `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
         * `task_identifier` (String): A unique name for the task, used for context linking.

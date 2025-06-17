@@ -12,16 +12,21 @@ load_dotenv(find_dotenv()) # MUST BE CALLED EARLY
 
 **Core Imports:**
 * Based on the input JSON, import all necessary libraries.
+* For all tools specified in `tool_repository`, import the class specified in `constructor_args.class_name` directly from `crewai_tools`.
 * Uncomment `from crewai.tools import BaseTool` if `custom_tool_definitions` exists and is not empty in the JSON.
-* Uncomment `from pydantic import BaseModel, Field` if `structured_data_handling.usage` is `true` in the JSON.
+* Uncomment `from pydantic import BaseModel, Field` if custom tools with arguments are defined.
+
 ```python
 from crewai import Agent, Task, Crew, Process
 from crewai import LLM # For LLM section
-# Import specific standard tools (e.g., SerperDevTool) based on the `class_name` values in the JSON's `tool_repository`.
-# from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool
-from crewai.tools import BaseTool # UNCOMMENT if custom tools are defined
-from pydantic import BaseModel, Field # UNCOMMENT if Pydantic models are defined
-from typing import Type, List # UNCOMMENT for advanced type hinting if needed
+
+# Corrected Example: Import specific standard tools based on `class_name`.
+# Note the updated names like FileReadTool and FileWriteTool.
+from crewai_tools import SerperDevTool, FileWriteTool, FileReadTool
+
+# from crewai.tools import BaseTool # UNCOMMENT if custom tools are defined
+# from pydantic import BaseModel, Field # UNCOMMENT if Pydantic models are defined
+# from typing import Type, List # UNCOMMENT for advanced type hinting if needed
 ```
 
 **API Key Access:**
@@ -47,32 +52,37 @@ from typing import Type, List # UNCOMMENT for advanced type hinting if needed
 # This comment block comes from the 'design_metadata.justification_for_custom_tool' field in the JSON.
 # It explains why this custom tool is necessary.
 
-# If 'class_definition_args.args_pydantic_model' is specified in the JSON for this tool,
-# define its Pydantic class first. The class name and its fields
-# come from the 'structured_data_handling.model_definitions' section.
+# If 'class_definition_args.args_pydantic_model' and 'run_method_parameters' are specified,
+# define its Pydantic class first.
+# The class name is <class_definition_args.args_pydantic_model>.
 class <ArgsPydanticModelFromJSON>(BaseModel):
-    """Input schema for <ClassNameFromJSON>."""
-    # The field names, types, and descriptions are defined in the
-    # 'fields' object of the Pydantic model's definition in the JSON.
-    argument_name: str = Field(..., description="Description of the argument.")
+    # Iterate through each object in 'class_definition_args.run_method_parameters'.
+    # For each object, generate a field in the Pydantic model.
+    # The field name is <parameter.name>.
+    # The type is <parameter.python_type>.
+    # The description is <parameter.description>.
+    <parameter_1_name>: <parameter_1_type> = Field(..., description="<parameter_1_description>")
+    <parameter_2_name>: <parameter_2_type> = Field(..., description="<parameter_2_description>")
+    # ...and so on for all parameters.
 
 
 # The class name for the tool MUST be the 'class_name' found in the
 # corresponding 'tool_repository.constructor_args' entry (linked by 'design_metadata.tool_id').
 class <ClassNameFromJSON>(BaseTool):
     # The 'name' attribute is set from the 'class_definition_args.name_attribute' field in the JSON.
-    name: str = "Name of the tool for the agent to use"
+    name: str = "<name_attribute>"
     # The 'description' attribute is set from the 'class_definition_args.description_attribute' field in the JSON.
-    description: str = "Detailed description of what this tool does and when to use it."
+    description: str = "<description_attribute>"
     # The 'args_schema' is set to the Pydantic class defined above.
     # This comes from the 'class_definition_args.args_pydantic_model' field in the JSON.
     args_schema: Type[BaseModel] = <ArgsPydanticModelFromJSON>
 
-    # The '_run' method's parameters MUST match the 'class_definition_args.run_method_parameters' in the JSON.
-    # Implementted python logic for this method is a direct implementation of the
-    # step-by-step description from the 'class_definition_args.run_method_logic' field in the JSON.
-    # External commands should use parameters that ensure no human interaction is required. 
-    def _run(self, argument_name: str) -> str:
+    # The '_run' method's parameters MUST be generated from 'class_definition_args.run_method_parameters'.
+    # For each object in the array, add a parameter with its 'name' and 'python_type'.
+    # The python logic for this method is a direct implementation of the
+    # step-by-step description from the 'class_definition_args.run_method_logic' field.
+    def _run(self, <parameter_1_name>: <parameter_1_type>, <parameter_2_name>: <parameter_2_type>) -> str:
+        # Implement logic from 'run_method_logic' here.
         pass
 ```
 
@@ -80,7 +90,7 @@ class <ClassNameFromJSON>(BaseTool):
 * Iterate through the `tool_repository` list in the JSON.
 * For each object, instantiate the tool:
     * The Python variable name for the tool instance MUST be the `tool_id` from the `constructor_args` object.
-    * **CRITICAL**: Before each tool instantiation line, insert the `usage_justification` from the `design_metadata` object as a Python comment (`#`).
+    * **CRITICAL**: Before each tool instantiation line, insert the `tool_selection_justification` from the `design_metadata` object as a Python comment (`#`).
     * The class to instantiate is specified in the `class_name` property within `constructor_args`.
     * If `initialization_params` exists within `constructor_args`, pass its contents as keyword arguments to the class constructor.
 
