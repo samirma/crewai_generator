@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import OpenAI from 'openai'; // Added for DeepSeek
 import fs from 'fs/promises';
-import { getAllModels, ModelConfig } from '../../../../config/models.config';
+import { getAllModels, ModelConfig } from '../../../config/models.config';
 import path from 'path';
 import { extractScript } from './script.utils'; // Import the new utility function
 
@@ -107,7 +107,7 @@ export async function interactWithLLM(
     console.log("DeepSeek API call parameters:", deepSeekParams);
     const completion = await openai.chat.completions.create(deepSeekParams);
     console.log("DeepSeek API call completed via OpenAI SDK.");
-    llmResponseText = completion.choices?.[0]?.message?.content;
+    llmResponseText = completion.choices?.[0]?.message?.content ?? '';
     if (!llmResponseText) {
       console.error("DeepSeek API call via OpenAI SDK successful but response format is unexpected or content is missing.", completion);
       throw new Error("DeepSeek API Error (OpenAI SDK): No content generated or unexpected response structure.");

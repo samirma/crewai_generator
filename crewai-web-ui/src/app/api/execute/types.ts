@@ -12,6 +12,7 @@ export interface ExecutionResult {
   mainScript?: StageOutput;
   overallStatus: 'success' | 'failure';
   error?: string; // For top-level errors like Docker build failure or unhandled exceptions
+  scriptExecutionDuration?: number; // Added this line
 }
 
 // Interface for the return type of the modified executePythonScript
