@@ -111,8 +111,10 @@ class <ClassNameFromJSON>(BaseTool):
     *   The class to instantiate is specified in the `class_name` property within `constructor_args`.
     *   If `initialization_params` exists within `constructor_args`, pass its contents as keyword arguments to the class constructor.
         *   **Special Handling for `config`:** If `initialization_params` contains a `config` object (for embedding-supported tools), generate the Python `dict` for it with the following transformations:
-            *   **For the `llm` config:** In the `config` sub-dictionary, replace the `api_key_env_var` key from the JSON with an `api_key` key in Python, and set its value to `os.getenv("...")`, using the environment variable name from the JSON.
-            *   **For the `embedder` config:** In the `config` sub-dictionary, if a `base_url_env_var` key exists, replace it with a `base_url` key in Python. Set its value to an f-string like `f"http://{{{OLLAMA_HOST}}}"`, using the environment variable name from the JSON as the variable inside the f-string.
+            *   **For the `llm` config:** The generated Python `llm` dictionary should only contain a `provider` key and a nested `config` dictionary.
+                *   The `model` key from the JSON's `llm` object MUST be placed *inside* this nested `config` dictionary, not at the top level.
+                *   In the nested `config` dictionary, replace the `api_key_env_var` key from the JSON with an `api_key` key in Python, and set its value to `os.getenv("...")`, using the environment variable name from the JSON.
+            *   **For the `embedder` config:** In the `config` sub-dictionary, if a `base_url_env_var` key exists, replace it with a `base_url` key in Python. Set its value to an f-string like `f"http://{os.getenv('OLLAMA_HOST', 'localhost:11434')}"`.
 
 **Agent Definitions:**
 *   Iterate through the `agent_cadre` list.
