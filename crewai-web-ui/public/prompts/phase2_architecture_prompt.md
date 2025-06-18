@@ -1,4 +1,4 @@
-Of course. Here is the updated content for the file:
+
 
 Use the previous document as a blueprint to achieve the goal described there, to design the optimal CrewAI configuration in a JSON object. This involves developing the complete specifications for tasks, agents, and tools. Your role is exclusively architectural design.
 
@@ -21,19 +21,15 @@ To improve the robustness of the design, the JSON object's keys MUST be in the f
 
 ### **Canonical Tool Library for Evaluation**
 
-To ensure a realistic and grounded design, all tool selections must be made **exclusively** from the following canonical list of available tools from the `crewai_tools` and `langchain_community.tools` libraries. The `tool_selection_justification` field within the `tool_repository` must reference this list for its evaluation.
+To ensure a realistic and grounded design, all tool selections must be made **exclusively** from the following canonical list of available tools from the `crewai_tools` libraries. The `tool_selection_justification` field within the `tool_repository` must reference this list for its evaluation.
 
 #### `crewai_tools`
 
-This library offers a suite of curated, high-level tools that are foundational for many agent-based workflows.
-
-* **Search & Scraping Tools:**
     * `SerperDevTool` (supports\_embedding: `False`)
     * `ScrapeWebsiteTool` (supports\_embedding: `False`)
     * `WebsiteSearchTool` (supports\_embedding: `True`)
     * `BrowserbaseTool` (supports\_embedding: `False`)
     * `CodeDocsSearchTool` (supports\_embedding: `True`)
-* **File & Data Tools:**
     * `PDFSearchTool` (supports\_embedding: `True`)
     * `FileReadTool` (supports\_embedding: `False`)
     * `FileWriterTool` (supports\_embedding: `False`)
@@ -45,33 +41,8 @@ This library offers a suite of curated, high-level tools that are foundational f
     * `RagTool` (supports\_embedding: `True`)
     * `TXTSearchTool` (supports\_embedding: `True`)
     * `XMLSearchTool` (supports\_embedding: `True`)
-* **Code Tools:**
     * `CodeInterpreterTool` (supports\_embedding: `False`)
     * `GithubSearchTool` (supports\_embedding: `False`)
-
-#### `langchain_community.tools`
-
-This is a vast and extensive collection of tools for interacting with a wide array of external APIs, databases, and other utilities. The following is a categorized sample to illustrate the breadth of available integrations.
-
-* **Web Search:**
-    * `BingSearchRun` & `BingSearchResults` (supports\_embedding: `False`)
-    * `BraveSearch` (supports\_embedding: `False`)
-    * `DuckDuckGoSearchRun` & `DuckDuckGoSearchResults` (supports\_embedding: `False`)
-    * `GoogleSearchRun` & `GoogleSearchResults` (supports\_embedding: `False`)
-    * `MetaphorSearch` (supports\_embedding: `False`)
-* **API Integrations:**
-    * `ArxivQueryRun` (supports\_embedding: `False`)
-    * `OpenWeatherMapQueryRun` (supports\_embedding: `False`)
-    * `PubMedQueryRun` (supports\_embedding: `False`)
-    * `WikipediaQueryRun` (supports\_embedding: `False`)
-    * `WolframAlphaQueryRun` (supports\_embedding: `False`)
-    * `YouTubeSearchTool` (supports\_embedding: `False`)
-* **Database Tools:**
-    * `QueryCassandraDatabaseTool` (supports\_embedding: `False`)
-    * `QuerySQLDataBaseTool` (supports\_embedding: `False`)
-* **Web Scraping & Browse:**
-    * `RequestsGetTool`, `RequestsPostTool` (supports\_embedding: `False`)
-    * `PlaywrightBrowser` tools (supports\_embedding: `False`)
 
 ---
 
@@ -104,11 +75,8 @@ This is a vast and extensive collection of tools for interacting with a wide arr
     * `presence_penalty` (Number): MUST BE 0.0.
     * `api_key_env_var` (String, Optional): Environment variable name for the API key.
     * **Pre-defined List to Use:**
-        * `gemini/gemini-2.0-flash-lite` (reasoner: False, multimodal\_support: True)
         * `gemini/gemini-2.5-flash-preview-05-20` (reasoner: True, multimodal\_support: True)
-        * `gemini/gemini-2.5-pro-preview-06-05` (reasoner: True, multimodal\_support: True)
         * `deepseek/deepseek-chat` (reasoner: False, multimodal\_support: False)
-        * `deepseek/deepseek-reasoner` (reasoner: True, multimodal\_support: False)
 
 * `agent_cadre` (Array of Objects): Each object represents an agent. The structure separates constructor arguments from design rationale.
     * `design_metadata` (Object): Contains contextual information and justifications, not used for code generation.

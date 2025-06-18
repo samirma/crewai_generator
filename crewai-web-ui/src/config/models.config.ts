@@ -14,12 +14,12 @@ export const staticModels: ModelConfig[] = [
   // Using the exact model IDs the GoogleGenerativeAI SDK expects.
   // Names are made more human-readable.
   {
-    id: "gemini-2.5-flash-preview-05-20", // Actual ID for API
+    id: "gemini-2.5-flash", // Actual ID for API
     name: "Gemini 2.5 Flash Preview 05-20", // Human-readable name
     maxOutputTokens: 65536
   },
   {
-    id: "gemini-2.5-pro-preview-06-05", // Actual ID for API
+    id: "gemini-2.5-pro", // Actual ID for API
     name: "Gemini 2.5 Pro Preview 06-05", // Human-readable name
     maxOutputTokens: 65536
   },

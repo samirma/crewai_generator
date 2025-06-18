@@ -20,7 +20,7 @@ load_dotenv(find_dotenv()) # MUST BE CALLED EARLY
 from crewai import Agent, Task, Crew, Process
 from crewai import LLM # For LLM section
 
-# Corrected Example: Import specific standard tools based on `class_name`.
+# Example for import for tools from crewai_tools
 from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool
 
 # from crewai.tools import BaseTool # UNCOMMENT if custom tools are defined
