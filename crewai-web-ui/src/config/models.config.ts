@@ -54,10 +54,16 @@ export async function getOllamaModels(): Promise<ModelConfig[]> {
       console.error("Unexpected Ollama API response structure:", data, `(URL: ${fetchUrl})`);
       return [];
     }
-    return data.models.map((model: OllamaModelFromApi) => ({
-      id: `ollama/${model.name}`,
-      name: model.name, // Consider removing :latest or other tags here if needed
-    }));
+    return data.models.map((model: OllamaModelFromApi) => {
+      const modelConfig: ModelConfig = { // Explicitly type here for clarity
+        id: `ollama/${model.name}`,
+        name: model.name,
+      };
+      if (model.name.toLowerCase().includes("llama")) {
+        modelConfig.maxOutputTokens = 65536;
+      }
+      return modelConfig;
+    });
   } catch (error) {
     // Now fetchUrl is accessible here
     console.error("Error fetching Ollama models:", error, fetchUrl ? `(Attempted URL: ${fetchUrl})` : "(URL not determined)");

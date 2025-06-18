@@ -28,7 +28,7 @@ describe('getOllamaModels', () => {
       ],
     };
     const expectedModels: ModelConfig[] = [
-      { id: 'ollama/llama2:latest', name: 'llama2:latest' },
+      { id: 'ollama/llama2:latest', name: 'llama2:latest', maxOutputTokens: 65536 },
       { id: 'ollama/mistral:7b', name: 'mistral:7b' },
     ];
 
