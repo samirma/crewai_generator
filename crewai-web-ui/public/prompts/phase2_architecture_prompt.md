@@ -73,10 +73,14 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
     * `temperature` (Number): MUST BE 0.0.
     * `frequency_penalty` (Number): MUST BE 0.0.
     * `presence_penalty` (Number): MUST BE 0.0.
+    * `timeout` (Number): The request timeout in seconds.**
+    * `max_tokens` (Number): The maximum number of tokens for the model's response.**
     * `api_key_env_var` (String, Optional): Environment variable name for the API key.
     * **Pre-defined List to Use:**
-        * `gemini/gemini-2.5-flash-preview-05-20` (reasoner: True, multimodal\_support: True)
-        * `deepseek/deepseek-chat` (reasoner: False, multimodal\_support: False)
+        * `gemini/gemini-2.5-flash` (reasoner: True, multimodal\_support: True, timeout: 600, max_tokens: 65536)
+        * `gemini/gemini-2.5-pro` (reasoner: True, multimodal\_support: True, timeout: 600, max_tokens: 65536)
+        * `deepseek/deepseek-chat` (reasoner: False, multimodal\_support: False, timeout: 600, max_tokens: 8000)
+        * `deepseek/deepseek-reasoner` (reasoner: False, multimodal\_support: False, timeout: 600, max_tokens: 64000)
 
 * `agent_cadre` (Array of Objects): Each object represents an agent. The structure separates constructor arguments from design rationale.
     * `design_metadata` (Object): Contains contextual information and justifications, not used for code generation.
