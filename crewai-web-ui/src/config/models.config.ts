@@ -1,31 +1,42 @@
 export interface ModelConfig {
   id: string;
   name: string;
+  maxOutputTokens?: number; // Added this line
   // Add other properties like 'host' or 'url' if needed in the future
 }
 
 export const staticModels: ModelConfig[] = [
   // DeepSeek Models
-  { id: "deepseek/deepseek-chat", name: "deepseek-chat" },
-  { id: "deepseek/deepseek-reasoner", name: "deepseek-reasoner" },
+  { id: "deepseek/deepseek-chat", name: "deepseek-chat", maxOutputTokens: 8000 },
+  { id: "deepseek/deepseek-reasoner", name: "deepseek-reasoner", maxOutputTokens: 64000 },
 
   // Gemini Models
   // Using the exact model IDs the GoogleGenerativeAI SDK expects.
   // Names are made more human-readable.
   {
     id: "gemini-2.5-flash-preview-05-20", // Actual ID for API
-    name: "Gemini 2.5 Flash Preview 05-20" // Human-readable name
+    name: "Gemini 2.5 Flash Preview 05-20", // Human-readable name
+    maxOutputTokens: 65536
   },
   {
     id: "gemini-2.5-pro-preview-06-05", // Actual ID for API
-    name: "Gemini 2.5 Pro Preview 06-05" // Human-readable name
+    name: "Gemini 2.5 Pro Preview 06-05", // Human-readable name
+    maxOutputTokens: 65536
   },
   {
     id: "gemini-2.0-flash", // Actual ID for API
-    name: "Gemini gemini-2.0-flash" // Human-readable name
+    name: "Gemini gemini-2.0-flash", // Human-readable name
+    maxOutputTokens: 65536
   },
 
 ];
+
+interface OllamaModelFromApi {
+  name: string;
+  modified_at: string;
+  size: number;
+  // Add other properties if known, otherwise keep it minimal
+}
 
 export async function getOllamaModels(): Promise<ModelConfig[]> {
   // Define fetchUrl here so it's accessible in the catch block for logging
@@ -43,10 +54,16 @@ export async function getOllamaModels(): Promise<ModelConfig[]> {
       console.error("Unexpected Ollama API response structure:", data, `(URL: ${fetchUrl})`);
       return [];
     }
-    return data.models.map((model: any) => ({
-      id: `ollama/${model.name}`,
-      name: model.name, // Consider removing :latest or other tags here if needed
-    }));
+    return data.models.map((model: OllamaModelFromApi) => {
+      const modelConfig: ModelConfig = { // Explicitly type here for clarity
+        id: `ollama/${model.name}`,
+        name: model.name,
+      };
+      if (model.name.toLowerCase().includes("llama")) {
+        modelConfig.maxOutputTokens = 65536;
+      }
+      return modelConfig;
+    });
   } catch (error) {
     // Now fetchUrl is accessible here
     console.error("Error fetching Ollama models:", error, fetchUrl ? `(Attempted URL: ${fetchUrl})` : "(URL not determined)");

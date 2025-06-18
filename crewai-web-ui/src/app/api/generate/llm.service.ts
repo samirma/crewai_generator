@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import OpenAI from 'openai'; // Added for DeepSeek
 import fs from 'fs/promises';
+import { getAllModels, ModelConfig } from '../../../../config/models.config';
 import path from 'path';
 import { extractScript } from './script.utils'; // Import the new utility function
 
@@ -13,6 +14,18 @@ export async function interactWithLLM(
   runPhase: number | null
 ): Promise<{ llmResponseText: string; generatedScript?: string; duration: number }> {
   const startTime = Date.now();
+
+  // Fetch all model configurations
+  const allModels = await getAllModels();
+  const currentModelIdForMatching = llmModel.toLowerCase();
+  const modelConfig = allModels.find(m => m.id.toLowerCase() === currentModelIdForMatching);
+
+  if (modelConfig) {
+    console.log(`Found configuration for model ${llmModel}:`, modelConfig);
+  } else {
+    console.log(`No specific configuration found for model ${llmModel}. Using default behavior.`);
+  }
+
   try {
     const inputPath = path.join(process.cwd(), 'llm_input_prompt.txt');
     await fs.writeFile(inputPath, fullPrompt);
@@ -42,11 +55,18 @@ export async function interactWithLLM(
       { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
       { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
     ];
+
+    const generationConfig: any = { temperature: 0, frequencyPenalty: 0.0, presencePenalty: 0.0 };
+    if (modelConfig?.maxOutputTokens) {
+      generationConfig.maxOutputTokens = modelConfig.maxOutputTokens;
+    }
+
     console.log("Calling Gemini API...");
+    console.log("Gemini API call parameters:", { contents: [{ role: "user", parts: [{ text: fullPrompt }] }], safetySettings, generationConfig });
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
       safetySettings,
-      generationConfig: { temperature: 0, frequencyPenalty: 0.0, presencePenalty: 0.0 },
+      generationConfig,
     });
     console.log("Gemini API call completed.");
     if (result.response?.candidates?.[0]?.content?.parts?.[0]?.text) {
@@ -69,16 +89,23 @@ export async function interactWithLLM(
       baseURL: 'https://api.deepseek.com/v1',
       apiKey: deepSeekApiKey,
     });
-    console.log(`Using DeepSeek model ID: ${llmModel} for request via OpenAI SDK.`);
-    console.log("Calling DeepSeek API via OpenAI SDK...");
-    const completion = await openai.chat.completions.create({
+
+    const deepSeekParams: any = {
       model: llmModel.substring('deepseek/'.length),
       messages: [{ role: "user", content: fullPrompt }],
       temperature: 0,
       stream: false,
       frequency_penalty: 0.0,
       presence_penalty: 0.0,
-    });
+    };
+    if (modelConfig?.maxOutputTokens) {
+      deepSeekParams.max_tokens = modelConfig.maxOutputTokens;
+    }
+
+    console.log(`Using DeepSeek model ID: ${llmModel} for request via OpenAI SDK.`);
+    console.log("Calling DeepSeek API via OpenAI SDK...");
+    console.log("DeepSeek API call parameters:", deepSeekParams);
+    const completion = await openai.chat.completions.create(deepSeekParams);
     console.log("DeepSeek API call completed via OpenAI SDK.");
     llmResponseText = completion.choices?.[0]?.message?.content;
     if (!llmResponseText) {
@@ -92,6 +119,21 @@ export async function interactWithLLM(
 
     console.log(`Calling Ollama API for model: ${ollamaModelName} at base URL: ${ollamaApiBaseUrl}`);
 
+    const ollamaOptions: any = { frequency_penalty: 0.0, presence_penalty: 0.0 };
+    if (modelConfig?.maxOutputTokens) {
+      ollamaOptions.num_predict = modelConfig.maxOutputTokens;
+    }
+
+    const ollamaRequestBody = {
+      model: ollamaModelName,
+      prompt: fullPrompt,
+      stream: false,
+      temperature: 0.0,
+      options: ollamaOptions,
+    };
+
+    console.log("Ollama API call body:", JSON.stringify(ollamaRequestBody));
+
     const controller = new AbortController();
     const signal = controller.signal;
     let timeoutId: NodeJS.Timeout | undefined;
@@ -104,7 +146,7 @@ export async function interactWithLLM(
       const response = await fetch(`${ollamaApiBaseUrl}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: ollamaModelName, prompt: fullPrompt, stream: false, temperature: 0.0, options: { frequency_penalty: 0.0, presence_penalty: 0.0 } }),
+        body: JSON.stringify(ollamaRequestBody),
         signal,
       });
 
