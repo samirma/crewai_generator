@@ -5,6 +5,7 @@ Use the previous document as a blueprint to achieve the goal described there, to
 The design process should follow a logical, top-down cascade to ensure robustness and internal consistency. Key considerations include:
 * **Self-Correction:** The architecture must include agents and tasks dedicated to quality assurance and critique.
 * **Clarity for Code Generation:** The design must clearly separate parameters intended for Python class constructors (`constructor_args`) from the contextual justification for those parameters (`design_metadata`).
+* **Output Format:** You ONLY output will be this json object.
 
 ### **Design Section Order**
 
@@ -147,3 +148,4 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         * `tools` (Array of Strings, Optional): List of `tool_id`s from the `tool_repository`.
         * `context` (Array of Strings, Optional): List of prerequisite `task_identifier`s.
         * `output_pydantic` (String, Optional): The `class_name` of a Pydantic model for structured output.
+
