@@ -148,8 +148,8 @@ export function handleDockerStream(
             overallStatus: 'failure',
             error: `Error during final processing: ${e.message}`,
             preHostRun: preHostRunResult,
-            preDockerRun: { stdout: Buffer.concat(stdoutChunks).toString('utf-8'), stderr: Buffer.concat(stderrChunks).toString('utf-8'), status: 'unknown', error: `Error during final processing: ${e.message}` },
-            mainScript: { stdout: '', stderr: '', status: 'unknown', error: `Error during final processing: ${e.message}` },
+            preDockerRun: { stdout: Buffer.concat(stdoutChunks).toString('utf-8'), stderr: Buffer.concat(stderrChunks).toString('utf-8'), status: 'failure', error: `Error during final processing: ${e.message}` },
+            mainScript: { stdout: '', stderr: '', status: 'failure', error: `Error during final processing: ${e.message}` },
             scriptExecutionDuration: scriptExecutionDuration, // Include duration in error
           };
           try {
