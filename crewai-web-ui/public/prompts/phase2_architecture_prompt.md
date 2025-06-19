@@ -1,15 +1,17 @@
 
+## **CrewAI Architecture Design Blueprint (Phase 2)**
 
-Use the previous document as a blueprint to achieve the goal described there, to design the optimal CrewAI configuration in a JSON object. This involves developing the complete specifications for tasks, agents, and tools. Your role is exclusively architectural design.
+Use this document as a blueprint to achieve the goal described in the initial instruction document. Your objective is to design the optimal CrewAI configuration in a single, comprehensive JSON object. This involves developing the complete specifications for the workflow, agents, tools, and tasks. Your role is exclusively architectural design.
 
-The design process should follow a logical, top-down cascade to ensure robustness and internal consistency. Key considerations include:
-* **Self-Correction:** The architecture must include agents and tasks dedicated to quality assurance and critique.
-* **Clarity for Code Generation:** The design must clearly separate parameters intended for Python class constructors (`constructor_args`) from the contextual justification for those parameters (`design_metadata`).
-* **Output Format:** You ONLY output will be this json object.
+The design process must follow a logical, top-down cascade to ensure robustness and internal consistency. Key considerations include:
+
+* **Self-Correction:** The architecture must include agents and tasks dedicated to quality assurance and critique, ensuring the final output meets the highest standards.
+* **Clarity for Code Generation:** The design must strictly separate parameters intended for Python class constructors (`constructor_args`) from the contextual justification and rationale for those parameters (`design_metadata`).
+* **Output Format:** You will ONLY output this JSON object. Your entire response must be the JSON object itself, without any preceding or succeeding text.
 
 ### **Design Section Order**
 
-To improve the robustness of the design, the JSON object's keys MUST be in the following order:
+To improve the robustness and logical flow of the design, the JSON object's keys MUST be in the following order:
 
 1.  `workflow_process`
 2.  `crew_memory`
@@ -26,24 +28,24 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 
 #### `crewai_tools`
 
-    * `SerperDevTool` (supports\_embedding: `False`)
-    * `ScrapeWebsiteTool` (supports\_embedding: `False`)
-    * `WebsiteSearchTool` (supports\_embedding: `True`)
-    * `BrowserbaseTool` (supports\_embedding: `False`)
-    * `CodeDocsSearchTool` (supports\_embedding: `True`)
-    * `PDFSearchTool` (supports\_embedding: `True`)
-    * `FileReadTool` (supports\_embedding: `False`)
-    * `FileWriterTool` (supports\_embedding: `False`)
-    * `DirectoryReadTool` (supports\_embedding: `False`)
-    * `CSVSearchTool` (supports\_embedding: `True`)
-    * `DOCXSearchTool` (supports\_embedding: `True`)
-    * `JSONSearchTool` (supports\_embedding: `True`)
-    * `MDXSearchTool` (supports\_embedding: `True`)
-    * `RagTool` (supports\_embedding: `True`)
-    * `TXTSearchTool` (supports\_embedding: `True`)
-    * `XMLSearchTool` (supports\_embedding: `True`)
-    * `CodeInterpreterTool` (supports\_embedding: `False`)
-    * `GithubSearchTool` (supports\_embedding: `False`)
+* `SerperDevTool` (supports_embedding: `False`)
+* `ScrapeWebsiteTool` (supports_embedding: `False`)
+* `WebsiteSearchTool` (supports_embedding: `True`)
+* `BrowserbaseTool` (supports_embedding: `False`)
+* `CodeDocsSearchTool` (supports_embedding: `True`)
+* `PDFSearchTool` (supports_embedding: `True`)
+* `FileReadTool` (supports_embedding: `False`)
+* `FileWriterTool` (supports_embedding: `False`)
+* `DirectoryReadTool` (supports_embedding: `False`)
+* `CSVSearchTool` (supports_embedding: `True`)
+* `DOCXSearchTool` (supports_embedding: `True`)
+* `JSONSearchTool` (supports_embedding: `True`)
+* `MDXSearchTool` (supports_embedding: `True`)
+* `RagTool` (supports_embedding: `True`)
+* `TXTSearchTool` (supports_embedding: `True`)
+* `XMLSearchTool` (supports_embedding: `True`)
+* `CodeInterpreterTool` (supports_embedding: `False`)
+* `GithubSearchTool` (supports_embedding: `False`)
 
 ---
 
@@ -77,8 +79,8 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
     * `max_tokens` (Number): The maximum number of tokens for the model's response.**
     * `api_key_env_var` (String, Optional): Environment variable name for the API key.
     * **Pre-defined List to Use:**
-        * `gemini/gemini-2.5-flash` (reasoner: True, multimodal\_support: True, timeout: 600, max_tokens: 65536, temperature: 0.0)
-        * `deepseek/deepseek-chat` (reasoner: False, multimodal\_support: False, timeout: 600, max_tokens: 8000, temperature: 0.2)
+        * `gemini/gemini-2.5-flash` (reasoner: True, multimodal_support: True, timeout: 600, max_tokens: 65536, temperature: 0.0)
+        * `deepseek/deepseek-chat` (reasoner: False, multimodal_support: False, timeout: 600, max_tokens: 8000, temperature: 0.2)
 
 * `agent_cadre` (Array of Objects): Each object represents an agent. The structure separates constructor arguments from design rationale.
     * `design_metadata` (Object): Contains contextual information and justifications, not used for code generation.
@@ -86,19 +88,20 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         * `llm_rationale` (String): Justification for the chosen `llm_id`. If `multimodal` is `True`, this rationale MUST confirm the selected model has `multimodal_support=True`. It should also reference the model's 'reasoner' capability.
         * `delegation_rationale` (String): Justification for the `allow_delegation` setting.
     * `constructor_args` (Object): Contains only the parameters for the CrewAI `Agent` class constructor.
-        * `role` (String): Concise functional title. This acts as the primary identifier for the agent.
-        * `goal` (String): A single, focused sentence describing the agent's objective.
-        * `backstory` (String): A narrative reinforcing the agent's expertise.
+        * `role` (String): Concise functional title that defines the agent's expertise. This acts as the primary identifier for the agent.
+        * `goal` (String): A single, focused sentence describing the agent's primary objective and what it is responsible for.
+        * `backstory` (String): A narrative that reinforces the agent's expertise and persona, giving it context and personality. This should align with its role and goal.
         * `llm_id` (String): The identifier of the LLM to be used by this agent, referencing an entry in the `llm_registry`.
         * `allow_delegation` (Boolean): `True` or `False`.
 
 * `structured_data_handling` (Object, Optional):
     * `usage` (Boolean): `True` if Pydantic models are used.
-    * `rationale` (String, Optional): Explanation of how using Pydantic models enhances reliability.
+    * `rationale` (String, Optional): Explanation of how using Pydantic models enhances reliability by providing strong data validation and clear schemas, especially for LLM outputs.
     * **CRITICAL RULE FOR LISTS:** If a task's `expected_output` is a list of structured items, you MUST define two Pydantic models: 1) A model for the single item, and 2) A "wrapper" model that contains a `typing.List` of the single item model. This wrapper model is what must be used in the `task_roster`.
+    * **CRITICAL RULE FOR OPTIONAL FIELDS:** When defining a Pydantic model, any field typed with `typing.Optional` **MUST** be given a default value of `None` (e.g., `field_name: Optional[str] = None`). This ensures the field is truly optional and can be omitted from input data without causing a validation error.
     * `model_definitions` (Array of Objects, Optional):
         * `class_name` (String): Python class name.
-        * `fields` (Object): Dictionary of field names to their Python types.
+        * `fields` (Object): Dictionary of field names to their Python types. Remember to follow the "CRITICAL RULE FOR OPTIONAL FIELDS" for any optional types.
 
 * `tool_repository` (Array of Objects): Each object defines a unique tool to be instantiated, separating design rationale from instantiation parameters.
     * `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
@@ -131,17 +134,16 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
             * `description` (String): A description for the Pydantic `Field`.
         * `run_method_logic` (String)
 
-* `task_roster` (Array of Objects): Each object represents a task, separating design rationale from instantiation parameters.
+* `task_roster` (Array of Objects): **This is the most critical section of the design.** Adhere to the "80/20 Rule" of CrewAI development: 80% of the crew's success comes from meticulously designed tasks. Each task definition must be treated as a direct, precise set of instructions for a new team member who needs explicit guidance. Each object represents a task, separating design rationale from instantiation parameters.
     * `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
         * `task_identifier` (String): A unique name for the task, used for context linking.
-        * `quality_gate` (String): A detailed description of the acceptance criteria for the `expected_output` or `output_pydantic`.
+        * `quality_gate` (String): A high-level, human-readable statement of the success criteria for this task. This should answer the question: "How do we know this task was completed successfully and correctly?" It acts as a final check on the `expected_output`, ensuring it aligns with the overall goals of the project.
         * `tool_rationale` (String, Optional): Justification for why specific tools are chosen for this task.
         * `output_pydantic_rationale` (String, Optional): Justification for using a Pydantic model for the output.
     * `constructor_args` (Object): Contains only the parameters for the CrewAI `Task` class constructor.
-        * `description` (String): Detailed operational prompt for the agent. For multimodal tasks, this should include placeholders for image inputs.
+        * `description` (String): **CRITICAL RULE:** This must be a highly specific, action-oriented prompt written **directly to the agent**. This is not a comment; it is the core instruction. It must use active verbs and break down the process into clear, logical steps (e.g., "First, you will use the `file_read_tool` to load the data. Next, you must analyze the content to identify key themes. Finally, you will produce a summary of your findings."). It should explicitly state *how* the agent should use its tools and the context it receives.
         * `agent` (String): The `role` of the designated agent.
-        * `expected_output` (String): Definition of the task's output artifact.
+        * `expected_output` (String): **CRITICAL RULE:** This must be a precise description of the **successful outcome** of the task. It goes beyond just naming the output artifact. It must define the **qualities, structure, and format** of the result. For example, instead of "A JSON object", write "A JSON object that strictly validates against the `TailoredResume` Pydantic model, with a `summary` field that is no more than 3 sentences and directly mentions keywords from the target job description." **It must be a clear, measurable definition of 'done'.**
         * `tools` (Array of Strings, Optional): List of `tool_id`s from the `tool_repository`.
         * `context` (Array of Strings, Optional): List of prerequisite `task_identifier`s.
         * `output_pydantic` (String, Optional): The `class_name` of a Pydantic model for structured output.
-
