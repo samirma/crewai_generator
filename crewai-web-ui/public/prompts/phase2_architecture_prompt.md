@@ -71,17 +71,14 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
     * `model` (String): The model name.
     * `reasoner` (Boolean): `True` if the model has strong reasoning capabilities.
     * `multimodal_support` (Boolean): `True` if the model can process images.
-    * `temperature` (Number): MUST BE 0.0.
     * `frequency_penalty` (Number): MUST BE 0.0.
     * `presence_penalty` (Number): MUST BE 0.0.
     * `timeout` (Number): The request timeout in seconds.**
     * `max_tokens` (Number): The maximum number of tokens for the model's response.**
     * `api_key_env_var` (String, Optional): Environment variable name for the API key.
     * **Pre-defined List to Use:**
-        * `gemini/gemini-2.5-flash` (reasoner: True, multimodal\_support: True, timeout: 600, max_tokens: 65536)
-        * `gemini/gemini-2.5-pro` (reasoner: True, multimodal\_support: True, timeout: 600, max_tokens: 65536)
-        * `deepseek/deepseek-chat` (reasoner: False, multimodal\_support: False, timeout: 600, max_tokens: 8000)
-        * `deepseek/deepseek-reasoner` (reasoner: False, multimodal\_support: False, timeout: 600, max_tokens: 64000)
+        * `gemini/gemini-2.5-flash` (reasoner: True, multimodal\_support: True, timeout: 600, max_tokens: 65536, temperature: 0.0)
+        * `deepseek/deepseek-chat` (reasoner: False, multimodal\_support: False, timeout: 600, max_tokens: 8000, temperature: 0.2)
 
 * `agent_cadre` (Array of Objects): Each object represents an agent. The structure separates constructor arguments from design rationale.
     * `design_metadata` (Object): Contains contextual information and justifications, not used for code generation.
@@ -93,7 +90,6 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         * `goal` (String): A single, focused sentence describing the agent's objective.
         * `backstory` (String): A narrative reinforcing the agent's expertise.
         * `llm_id` (String): The identifier of the LLM to be used by this agent, referencing an entry in the `llm_registry`.
-        * `tools` (Array of Strings): List of `tool_id`s from the `tool_repository` that this agent will use.
         * `allow_delegation` (Boolean): `True` or `False`.
 
 * `structured_data_handling` (Object, Optional):
@@ -138,7 +134,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 * `task_roster` (Array of Objects): Each object represents a task, separating design rationale from instantiation parameters.
     * `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
         * `task_identifier` (String): A unique name for the task, used for context linking.
-        * `quality_gate` (String): A detailed description of the acceptance criteria for the `expected_output`.
+        * `quality_gate` (String): A detailed description of the acceptance criteria for the `expected_output` or `output_pydantic`.
         * `tool_rationale` (String, Optional): Justification for why specific tools are chosen for this task.
         * `output_pydantic_rationale` (String, Optional): Justification for using a Pydantic model for the output.
     * `constructor_args` (Object): Contains only the parameters for the CrewAI `Task` class constructor.

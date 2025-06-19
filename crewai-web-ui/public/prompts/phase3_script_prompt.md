@@ -3,6 +3,8 @@ Use the previous json to construct the Python script by meticulously implementin
 
 **Script Structure & Content Requirements:**
 
+* **Self-Correction:** The output will be a valid and working python script
+
 **Environment Setup (Order is CRITICAL):**
 ```python
 import os
@@ -114,7 +116,7 @@ class <ClassNameFromJSON>(BaseTool):
     *   The Python variable name for the tool instance MUST be the `tool_id` from the `constructor_args` object.
     *   **CRITICAL**: Before each tool instantiation line, insert the `tool_selection_justification` from the `design_metadata` object as a Python comment (`#`).
     *   The class to instantiate is specified in the `class_name` property within `constructor_args`.
-    *   If `initialization_params` exists within `constructor_args`, pass its contents as keyword arguments to the class constructor.
+    *   **If `initialization_params` exists within `constructor_args` AND is a non-empty dictionary, pass its contents as keyword arguments to the class constructor.**
         *   **Special Handling for `config`:** If `initialization_params` contains a `config` object (for embedding-supported tools), generate the Python `dict` for it with the following transformations:
             *   **For the `llm` config:** The generated Python `llm` dictionary should only contain a `provider` key and a nested `config` dictionary.
                 *   The `model` key from the JSON's `llm` object MUST be placed *inside* this nested `config` dictionary, not at the top level.
@@ -125,10 +127,8 @@ class <ClassNameFromJSON>(BaseTool):
 *   Iterate through the `agent_cadre` list.
 *   For each agent object:
     *   The variable name MUST be the agent's `role` (from `constructor_args`), formatted as a valid Python variable name (e.g., "Financial Analyst" becomes `financial_analyst_agent`).
-    *   **CRITICAL**: Before the agent definition, insert a Python comment block generated from the `design_metadata` object, including the `llm_rationale`, `tool_rationale`, and `delegation_rationale`.
     *   To instantiate the `Agent`, use the keys from the `constructor_args` object as parameters and convert the values to the appropriate python types.
     *   **LLM Assignment**: Use the `llm_id` from `constructor_args` to assign the correct, pre-instantiated LLM variable to the `llm` parameter.
-    *   **Tool Assignment**: Use the list of `tool_id`s from the `constructor_args.tools` array to build the list of tool instances for the `tools` parameter.
 
 **Task Definitions:**
 *   Iterate through the `task_roster` list.
