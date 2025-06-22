@@ -51,7 +51,9 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 * **`excel-stdio`**:
     * `serverparams`: `{ "command": "uvx", "args": ["excel-mcp-server", "stdio"] }`
     * **Description**: This MCP server is designed to handle Excel files, allowing for reading and writing operations directly from standard input/output. It supports various Excel file formats and can be used to manipulate spreadsheet data programmatically.
-
+* **`mcp-pandoc`**:
+    * `serverparams`: `{ "command": "uvx", "args": ["mcp-pandoc"] }`
+    * **Description**: Leveraging the Pandoc utility, this MCP server reliably converts documents between Plain text (`.txt`), Markdown (`.md`), HTML (`.html`), PDF (`.pdf`), DOCX (`.docx`), reStructuredText (`.rst`), LaTeX (`.tex`), and EPUB (`.epub`), while preserving the original structure and formatting.
 ---
 
 **'Design-Crew-Architecture-Plan' - JSON Schema:**
