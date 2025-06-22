@@ -103,12 +103,12 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 
 * `structured_data_handling` (Object, Optional):
     * `usage` (Boolean): `True` if Pydantic models are used.
-    * `rationale` (String, Optional): Explanation of how using Pydantic models enhances reliability by providing strong data validation and clear schemas, especially for LLM outputs.
-    * **CRITICAL RULE FOR LISTS:** If a task's `expected_output` is a list of structured items, you MUST define two Pydantic models: 1) A model for the single item, and 2) A "wrapper" model that contains a `typing.List` of the single item model. This wrapper model is what must be used in the `task_roster`.
-    * **CRITICAL RULE FOR MAXIMUM FLEXIBILITY:** To prevent validation errors from incomplete or missing data—a common issue with real-world information—**ALL fields** within a Pydantic model **MUST be defined as optional**. Apply the "CRITICAL RULE FOR OPTIONAL FIELDS" to every field. Only make a field required (e.g., `str`, `int`) if it is absolutely, explicitly certain that it will always be present. For maximum safety, default to making all fields optional.
+    * `rationale` (String, Optional): Explanation of how using Pydantic models enhances reliability.
+    * **CRITICAL RULE FOR LISTS:** If a task's `expected_output` is a list of structured items, you MUST define two Pydantic models: 1) A model for the single item, and 2) A "wrapper" model that contains a `typing.List` of the single item model.
+    * **CRITICAL RULE FOR OPTIONAL FIELDS:** To prevent validation errors from incomplete or missing data, **ALL fields** within a Pydantic model **MUST be defined as optional**. To do this, use the `Optional` type from Python's `typing` library. The type string in the `fields` object must follow the format `Optional[<type>]`. For example, an optional string is `"Optional[str]"` and an optional list of integers is `"Optional[List[int]]"`.
     * `model_definitions` (Array of Objects, Optional):
         * `class_name` (String): Python class name.
-        * `fields` (Object): Dictionary of field names to their Python types. Remember to follow all critical rules defined above for every field.
+        * `fields` (Object): Dictionary of field names to their Python type strings. Remember to follow all critical rules defined above for every field.
 
 * `tool_repository` (Array of Objects): Each object defines a unique tool to be instantiated, separating design rationale from instantiation parameters.
     * `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
