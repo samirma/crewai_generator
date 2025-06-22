@@ -1,4 +1,3 @@
-
 ## **CrewAI Architecture Design Blueprint (Phase 2)**
 
 Use this document as a blueprint to achieve the goal described in the initial instruction document. Your objective is to design the optimal CrewAI configuration in a single, comprehensive JSON object. This involves developing the complete specifications for the workflow, agents, tools, and tasks. Your role is exclusively architectural design.
@@ -24,11 +23,10 @@ To improve the robustness and logical flow of the design, the JSON object's keys
 
 ### **Canonical Tool Library for Evaluation**
 
-To ensure a realistic and grounded design, all tool selections must be made **exclusively** from the following canonical list of available tools from the `crewai_tools` libraries. The `tool_selection_justification` field within the `tool_repository` must reference this list for its evaluation.
+To ensure a realistic and grounded design, all tool selections must be made **exclusively** from the following canonical list of available tools. The `tool_selection_justification` field within the `tool_repository` must reference this list for its evaluation.
 
 #### `crewai_tools`
 
-* `SerperDevTool` (supports_embedding: `False`)
 * `ScrapeWebsiteTool` (supports_embedding: `False`)
 * `WebsiteSearchTool` (supports_embedding: `True`)
 * `BrowserbaseTool` (supports_embedding: `False`)
@@ -44,8 +42,15 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 * `RagTool` (supports_embedding: `True`)
 * `TXTSearchTool` (supports_embedding: `True`)
 * `XMLSearchTool` (supports_embedding: `True`)
-* `CodeInterpreterTool` (supports_embedding: `False`)
-* `GithubSearchTool` (supports_embedding: `False`)
+
+#### MCP Servers
+
+* **`web-scout`**:
+    * `serverparams`: `{ "command": "npx", "args": ["-y", "@pinkpixel/web-scout-mcp"] }`
+    * **Description**: This mcp server is a powerful information retrieval tool that can both search the web and extract content from specific webpages. It utilizes the DuckDuckGo search engine to conduct web searches for any given query and can return a specified number of results. Additionally, it has the capability to fetch and extract the full content from one or multiple URLs.
+* **`excel-stdio`**:
+    * `serverparams`: `{ "command": "uvx", "args": ["excel-mcp-server", "stdio"] }`
+    * **Description**: This MCP server is designed to handle Excel files, allowing for reading and writing operations directly from standard input/output. It supports various Excel file formats and can be used to manipulate spreadsheet data programmatically.
 
 ---
 
@@ -77,7 +82,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
     * `presence_penalty` (Number): MUST BE 0.0.
     * `timeout` (Number): The request timeout in seconds.**
     * `max_tokens` (Number): The maximum number of tokens for the model's response.**
-    * `api_key_env_var` (String, Optional): Environment variable name for the API key.
+    * `api_key` (String, Optional): Environment variable name for the API key.
     * **Pre-defined List to Use:**
         * `gemini/gemini-2.5-flash` (reasoner: True, multimodal_support: True, timeout: 600, max_tokens: 65536, temperature: 0.0)
         * `deepseek/deepseek-chat` (reasoner: False, multimodal_support: False, timeout: 600, max_tokens: 8000, temperature: 0.2)
@@ -98,30 +103,31 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
     * `usage` (Boolean): `True` if Pydantic models are used.
     * `rationale` (String, Optional): Explanation of how using Pydantic models enhances reliability by providing strong data validation and clear schemas, especially for LLM outputs.
     * **CRITICAL RULE FOR LISTS:** If a task's `expected_output` is a list of structured items, you MUST define two Pydantic models: 1) A model for the single item, and 2) A "wrapper" model that contains a `typing.List` of the single item model. This wrapper model is what must be used in the `task_roster`.
-    * **CRITICAL RULE FOR OPTIONAL FIELDS:** When defining a Pydantic model, any field typed with `typing.Optional` **MUST** be given a default value of `None` (e.g., `field_name: Optional[str] = None`). This ensures the field is truly optional and can be omitted from input data without causing a validation error.
+    * **CRITICAL RULE FOR MAXIMUM FLEXIBILITY:** To prevent validation errors from incomplete or missing data—a common issue with real-world information—**ALL fields** within a Pydantic model **MUST be defined as optional**. Apply the "CRITICAL RULE FOR OPTIONAL FIELDS" to every field. Only make a field required (e.g., `str`, `int`) if it is absolutely, explicitly certain that it will always be present. For maximum safety, default to making all fields optional.
     * `model_definitions` (Array of Objects, Optional):
         * `class_name` (String): Python class name.
-        * `fields` (Object): Dictionary of field names to their Python types. Remember to follow the "CRITICAL RULE FOR OPTIONAL FIELDS" for any optional types.
+        * `fields` (Object): Dictionary of field names to their Python types. Remember to follow all critical rules defined above for every field.
 
 * `tool_repository` (Array of Objects): Each object defines a unique tool to be instantiated, separating design rationale from instantiation parameters.
     * `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
         * `required_functionality` (String): A clear, one-sentence description of the specific action the tool must perform.
         * `crewai_tool_evaluation` (Array of Objects): An evaluation of relevant crewai tools.
-            * `tool_selection_justification` (String): Review the **Canonical Tool Library** provided above to identify the most suitable tool. Your analysis MUST explain why your chosen tool from this list is optimal and why other relevant tools from the same list are not sufficient.
+            * `tool_selection_justification` (String): Review the **Canonical Tool Library** provided above (including both `crewai_tools` and `MCP Servers`) to identify the most suitable tool. Your analysis MUST explain why your chosen tool is optimal and why other relevant tools are not sufficient. Justify why a standard tool or an MCP server is the better choice for the task.
             * `is_valid_availiable_tool` (Boolean): `True` or `False`.
-            * `tool_name` (String): The exact, importable CrewAI tool class. **Crucially, this name must match the latest library version.**
+            * `tool_name` (String): The exact, importable CrewAI tool class. **Crucially, this name must match the latest library version.** For MCP Servers, this will be `MCPServerAdapter`.
         * `is_custom_tool` (Boolean): `True` if no available tool is sufficient, derived from the analysis.
         * `is_custom_embedding_supported` (Boolean): `True` if this selected tool supports embedding, e.g (PDFSearchTool, TXTSearchTool and RagTool, etc)
         * `tool_llm_specification` (Object, Optional): **Required if `is_custom_embedding_supported` is `True` and `crew_memory.activation` is `True`.**
             * `llm_id` (String): The identifier for the tool's internal LLM, chosen from the `llm_registry`.
             * `rationale` (String): Justification for this LLM choice for the tool's internal processing (e.g., summarization).
     * `constructor_args` (Object): Contains only the parameters for the tool's class constructor.
-        * `tool_id` (String): A unique identifier for this specific tool instance (e.g., "web_search_tool"). This acts as the primary identifier for the tool.
-        * `class_name` (String): The exact Python class name to instantiate. **This must be a verbatim, up-to-date class name from the `crewai_tools` or `langchain_community.tools` library.**
+        * `tool_id` (String): A unique identifier for this specific tool instance (e.g., "web_search_tool", "web_scout_adapter"). This acts as the primary identifier for the tool.
+        * `class_name` (String): The exact Python class name to instantiate. **This must be a verbatim, up-to-date class name from the `crewai_tools` library.**
         * `initialization_params` (Object, Optional): Constructor parameters for the tool.
             **CRITICAL RULE for Embedding-Supported Tools:** If `design_metadata.is_custom_embedding_supported` is `True` and `crew_memory.activation` is `True`, this object MUST contain a `config` key. The `config` object must be structured with two keys: `llm` and `embedder`.
-                - The `llm` object must be built using the details from the `llm_registry` entry matching `design_metadata.tool_llm_specification.llm_id`. It must have a google `provider` and model = "gemini/gemini-2.0-flash-lite" and a `config` sub-object containing `model`, `temperature`, and `api_key_env_var`.
+                - The `llm` object must be built using the details from the `llm_registry` entry matching `design_metadata.tool_llm_specification.llm_id`. It must have a google `provider` and model = "gemini/gemini-2.0-flash-lite" and a `config` sub-object containing `model`, `temperature`, and `api_key`.
                 - The `embedder` object must be a direct copy of the `crew_memory.embedder_config` object.
+            **CRITICAL RULE for MCP Servers:** If using an MCP Server, the `class_name` MUST be `MCPServerAdapter`. The `initialization_params` object MUST contain a single key: `serverparams`. This `serverparams` object must contain two keys: `command` (String) and `args` (Array of Strings), which define how to run the MCP server process.
 
 * `custom_tool_definitions` (Array of Objects):
     * `class_definition_args` (Object):
@@ -141,9 +147,9 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         * `tool_rationale` (String, Optional): Justification for why specific tools are chosen for this task.
         * `output_pydantic_rationale` (String, Optional): Justification for using a Pydantic model for the output.
     * `constructor_args` (Object): Contains only the parameters for the CrewAI `Task` class constructor.
-        * `description` (String): **CRITICAL RULE:** This must be a highly specific, action-oriented prompt written **directly to the agent**. This is not a comment; it is the core instruction. It must use active verbs and break down the process into clear, logical steps (e.g., "First, you will use the `file_read_tool` to load the data. Next, you must analyze the content to identify key themes. Finally, you will produce a summary of your findings."). It should explicitly state *how* the agent should use its tools and the context it receives.
+        * `description` (String): **CRITICAL RULE:** This must be a highly specific, action-oriented prompt written **directly to the agent**. This is not a comment; it is the core instruction. It must use active verbs and break down the process into clear, logical steps. It should explicitly state *how* the agent should use its tools and the context it receives.
         * `agent` (String): The `role` of the designated agent.
         * `expected_output` (String): **CRITICAL RULE:** This must be a precise description of the **successful outcome** of the task. It goes beyond just naming the output artifact. It must define the **qualities, structure, and format** of the result. For example, instead of "A JSON object", write "A JSON object that strictly validates against the `TailoredResume` Pydantic model, with a `summary` field that is no more than 3 sentences and directly mentions keywords from the target job description." **It must be a clear, measurable definition of 'done'.**
-        * `tools` (Array of Strings, Optional): List of `tool_id`s from the `tool_repository`.
+        * `tools` (Array of Strings, Optional): List of `tool_id`s from the `tool_repository`. **For MCP Servers, the agent gains access to all tools provided by the server. You must pass the `.tools` property of the adapter instance to the task, so here you should reference the `tool_id` of the adapter itself (e.g., "web_scout_adapter").**
         * `context` (Array of Strings, Optional): List of prerequisite `task_identifier`s.
         * `output_pydantic` (String, Optional): The `class_name` of a Pydantic model for structured output.

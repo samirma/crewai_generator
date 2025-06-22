@@ -3,7 +3,7 @@ Use the previous json to construct the Python script by meticulously implementin
 
 **Script Structure & Content Requirements:**
 
-* **Self-Correction:** The output will be a valid and working python script
+*   **Self-Correction:** The output will be a valid and working python script
 
 **Environment Setup (Order is CRITICAL):**
 ```python
@@ -15,6 +15,7 @@ load_dotenv(find_dotenv()) # MUST BE CALLED EARLY
 **Core Imports:**
 *   Based on the input JSON, import all necessary libraries.
 *   For all tools specified in `tool_repository`, import the class specified in `constructor_args.class_name` directly from `crewai_tools`.
+*   Import `MCPServerAdapter` from `crewai_tools` and `StdioServerParameters` from `mcp` if any tool uses the `MCPServerAdapter` class.
 *   Uncomment `from crewai.tools import BaseTool` if `custom_tool_definitions` exists and is not empty in the JSON.
 *   Uncomment `from pydantic import BaseModel, Field` if custom tools with arguments are defined.
 
@@ -23,8 +24,9 @@ from crewai import Agent, Task, Crew, Process
 from crewai import LLM # For LLM section
 
 # Example for import for tools from crewai_tools
-from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool
+from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerAdapter
 
+# from mcp import StdioServerParameters # UNCOMMENT if MCP tools are defined
 # from crewai.tools import BaseTool # UNCOMMENT if custom tools are defined
 # from pydantic import BaseModel, Field # UNCOMMENT if Pydantic models are defined
 # from typing import Type, List # UNCOMMENT for advanced type hinting if needed
@@ -44,7 +46,7 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool
     *   `presence_penalty`: Use the value from the `presence_penalty` key.
     *   `timeout`: Use the value from the `timeout` key.
     *   `max_tokens`: Use the value from the `max_tokens` key.
-    *   `api_key`: Use the value from the `api_key_env_var` key. This value is the name of a Python variable that holds the API key (e.g., if `api_key_env_var` is `"GOOGLE_API_KEY"`, the code should use the variable `GOOGLE_API_KEY`). If `api_key_env_var` is `null`, use `None` for the `api_key`.
+    *   `api_key`: Use the value from the `api_key` key. This value is the name of a Python variable that holds the API key (e.g., if `api_key` is `"GOOGLE_API_KEY"`, the code should use the variable `GOOGLE_API_KEY`). If `api_key_env_var` is `null`, use `None` for the `api_key`.
     *   `seed`: This MUST be a fixed value of `2`.
 
 **Example of the expected output format for one entry:**
@@ -71,6 +73,8 @@ gemini_pro_reasoner_llm = LLM(
 #
 # Use the following template to generate each custom tool.
 # Map the fields from the 'custom_tool_definitions' object in the JSON to the corresponding parts of the class.
+#
+# ENFORCEMENT: The generated code must completely solve the proposed logic without any kind of user intervention, as none will be possible.
 #
 
 # This comment block comes from the 'design_metadata.justification_for_custom_tool' field in the JSON.
@@ -116,12 +120,18 @@ class <ClassNameFromJSON>(BaseTool):
     *   The Python variable name for the tool instance MUST be the `tool_id` from the `constructor_args` object.
     *   **CRITICAL**: Before each tool instantiation line, insert the `tool_selection_justification` from the `design_metadata` object as a Python comment (`#`).
     *   The class to instantiate is specified in the `class_name` property within `constructor_args`.
-    *   **If `initialization_params` exists within `constructor_args` AND is a non-empty dictionary, pass its contents as keyword arguments to the class constructor.**
-        *   **Special Handling for `config`:** If `initialization_params` contains a `config` object (for embedding-supported tools), generate the Python `dict` for it with the following transformations:
-            *   **For the `llm` config:** The generated Python `llm` dictionary should only contain a `provider` key and a nested `config` dictionary.
-                *   The `model` key from the JSON's `llm` object MUST be placed *inside* this nested `config` dictionary, not at the top level.
-                *   In the nested `config` dictionary, replace the `api_key_env_var` key from the JSON with an `api_key` key in Python, and set its value to `os.getenv("...")`, using the environment variable name from the JSON.
-            *   **For the `embedder` config:** In the `config` sub-dictionary, if a `base_url_env_var` key exists, replace it with a `base_url` key in Python. Set its value to an f-string like `f"http://{os.getenv('OLLAMA_HOST', 'localhost:11434')}"`.
+    *   **If `class_name` is `MCPServerAdapter`:**
+        1.  First, instantiate `StdioServerParameters`. The variable name should be `<tool_id>_params`.
+        2.  The `command` and `args` for the constructor are taken from `constructor_args.initialization_params.serverparams`.
+        3.  Then, instantiate `MCPServerAdapter`, passing the `_params` variable to its constructor. The variable name for the adapter MUST be the `tool_id`.
+    *   **If `class_name` is NOT `MCPServerAdapter`:**
+        *   **If `initialization_params` exists AND is a non-empty dictionary, pass its contents as keyword arguments to the class constructor.**
+            *   **Special Handling for `config`:** If `initialization_params` contains a `config` object (for embedding-supported tools), generate the Python `dict` for it with the following transformations:
+                *   **For the `llm` config:** The generated Python `llm` dictionary should only contain a `provider` key and a nested `config` dictionary.
+                    *   The `model` key from the JSON's `llm` object MUST be placed *inside* this nested `config` dictionary, not at the top level.
+                    *   In the nested `config` dictionary, replace the `api_key_env_var` key from the JSON with an `api_key` key in Python, and set its value to `os.getenv("...")`, using the environment variable name from the JSON.
+                *   **For the `embedder` config:** In the `config` sub-dictionary, if a `base_url_env_var` key exists, replace it with a `base_url` key in Python. Set its value to an f-string like `f"http://{os.getenv('OLLAMA_HOST', 'localhost:11434')}"`.
+                
 
 **Agent Definitions:**
 *   Iterate through the `agent_cadre` list.
@@ -136,7 +146,8 @@ class <ClassNameFromJSON>(BaseTool):
     *   The variable name for the instance MUST be the `task_identifier` from the task's `design_metadata` object.
     *   To instantiate the `Task`, use the keys from the `constructor_args` object as parameters.
     *   The `agent` parameter is assigned the agent instance whose `role` matches the `constructor_args.agent` string.
-    *   The `tools` list for the task must contain the specific tool instances corresponding to the `tool_id`s in the `constructor_args.tools` list. If the list is empty or not present, this MUST be an empty list `[]`.
+    *   The `tools` list for the task must contain the specific tool instances corresponding to the `tool_id`s in the `constructor_args.tools` list.
+        *   **CRITICAL for MCP Tools**: If a tool is an `MCPServerAdapter`, you MUST pass the `.tools` property of the adapter instance to the task's tool list (e.g., `web_scout_adapter.tools`), `.tools` property is already LIST of tools, you should consider it while writing the code, not the adapter instance itself. Create a helper variable to hold all tools for the task.
     *   Set `context` by finding the task instances that match the identifiers in `constructor_args.context`.
     *   If `constructor_args.output_pydantic` is specified, assign the corresponding Pydantic class to the `output_pydantic` parameter.
 
@@ -175,5 +186,3 @@ if __name__ == "__main__":
     # else:
     #    print(f"\nDeliverable file '{final_deliverable_filename}' was expected but not found.")
 ```
-
-**Output:** The Python script block for CrewAI based on this should be the ONLY output generated.

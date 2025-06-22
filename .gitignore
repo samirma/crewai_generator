@@ -198,3 +198,5 @@ server_logs.txt
 
 llm_input_prompt.txt
 llm_output_prompt.txt
+
+node_modules/

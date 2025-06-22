@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.12-venv \
     git \
     build-essential \
+    npm \
     vim \
     wget \
     curl \
@@ -28,6 +29,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ghostscript  \
     libsqlite3-dev && \
     rm -rf /var/lib/apt/lists/*
+
+RUN npm install @pinkpixel/web-scout-mcp
 
 # 2. Create a virtual environment
 # Using /opt/ is a standard practice for self-contained application software
@@ -44,6 +47,7 @@ RUN python -m pip install --upgrade pip && \
     python -m pip install --no-cache-dir \
     crewai \
     crewai-tools \
+    crewai-tools[mcp] \
     google-generativeai \
     ollama \
     pymupdf \
