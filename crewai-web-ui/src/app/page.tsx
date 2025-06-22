@@ -1,11 +1,15 @@
 "use client"; // Required for Next.js App Router to use client-side features like useState
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import CopyButton from './components/CopyButton';
 import Timer from './components/Timer'; // <-- Add this line
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { buildPrompt } from '../utils/promptUtils';
+
+// Attempt to import ExecutionResult type for better type safety
+// If this path is incorrect, we might need to adjust or use 'any'
+import type { ExecutionResult as ExecutionResultType } from './api/execute/types';
 
 interface Model {
   id: string;
@@ -82,6 +86,15 @@ export default function Home() {
   const [defaultPhase2PromptText, setDefaultPhase2PromptText] = useState<string>("");
   const [defaultPhase3PromptText, setDefaultPhase3PromptText] = useState<string>("");
 
+  // State for detailed execution status
+  const [finalExecutionStatus, setFinalExecutionStatus] = useState<string | null>(null);
+  const [finalExecutionResult, setFinalExecutionResult] = useState<ExecutionResultType | null>(null);
+
+  // Sound effects
+  const llmRequestFinishSoundRef = useRef<HTMLAudioElement | null>(null);
+  const scriptSuccessSoundRef = useRef<HTMLAudioElement | null>(null);
+  const scriptErrorSoundRef = useRef<HTMLAudioElement | null>(null);
+
   // New state variables for Multi-Step Mode
   const [currentOperatingMode, setCurrentOperatingMode] = useState<string>('simple'); // 'simple', 'advanced', 'multistep'
   const [multiStepPhase1_Input, setMultiStepPhase1_Input] = useState<string>("");
@@ -117,6 +130,17 @@ export default function Home() {
   const isLlmTimerRunning = isLoading || !!isLoadingPhase[1] || !!isLoadingPhase[2] || !!isLoadingPhase[3] || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3 || isLoadingSimpleMultiStepPhase1 || isLoadingSimpleMultiStepPhase2 || isLoadingSimpleMultiStepPhase3;
 
   useEffect(() => {
+    // Initialize Audio objects - only on client side
+    // IMPORTANT: Replace with actual paths to your sound files in the public directory
+    llmRequestFinishSoundRef.current = new Audio('/sounds/llm_finish.mp3'); // Placeholder
+    scriptSuccessSoundRef.current = new Audio('/sounds/script_success.mp3'); // Placeholder
+    scriptErrorSoundRef.current = new Audio('/sounds/script_error.mp3'); // Placeholder
+
+    // Optional: Preload sounds for faster playback, though this might not be necessary for small files
+    // llmRequestFinishSoundRef.current.load();
+    // scriptSuccessSoundRef.current.load();
+    // scriptErrorSoundRef.current.load();
+
     // Load initialInput from cookie on component mount using helper
     const cookieValue = getCookie('initialInstruction');
     if (cookieValue) {
@@ -204,6 +228,22 @@ export default function Home() {
     fetchInitialPrompts();
   }, []);
 
+  // Sound playing helper functions
+  const playLlmSound = () => {
+    console.log("Playing LLM request finish sound (placeholder)");
+    llmRequestFinishSoundRef.current?.play().catch(e => console.error("Error playing LLM sound:", e));
+  };
+
+  const playSuccessSound = () => {
+    console.log("Playing script success sound (placeholder)");
+    scriptSuccessSoundRef.current?.play().catch(e => console.error("Error playing success sound:", e));
+  };
+
+  const playErrorSound = () => {
+    console.log("Playing script error sound (placeholder)");
+    scriptErrorSoundRef.current?.play().catch(e => console.error("Error playing error sound:", e));
+  };
+
   const resetOutputStates = () => {
     setError("");
     setGeneratedScript("");
@@ -217,6 +257,8 @@ export default function Home() {
     setActualLlmOutputPrompt("");
     setLlmRequestDuration(null);
     setScriptExecutionDuration(null);
+    setFinalExecutionStatus(null); // Reset detailed status
+    setFinalExecutionResult(null); // Reset detailed result object
 
     // Clear multi-step states
     setMultiStepPhase1_Input("");
@@ -652,10 +694,12 @@ export default function Home() {
         } catch (e) {
           // Ignore if response is not JSON
         }
+        playErrorSound(); // Play error sound on API failure
         throw new Error(errorText);
       }
 
       if (!response.body) {
+        playErrorSound(); // Play error sound if response body is null
         throw new Error("Response body is null");
       }
 
@@ -707,7 +751,9 @@ export default function Home() {
             setScriptLogOutput(prev => [...prev, line.substring("LOG_ERROR: ".length)]);
           } else if (line.startsWith("RESULT: ")) {
             try {
-              const finalResult = JSON.parse(line.substring("RESULT: ".length));
+              const finalResult: ExecutionResultType = JSON.parse(line.substring("RESULT: ".length));
+              setFinalExecutionResult(finalResult);
+              setFinalExecutionStatus(finalResult.overallStatus);
 
               if (finalResult.scriptExecutionDuration !== undefined) {
                 setScriptExecutionDuration(finalResult.scriptExecutionDuration);
@@ -720,16 +766,23 @@ export default function Home() {
                 setPhasedOutputs(taskOutputs);
               }
 
+              // Sound playing logic is already here from previous step, ensure it's correct
               if (finalResult.overallStatus === 'failure') {
                 let errorMsg = "Script execution failed.";
                 if (finalResult.error) errorMsg += ` Error: ${finalResult.error}`;
                 if (finalResult.mainScript && finalResult.mainScript.stderr) errorMsg += ` Stderr: ${finalResult.mainScript.stderr}`;
-                setScriptExecutionError(errorMsg);
+                setScriptExecutionError(errorMsg); // Keep this for now, might be used by other UI parts
+                playErrorSound();
+              } else if (finalResult.overallStatus === 'success') {
+                playSuccessSound();
               }
             } catch (e) {
               console.error("Error parsing final result JSON:", e);
               setScriptExecutionError("Error parsing final result from script execution.");
+              setFinalExecutionStatus('failure'); // Set status to failure on parsing error
+              setFinalExecutionResult(null);
               setScriptExecutionDuration(null); // Also reset on error parsing here
+              playErrorSound();
             }
           }
         }
@@ -747,7 +800,9 @@ export default function Home() {
         setScriptLogOutput(prev => [...prev, buffer.substring("LOG_ERROR: ".length)]);
       } else if (buffer.startsWith("RESULT: ")) {
          try {
-              const finalResult = JSON.parse(buffer.substring("RESULT: ".length));
+              const finalResult: ExecutionResultType = JSON.parse(buffer.substring("RESULT: ".length));
+              setFinalExecutionResult(finalResult);
+              setFinalExecutionStatus(finalResult.overallStatus);
 
               if (finalResult.scriptExecutionDuration !== undefined) {
                 setScriptExecutionDuration(finalResult.scriptExecutionDuration);
@@ -764,12 +819,18 @@ export default function Home() {
                 let errorMsg = "Script execution failed.";
                 if (finalResult.error) errorMsg += ` Error: ${finalResult.error}`;
                 if (finalResult.mainScript && finalResult.mainScript.stderr) errorMsg += ` Stderr: ${finalResult.mainScript.stderr}`;
-                setScriptExecutionError(errorMsg);
+                setScriptExecutionError(errorMsg); // Keep this
+                playErrorSound();
+              } else if (finalResult.overallStatus === 'success') {
+                playSuccessSound();
               }
             } catch (e) {
               console.error("Error parsing final result JSON from remaining buffer:", e);
               setScriptExecutionError("Error parsing final result from script execution (buffer).");
+              setFinalExecutionStatus('failure'); // Set status to failure on parsing error
+              setFinalExecutionResult(null);
               setScriptExecutionDuration(null); // Also reset on error parsing here
+              playErrorSound();
             }
       }
 
@@ -780,6 +841,7 @@ export default function Home() {
       } else {
         setScriptExecutionError("An unknown error occurred while executing the script.");
       }
+      playErrorSound(); // Play error sound on general catch
     } finally {
       setIsExecutingScript(false);
     }
@@ -823,7 +885,9 @@ export default function Home() {
     } catch (err) {
       console.error("API Request Error:", err);
       onError(err instanceof Error ? err.message : "An unknown API error occurred.");
+      playErrorSound(); // Play error sound for LLM request errors
     } finally {
+      playLlmSound(); // Play LLM finish sound regardless of success/failure
       if (onFinally) {
         onFinally();
       }
@@ -1280,7 +1344,26 @@ export default function Home() {
         </div>
       )}
 
-      {scriptExecutionError && (
+      {/* Display Final Execution Status and Details */}
+      {finalExecutionStatus && (
+        <div className={`mt-8 mb-4 p-4 border rounded-md ${finalExecutionStatus === 'success' ? 'border-green-400 bg-green-100 dark:bg-green-900/30' : 'border-red-400 bg-red-100 dark:bg-red-900/30'}`}>
+          <h2 className={`text-xl font-semibold ${finalExecutionStatus === 'success' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-400'}`}>
+            Overall Execution Status: {finalExecutionStatus.charAt(0).toUpperCase() + finalExecutionStatus.slice(1)}
+          </h2>
+          {finalExecutionResult && (
+            <details className="mt-2">
+              <summary className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer">
+                View Execution Details
+              </summary>
+              <pre className="mt-2 p-3 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 shadow-inner overflow-auto whitespace-pre-wrap text-xs">
+                {JSON.stringify(finalExecutionResult, null, 2)}
+              </pre>
+            </details>
+          )}
+        </div>
+      )}
+
+      {scriptExecutionError && !finalExecutionStatus && ( // Only show if finalExecutionStatus isn't already displaying the error context
         <div className="mt-8 mb-8 p-4 border border-red-400 bg-red-100 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-500/50 dark:text-red-400">
           <p className="font-semibold">Script Execution Error:</p>
           <p>{scriptExecutionError}</p>
@@ -1288,7 +1371,7 @@ export default function Home() {
       )}
 
       {/* Output sections: Generated Script and Script Execution Output / Phased Outputs */}
-      {((currentOperatingMode !== 'multistep' && (generatedScript || scriptLogOutput.length > 0 || phasedOutputs.length > 0)) ||
+      {((currentOperatingMode !== 'multistep' && (generatedScript || scriptLogOutput.length > 0 || phasedOutputs.length > 0 || finalExecutionStatus)) ||
         (currentOperatingMode === 'multistep' && (multiStepPhase3_Output || scriptLogOutput.length > 0 || phasedOutputs.length > 0))) && (
          <div className="grid md:grid-cols-2 gap-6 mt-10 mb-8">
           <div>
