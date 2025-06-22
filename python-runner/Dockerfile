@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     sqlite3 \
     # LaTeX for PDF generation (provides pdflatex)
+    pandoc texlive-xetex \
     texlive-latex-extra \
     texlive-fonts-recommended \
     texlive-fonts-extra \
@@ -45,6 +46,7 @@ ENV PATH="$VENV_PATH/bin:$PATH"
 # We can now use `python` and `pip` directly, and they will point to the venv's versions.
 RUN python -m pip install --upgrade pip && \
     python -m pip install --no-cache-dir \
+    uv \
     crewai \
     crewai-tools \
     crewai-tools[mcp] \
