@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sqlite3 \
     # LaTeX for PDF generation (provides pdflatex)
     pandoc texlive-xetex \
+    texlive-full \
     texlive-latex-extra \
     texlive-fonts-recommended \
     texlive-fonts-extra \
@@ -47,6 +48,9 @@ ENV PATH="$VENV_PATH/bin:$PATH"
 RUN python -m pip install --upgrade pip && \
     python -m pip install --no-cache-dir \
     uv \
+    mcp \
+    fastmcp  \
+    pypandoc \
     crewai \
     crewai-tools \
     crewai-tools[mcp] \

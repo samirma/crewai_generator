@@ -52,8 +52,8 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
     * `serverparams`: `{ "command": "uvx", "args": ["excel-mcp-server", "stdio"] }`
     * **Description**: This MCP server is designed to handle Excel files, allowing for reading and writing operations directly from standard input/output. It supports various Excel file formats and can be used to manipulate spreadsheet data programmatically.
 * **`mcp-pandoc`**:
-    * `serverparams`: `{ "command": "uvx", "args": ["mcp-pandoc"] }`
-    * **Description**: Leveraging the Pandoc utility, this MCP server reliably converts documents between Plain text (`.txt`), Markdown (`.md`), HTML (`.html`), PDF (`.pdf`), DOCX (`.docx`), reStructuredText (`.rst`), LaTeX (`.tex`), and EPUB (`.epub`), while preserving the original structure and formatting.
+    * `serverparams`: `{ "command": "python", "args": ["/workspace/mcp/mcp_pandadoc_converter.py"] }`
+    * **Description**: Converts a document from one format to another using Pandoc by taking a source `input_path` and a destination `output_path`, returning a string message indicating the result. The desired output format is automatically inferred from the output file's extension. Supported input formats include biblatex, bibtex, commonmark, creole, csljson, csv, docbook, docx, dokuwiki, endnotexml, epub, fb2, gfm, haddock, html, ipynb, jats, jira, json, latex, markdown, markdown_mmd, markdown_phpextra, markdown_strict, mediawiki, man, muse, native, odt, opml, org, ris, rst, rtf, t2t, textile, tikiwiki, tsv, twiki, and vimwiki. Supported output formats include asciidoc, beamer, commonmark, context, csljson, docbook, docx, dokuwiki, dzslides, epub, fb2, gfm, haddock, html, icml, ipynb, jats, jira, json, latex, man, markdown, markdown_mmd, markdown_phpextra, markdown_strict, mediawiki, ms, muse, native, odt, opml, opendocument, org, pdf, plain, pptx, revealjs, rst, rtf, s5, slidy, slideous, tei, texinfo, textile, xwiki, and zimwiki.
 ---
 
 **'Design-Crew-Architecture-Plan' - JSON Schema:**
