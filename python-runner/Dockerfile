@@ -32,7 +32,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsqlite3-dev && \
     rm -rf /var/lib/apt/lists/*
 
-RUN npm install @pinkpixel/web-scout-mcp
+RUN npm install @pinkpixel/web-scout-mcp @wong2/mcp-cli @modelcontextprotocol/server-brave-search
 
 # 2. Create a virtual environment
 # Using /opt/ is a standard practice for self-contained application software
@@ -61,6 +61,8 @@ RUN python -m pip install --upgrade pip && \
     PyPDF2 weasyprint reportlab pdfkit langchain-community duckduckgo-search
 
 RUN pip install --upgrade chromadb
+
+RUN pip install litellm==1.67.1
 
 # The container is now configured to use the venv's python by default.
 # The CMD below is just an example. The command you provide in `docker run` will
