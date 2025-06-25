@@ -45,15 +45,16 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 
 #### MCP Servers
 
-* **`web-scout`**:
-    * `serverparams`: `{ "command": "npx", "args": ["-y", "@pinkpixel/web-scout-mcp"] }`
-    * **Description**: This mcp server is a powerful information retrieval tool that can both search the web and extract content from specific webpages. It utilizes the DuckDuckGo search engine to conduct web searches for any given query and can return a specified number of results. Additionally, it has the capability to fetch and extract the full content from one or multiple URLs.
+* **`brave`**:
+    * `serverparams`: `{ "command": "npx", "args": [ "-y", "@modelcontextprotocol/server-brave-search" ], "env": { "BRAVE_API_KEY": "BRAVE_API_KEY" } }`
+    * **Description**: This tool uses the Brave Search API to perform comprehensive web searches for general information and to find local businesses with detailed information like ratings and addresses, automatically falling back to a web search for non-location-specific queries or if no local results are found.
 * **`excel-stdio`**:
     * `serverparams`: `{ "command": "uvx", "args": ["excel-mcp-server", "stdio"] }`
     * **Description**: This MCP server is designed to handle Excel files, allowing for reading and writing operations directly from standard input/output. It supports various Excel file formats and can be used to manipulate spreadsheet data programmatically.
 * **`mcp-pandoc`**:
     * `serverparams`: `{ "command": "python", "args": ["/workspace/mcp/mcp_pandadoc_converter.py"] }`
     * **Description**: Converts a document from one format to another using Pandoc by taking a source `input_path` and a destination `output_path`, returning a string message indicating the result. The desired output format is automatically inferred from the output file's extension. Supported input formats include biblatex, bibtex, commonmark, creole, csljson, csv, docbook, docx, dokuwiki, endnotexml, epub, fb2, gfm, haddock, html, ipynb, jats, jira, json, latex, markdown, markdown_mmd, markdown_phpextra, markdown_strict, mediawiki, man, muse, native, odt, opml, org, ris, rst, rtf, t2t, textile, tikiwiki, tsv, twiki, and vimwiki. Supported output formats include asciidoc, beamer, commonmark, context, csljson, docbook, docx, dokuwiki, dzslides, epub, fb2, gfm, haddock, html, icml, ipynb, jats, jira, json, latex, man, markdown, markdown_mmd, markdown_phpextra, markdown_strict, mediawiki, ms, muse, native, odt, opml, opendocument, org, pdf, plain, pptx, revealjs, rst, rtf, s5, slidy, slideous, tei, texinfo, textile, xwiki, and zimwiki.
+
 ---
 
 **'Design-Crew-Architecture-Plan' - JSON Schema:**
@@ -126,10 +127,8 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         * `tool_id` (String): A unique identifier for this specific tool instance (e.g., "web_search_tool", "web_scout_adapter"). This acts as the primary identifier for the tool.
         * `class_name` (String): The exact Python class name to instantiate. **This must be a verbatim, up-to-date class name from the `crewai_tools` library.**
         * `initialization_params` (Object, Optional): Constructor parameters for the tool.
-            **CRITICAL RULE for Embedding-Supported Tools:** If `design_metadata.is_custom_embedding_supported` is `True` and `crew_memory.activation` is `True`, this object MUST contain a `config` key. The `config` object must be structured with two keys: `llm` and `embedder`.
-                - The `llm` object must be built using the details from the `llm_registry` entry matching `design_metadata.tool_llm_specification.llm_id`. It must have a google `provider` and model = "gemini/gemini-2.0-flash-lite" and a `config` sub-object containing `model`, `temperature`, and `api_key`.
-                - The `embedder` object must be a direct copy of the `crew_memory.embedder_config` object.
             **CRITICAL RULE for MCP Servers:** If using an MCP Server, the `class_name` MUST be `MCPServerAdapter`. The `initialization_params` object MUST contain a single key: `serverparams`. This `serverparams` object must contain two keys: `command` (String) and `args` (Array of Strings), which define how to run the MCP server process.
+            **CRITICAL RULE for Embedding-Supported Tools:** If `design_metadata.is_custom_embedding_supported` is `true` and `crew_memory.activation` is `true`, the `initialization_params` object should be left empty (`{}`). The script generation phase will automatically use the global `rag_config`. For all other tools, specify parameters as needed.
 
 * `custom_tool_definitions` (Array of Objects):
     * `class_definition_args` (Object):
