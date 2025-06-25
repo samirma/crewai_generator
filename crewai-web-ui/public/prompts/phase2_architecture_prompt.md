@@ -96,13 +96,13 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         [
           {
             "design_metadata": {
-              "llm_id": "gemini_1_5_flash_reasoner",
+              "llm_id": "gemini-2.5-flash_reasoner",
               "reasoner": true,
               "multimodal_support": true,
               "rationale": "A high-performance, cost-effective model from Google, excellent for complex reasoning, long-context understanding, and multimodal tasks. Ideal for manager agents or agents requiring deep analysis."
             },
             "constructor_args": {
-              "model": "gemini/gemini-1.5-flash",
+              "model": "gemini/gemini-2.5-flash",
               "temperature": 0.0,
               "frequency_penalty": 0.0,
               "presence_penalty": 0.0,
