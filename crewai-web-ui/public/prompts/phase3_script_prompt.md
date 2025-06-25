@@ -35,7 +35,7 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerA
 
 **API Key Access:**
 
-  * Use `os.getenv("YOUR_API_KEY_NAME")` for all API keys, such as "GEMINI\_API\_KEY", "DEEPSEEK\_API\_KEY", and "BRAVE\_API\_KEY". The "YOUR\_API\_KEY\_NAME" string comes from properties like `api_key` in the `llm_registry` or the `env` block of MCP servers. **NO HARDCODED SECRETS.**
+  * Use `os.getenv("YOUR_API_KEY_NAME")` for all API keys, such as "GEMINI\_API\_KEY", "DEEPSEEK\_API\_KEY", and "BRAVE\_API\_KEY". The "YOUR\_API\_KEY\_NAME" string comes from properties like `api_key` in the `constructor_args` of the `llm_registry` or the `env` block of MCP servers. **NO HARDCODED SECRETS.**
   * Retrieve the OLLAMA\_HOST using `os.getenv("OLLAMA_HOST", "localhost:11434")` and store it in a variable.
 
 **LLM Instantiation:**
