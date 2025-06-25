@@ -1,4 +1,3 @@
-
 **Script Structure & Content Requirements:**
 
 * **Self-Correction:** The output will be a valid and working python script
@@ -9,15 +8,15 @@
 import os
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv()) # MUST BE CALLED EARLY
-````
+```
 
 **Core Imports:**
 
   * Based on the input JSON, import all necessary libraries.
   * For all tools specified in `tool_repository`, import the class specified in `constructor_args.class_name` directly from `crewai_tools`.
   * Import `MCPServerAdapter` from `crewai_tools` and `StdioServerParameters` from `mcp` if any tool uses the `MCPServerAdapter` class.
-  * Uncomment `from crewai.tools import BaseTool` if `custom_tool_definitions` exists and is not empty in the JSON.
-  * Uncomment `from typing import Type, List, Optional` for advanced type hinting if needed.
+  * **UNCOMMENT** `from crewai.tools import BaseTool` if `custom_tool_definitions` exists and is not empty in the JSON.
+  * **UNCOMMENT** `from typing import Type, List, Optional` for advanced type hinting if needed.
 
 
 ```python
@@ -60,6 +59,17 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerA
           * The `llm` value must be a fixed dictionary for a local provider: `{ "provider": "ollama", "config": { "model": "llama3:instruct", "temperature": 0.0 } }`.
           * The `embedder` value must be the `embedder_config` variable created in the previous step.
 
+**Custom Tool Definitions:**
+
+  * **If the `custom_tool_definitions` array exists and is not empty:**
+    * Iterate through the `custom_tool_definitions` list.
+    * For each object, generate a Python class definition.
+    * The class MUST inherit from `BaseTool`.
+    * The class name MUST be the `class_name` from `class_definition_args`.
+    * The class attributes `name` and `description` MUST be set from `name_attribute` and `description_attribute`.
+    * The `_run` method signature must be generated from `run_method_parameters`, including type hints.
+    * The body of the `_run` method MUST be the code from `run_method_logic`.
+
 **Tool Instantiation:**
 
   * Iterate through the `tool_repository` list in the JSON.
@@ -67,6 +77,8 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerA
       * The Python variable name for the tool instance MUST be the `tool_id` from the `constructor_args` object.
       * **CRITICAL**: Before each tool instantiation line, insert the `tool_selection_justification` from the `design_metadata` object as a Python comment (`#`).
       * The class to instantiate is specified in `class_name` within `constructor_args`.
+      * **If `design_metadata.is_custom_tool` is `true`:**
+          * Instantiate the custom tool class that was just defined.
       * **If `design_metadata.is_custom_embedding_supported` is `true` AND `crew_memory.activation` is `true`:**
           * Instantiate the tool by passing the pre-defined `rag_config` variable to its `config` parameter (e.g., `tool_instance = PDFSearchTool(config=rag_config)`).
       * **If `class_name` is `MCPServerAdapter`:**
@@ -112,19 +124,30 @@ if __name__ == "__main__":
     # Analyze the Blueprint and the 'task_roster' to determine if the crew's kickoff requires initial inputs.
     # If the first task description implies it needs data to start, define an 'inputs' dictionary.
     # For example: inputs = {'blueprint_file_path': 'path/to/your/blueprint.md'}
-    # Then, call your_crew_instance.kickoff(inputs=inputs)
-    results = your_crew_instance.kickoff()
-    print("\n## Crew Operation Complete.")
-    print("Final Results:")
-    print(results)
+    
+    try:
+        # If inputs are needed:
+        # results = your_crew_instance.kickoff(inputs=inputs)
+        
+        # If no inputs are needed:
+        results = your_crew_instance.kickoff()
+        
+        print("\n## Crew Operation Complete.")
+        print("Final Results:")
+        print(results)
 
-    # To verify the final output, identify the task in the 'task_roster' that is responsible for
-    # creating the final deliverable (e.g., a task using FileWriterTool).
-    # Use the expected output filename from that task's description or expected_output field.
-    # For example: final_deliverable_filename = "final_report.md"
-    #
-    # if final_deliverable_filename and os.path.exists(final_deliverable_filename):
-    #    print(f"\nDeliverable '{final_deliverable_filename}' generated successfully.")
-    # else:
-    #    print(f"\nDeliverable file '{final_deliverable_filename}' was expected but not found.")
+        # To verify the final output, identify the task in the 'task_roster' that is responsible for
+        # creating the final deliverable (e.g., a task using FileWriterTool).
+        # Use the expected output filename from that task's description or expected_output field.
+        # For example: final_deliverable_filename = "final_report.md"
+        #
+        # if final_deliverable_filename and os.path.exists(final_deliverable_filename):
+        #    print(f"\nDeliverable '{final_deliverable_filename}' generated successfully.")
+        # else:
+        #    print(f"\nDeliverable file '{final_deliverable_filename}' was expected but not found.")
+
+    except Exception as e:
+        print(f"\n## CREW EXECUTION HALTED: An error occurred during the process.")
+        print(f"Error details: {e}")
+
 ```
