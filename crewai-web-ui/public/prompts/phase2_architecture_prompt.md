@@ -4,7 +4,7 @@ Use this document as a blueprint to achieve the goal described in the initial in
 
 The design process must follow a logical, top-down cascade to ensure robustness and internal consistency. Key considerations include:
 
-*   **Self-Correction & Failure Handling:** The architecture must include agents and tasks dedicated to quality assurance and critique. A critical component is a validation step that can **halt the entire crew execution** if a task's output is fundamentally incorrect, preventing the propagation of errors.
+*   **Self-Correction:** The architecture must include agents and tasks dedicated to quality assurance and critique, ensuring the final output meets the highest standards.
 *   **Clarity for Code Generation:** The design must strictly separate parameters intended for Python class constructors (`constructor_args`) from the contextual justification and rationale for those parameters (`design_metadata`).
 *   **Output Format:** You will ONLY output this JSON object. Your entire response must be the JSON object itself, without any preceding or succeeding text.
 
@@ -96,13 +96,13 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         [
           {
             "design_metadata": {
-              "llm_id": "gemini-2.5-flash_reasoner",
+              "llm_id": "gemini/gemini-2.5-flash",
               "reasoner": true,
               "multimodal_support": true,
               "rationale": "A high-performance, cost-effective model from Google, excellent for complex reasoning, long-context understanding, and multimodal tasks. Ideal for manager agents or agents requiring deep analysis."
             },
             "constructor_args": {
-              "model": "gemini/gemini-2.5-flash",
+              "llm_id": "gemini/gemini-2.5-flash",
               "temperature": 0.0,
               "frequency_penalty": 0.0,
               "presence_penalty": 0.0,
@@ -131,7 +131,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         ]
         ```
 
-*   `agent_cadre` (Array of Objects): Each object represents an agent. The structure separates constructor arguments from design rationale. **A `Quality_Assurance_Validator` agent should be included if any task requires strict validation before proceeding.**
+*   `agent_cadre` (Array of Objects): Each object represents an agent. The structure separates constructor arguments from design rationale.
     *   `design_metadata` (Object): Contains contextual information and justifications, not used for code generation.
         *   `multimodal` (Boolean): `True` ONLY if this agent needs to process both text and images.
         *   `llm_rationale` (String): Justification for the chosen `llm_id`. If `multimodal` is `True`, this rationale MUST confirm the selected model has `multimodal_support=True`. It should also reference the model's 'reasoner' capability.
@@ -162,26 +162,25 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
             **CRITICAL RULE for MCP Servers:** If using an MCP Server, the `class_name` MUST be `MCPServerAdapter`. The `initialization_params` object MUST contain a single key: `serverparams`. This `serverparams` object must contain two keys: `command` (String) and `args` (Array of Strings), which define how to run the MCP server process.
             **CRITICAL RULE for Embedding-Supported Tools:** If `design_metadata.is_custom_embedding_supported` is `true` and `crew_memory.activation` is `true`, the `initialization_params` object should be left empty (`{}`). The script generation phase will automatically use the global `rag_config`. For all other tools, specify parameters as needed.
 
-*   `custom_tool_definitions` (Array of Objects): **Use this section to define any tools where `is_custom_tool` is `True`.** This is essential for creating tools with unique functionality, such as halting execution.
+*   `custom_tool_definitions` (Array of Objects):
     *   `class_definition_args` (Object):
-        *   `class_name` (String): The desired Python class name for the tool (e.g., "HaltOnFailureTool").
-        *   `name_attribute` (String): The `name` attribute for the tool, used by the agent to invoke it (e.g., "halt_on_failure").
-        *   `description_attribute` (String): The `description` attribute for the tool, explaining its purpose to the agent.
+        *   `name_attribute` (String)
+        *   `description_attribute` (String)
         *   `run_method_parameters` (Array of Objects): Defines the parameters for the `_run` method.
-            *   `name` (String): The parameter's name (e.g., "reason").
+            *   `name` (String): The parameter's name (e.g., "url").
             *   `python_type` (String): The parameter's Python type hint (e.g., "str").
             *   `description` (String): A description for the argument.
-        *   `run_method_logic` (String): The single-line Python code to be executed inside the `_run` method. **To halt execution, this should be `raise Exception(f"Validation failed: {reason}")`.**
+        *   `run_method_logic` (String)
 
-*   `task_roster` (Array of Objects): **This is the most critical section of the design.** Adhere to the "80/20 Rule" of CrewAI development: 80% of the crew's success comes from meticulously designed tasks. Each task definition must be treated as a direct, precise set of instructions. **To ensure robustness, insert a validation task after any critical task whose failure would compromise the entire workflow.**
+*   `task_roster` (Array of Objects): **This is the most critical section of the design.** Adhere to the "80/20 Rule" of CrewAI development: 80% of the crew's success comes from meticulously designed tasks. Each task definition must be treated as a direct, precise set of instructions for a new team member who needs explicit guidance. Each object represents a task, separating design rationale from instantiation parameters.
     *   `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
         *   `task_identifier` (String): A unique name for the task, used for context linking.
         *   `quality_gate` (String): A high-level, human-readable statement of the success criteria for this task. This should answer the question: "How do we know this task was completed successfully and correctly?" It acts as a final check on the `expected_output`, ensuring it aligns with the overall goals of the project.
         *   `tool_rationale` (String, Optional): Justification for why specific tools are chosen for this task.
         *   `output_rationale` (String, Optional): Justification for using a for the output.
     *   `constructor_args` (Object): Contains only the parameters for the CrewAI `Task` class constructor.
-        *   `description` (String): **CRITICAL RULE:** This must be a highly specific, action-oriented prompt written **directly to the agent**. This is not a comment; it is the core instruction. It must use active verbs and break down the process into clear, logical steps. It should explicitly state *how* the agent should use its tools and the context it receives. **For validation tasks, this must instruct the agent to compare the context task's output against its quality gate and use the halt tool on failure.**
+        *   `description` (String): **CRITICAL RULE:** This must be a highly specific, action-oriented prompt written **directly to the agent**. This is not a comment; it is the core instruction. It must use active verbs and break down the process into clear, logical steps. It should explicitly state *how* the agent should use its tools and the context it receives.
         *   `agent` (String): The `role` of the designated agent.
-        *   `expected_output` (String): **CRITICAL RULE:** This must be a precise description of the **successful outcome** of the task. It goes beyond just naming the output artifact. It must define the **qualities, structure, and format** of the result. **For validation tasks, the expected output should be a simple confirmation of success, with the understanding that failure results in a halt, not an output.**
-        *   `tools` (Array of Strings, Optional): List of `tool_id`s from the `tool_repository`.
+        *   `expected_output` (String): **CRITICAL RULE:** This must be a precise description of the **successful outcome** of the task. It goes beyond just naming the output artifact. It must define the **qualities, structure, and format** of the result. For example, instead of "A JSON object", write "A JSON object with the keys 'summary', 'experience', and 'skills'. The 'summary' value must be a string no more than 3 sentences long and directly mention keywords from the target job description." **It must be a clear, measurable definition of 'done'.**
+        *   `tools` (Array of Strings, Optional): List of `tool_id`s from the `tool_repository`. **For MCP Servers, the agent gains access to all tools provided by the server. You must pass the `.tools` property of the adapter instance to the task, so here you should reference the `tool_id` of the adapter itself (e.g., "web_scout_adapter").**
         *   `context` (Array of Strings, Optional): List of prerequisite `task_identifier`s.

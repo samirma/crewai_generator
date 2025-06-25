@@ -122,6 +122,14 @@ This project provides a web interface to automate the process of generating and 
 docker run -it --rm --name my-python-runner -v "./workspace:/workspace" --network="host" python-runner:latest bash
 '''
 
+
+# Docker test with jupyter lab
+'''bash
+docker run -it --rm  -v "./workspace:/workspace" --network="host" -p 8888:8888 python-runner:latest jupyter lab --ip=0.0.0.0 --port=8888 --allow-root --no-browser --notebook-dir=/workspace --NotebookApp.token='' --NotebookApp.password=''
+'''
+
+http://127.0.0.1:8888/lab
+
 ## Future Enhancements
 
 *   Full integration of ChatGPT and DeepSeek LLMs.
