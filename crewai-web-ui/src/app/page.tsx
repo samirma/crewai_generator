@@ -535,6 +535,10 @@ export default function Home() {
         setSimpleMultiStepPhase1_Duration(phase1Data.duration !== undefined ? phase1Data.duration : null);
         setActualLlmOutputPrompt(phase1Data.llmOutputPromptContent || "");
 
+        // Populate Multi-Step Mode fields for Phase 1
+        setMultiStepPhase1_Input(phase1PromptValue);
+        setMultiStepPhase1_Output(phase1DataOutput || "");
+
         if (phase1DataOutput && phase1DataOutput.trim() !== "") {
           // --- Phase 2 ---
           setIsLoadingSimpleMultiStepPhase2(true);
@@ -559,6 +563,10 @@ export default function Home() {
               setSimpleMultiStepPhase2_Duration(phase2Data.duration !== undefined ? phase2Data.duration : null);
               setActualLlmOutputPrompt(phase2Data.llmOutputPromptContent || "");
 
+              // Populate Multi-Step Mode fields for Phase 2
+              setMultiStepPhase2_Input(phase2PromptValue);
+              setMultiStepPhase2_Output(phase2DataOutput || "");
+
               if (phase2DataOutput && phase2DataOutput.trim() !== "") {
                 // --- Phase 3 ---
                 setIsLoadingSimpleMultiStepPhase3(true);
@@ -582,6 +590,10 @@ export default function Home() {
                     if (phase3Data.phasedOutputs) setPhasedOutputs(phase3Data.phasedOutputs);
                     setActualLlmOutputPrompt(phase3Data.llmOutputPromptContent || "");
 
+                    // Populate Multi-Step Mode fields for Phase 3
+                    setMultiStepPhase3_Input(phase3PromptValue);
+                    setMultiStepPhase3_Output(phase3GeneratedScript || "");
+
                     if (!phase3GeneratedScript || phase3GeneratedScript.trim() === "") {
                       setError("Phase 3 failed to produce a script. Please check the logs or try again.");
                     }
@@ -593,6 +605,7 @@ export default function Home() {
                   },
                   () => { // Phase 3 onFinally
                     setIsLoadingSimpleMultiStepPhase3(false);
+                    setCurrentOperatingMode('multistep'); // Switch to Multi-Step Mode
                   }
                 );
               } else {
