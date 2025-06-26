@@ -142,9 +142,15 @@ export default function Home() {
     // scriptErrorSoundRef.current.load();
 
     // Load initialInput from cookie on component mount using helper
-    const cookieValue = getCookie('initialInstruction');
-    if (cookieValue) {
-      setInitialInput(cookieValue);
+    const initialInstructionCookie = getCookie('initialInstruction');
+    if (initialInstructionCookie) {
+      setInitialInput(initialInstructionCookie);
+    }
+
+    // Load llmModelSelection from cookie
+    const llmModelCookie = getCookie('llmModelSelection');
+    if (llmModelCookie) {
+      setLlmModel(llmModelCookie);
     }
   }, []); // Empty dependency array ensures this runs only on mount
 
@@ -291,6 +297,7 @@ export default function Home() {
 
   const handleMultiStepPhaseExecution = async (phase: number) => {
     setCookie('initialInstruction', initialInput, 30); // Persist initial input
+    setCookie('llmModelSelection', llmModel, 30); // Persist LLM model selection
     if (!llmModel) {
       setError("Please select an LLM model.");
       return;
@@ -470,6 +477,7 @@ export default function Home() {
 
   const handleSimpleModeSubmit = async () => {
     setCookie('initialInstruction', initialInput, 30);
+    setCookie('llmModelSelection', llmModel, 30); // Persist LLM model selection
     if (!llmModel) {
       setError("Please select an LLM model.");
       return;
@@ -492,6 +500,7 @@ export default function Home() {
 
   const handleSimpleModeMultiStepSubmit = async () => {
     setCookie('initialInstruction', initialInput, 30);
+    setCookie('llmModelSelection', llmModel, 30); // Persist LLM model selection
     if (!llmModel) {
       setError("Please select an LLM model.");
       return;
@@ -616,6 +625,7 @@ export default function Home() {
 
   const handleRunPhase = async (phase: number) => {
     setCookie('initialInstruction', initialInput, 30);
+    setCookie('llmModelSelection', llmModel, 30); // Persist LLM model selection
     if (!llmModel) {
       setError("Please select an LLM model.");
       return;
