@@ -120,11 +120,28 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
             },
             "constructor_args": {
               "model": "deepseek/deepseek-chat",
-              "temperature": 0.2,
+              "temperature": 0.0,
               "frequency_penalty": 0.0,
               "presence_penalty": 0.0,
               "timeout": 600,
               "max_tokens": 8000,
+              "api_key": "DEEPSEEK_API_KEY"
+            }
+          },
+          {
+            "design_metadata": {
+              "llm_id": "deepseek_reasoner",
+              "reasoner": false,
+              "multimodal_support": false,
+              "rationale": "A high-performance, cost-effective model from DeepSeek, excellent for complex reasoning, long-context understanding, and multimodal tasks. Ideal for manager agents or agents requiring deep analysis."
+            },
+            "constructor_args": {
+              "model": "deepseek/deepseek-reasoner",
+              "temperature": 0.0,
+              "frequency_penalty": 0.0,
+              "presence_penalty": 0.0,
+              "timeout": 600,
+              "max_tokens": 64000,
               "api_key": "DEEPSEEK_API_KEY"
             }
           }
@@ -141,6 +158,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         *   `goal` (String): A single, focused sentence describing the agent's primary objective and what it is responsible for.
         *   `backstory` (String): A narrative that reinforces the agent's expertise and persona, giving it context and personality. This should align with its role and goal.
         *   `llm_id` (String): The identifier of the LLM to be used by this agent, referencing an entry in the `llm_registry`.
+        *   `tools` (Array of Strings, Optional): List of `tool_id`s from the `tool_repository` that this agent is equipped with. **For MCP Servers, the agent gains access to all tools provided by the server. You must reference the `tool_id` of the adapter itself (e.g., "web_scout_adapter").**
         *   `allow_delegation` (Boolean): `True` or `False`.
 
 *   `tool_repository` (Array of Objects): Each object defines a unique tool to be instantiated, separating design rationale from instantiation parameters.
@@ -172,15 +190,15 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
             *   `description` (String): A description for the argument.
         *   `run_method_logic` (String)
 
-*   `task_roster` (Array of Objects): **This is the most critical section of the design.** Adhere to the "80/20 Rule" of CrewAI development: 80% of the crew's success comes from meticulously designed tasks. Each task definition must be treated as a direct, precise set of instructions for a new team member who needs explicit guidance. Each object represents a task, separating design rationale from instantiation parameters.
+*   `task_roster` (Array of Objects): **This is the most critical section of the design.** Each task definition must be treated as a direct, precise set of instructions for a new team member who needs explicit guidance. Each object represents a task, separating design rationale from instantiation parameters.
     *   `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
         *   `task_identifier` (String): A unique name for the task, used for context linking.
         *   `quality_gate` (String): A high-level, human-readable statement of the success criteria for this task. This should answer the question: "How do we know this task was completed successfully and correctly?" It acts as a final check on the `expected_output`, ensuring it aligns with the overall goals of the project.
-        *   `tool_rationale` (String, Optional): Justification for why specific tools are chosen for this task.
+        *   `tool_rationale` (String, Optional): Justification for why the assigned agent needs specific tools to complete this task.
         *   `output_rationale` (String, Optional): Justification for using a for the output.
     *   `constructor_args` (Object): Contains only the parameters for the CrewAI `Task` class constructor.
-        *   `description` (String): **CRITICAL RULE:** This must be a highly specific, action-oriented prompt written **directly to the agent**. This is not a comment; it is the core instruction. It must use active verbs and break down the process into clear, logical steps. It should explicitly state *how* the agent should use its tools and the context it receives.
+        *   `description` (String): **CRITICAL RULE:** This must be a highly specific, action-oriented prompt written **directly to the agent**. This is not a comment; it is the core instruction. It must use active verbs and break down the process into clear, logical steps. It should explicitly state *how* the agent should use its tools and the context it receives. **Crucially, if the task's ultimate goal is to create a file, the final step in the description MUST be an unambiguous command to use the file-writing tool to save the generated content to a specific file path.** For example: "...Finally, you MUST use the `file_writer_tool` to save this content to `{output_path}`."
         *   `agent` (String): The `role` of the designated agent.
-        *   `expected_output` (String): **CRITICAL RULE:** This must be a precise description of the **successful outcome** of the task. It goes beyond just naming the output artifact. It must define the **qualities, structure, and format** of the result. For example, instead of "A JSON object", write "A JSON object with the keys 'summary', 'experience', and 'skills'. The 'summary' value must be a string no more than 3 sentences long and directly mention keywords from the target job description." **It must be a clear, measurable definition of 'done'.**
-        *   `tools` (Array of Strings, Optional): List of `tool_id`s from the `tool_repository`. **For MCP Servers, the agent gains access to all tools provided by the server. You must pass the `.tools` property of the adapter instance to the task, so here you should reference the `tool_id` of the adapter itself (e.g., "web_scout_adapter").**
+        *   `expected_output` (String): **CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed. It must define success in terms of a tangible, verifiable outcome.
+            > **For tasks that create files:** The description MUST start by confirming the file's creation. Instead of describing only the content (e.g., "A JSON object..."), it must be phrased as: "**A file named `{file_path}` is successfully created in the file system.** The content of this file must be a {description of content, e.g., 'valid JSON object with the keys `summary`, `experience`, and `skills`'}." This makes the physical existence of the file the primary success criterion.
         *   `context` (Array of Strings, Optional): List of prerequisite `task_identifier`s.

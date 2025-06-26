@@ -1,4 +1,3 @@
-
 **Script Structure & Content Requirements:**
 
 * **Self-Correction:** The output will be a valid and working python script
@@ -82,6 +81,7 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerA
       * The variable name MUST be the agent's `role` (from `constructor_args`), formatted as a valid Python variable name (e.g., "Financial Analyst" becomes `financial_analyst_agent`).
       * Instantiate the `Agent` using the keys from the `constructor_args` object.
       * Assign the correct pre-instantiated LLM variable to the `llm` parameter.
+      * **CRITICAL for Tool Lists**: Create a Python list for the agent's tools. For standard tools, use the tool instance variable. For `MCPServerAdapter` tools, you MUST unpack the adapter's `.tools` property into the list (e.g., `tools=[*brave_search_adapter.tools, file_writer_tool]`). Assign this list to the `tools` parameter of the `Agent` constructor.
 
 **Task Definitions:**
 
@@ -137,5 +137,4 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n## CREW EXECUTION HALTED: An error occurred during the process.")
         print(f"Error details: {e}")
-
 ```
