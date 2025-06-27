@@ -605,7 +605,6 @@ export default function Home() {
                   },
                   () => { // Phase 3 onFinally
                     setIsLoadingSimpleMultiStepPhase3(false);
-                    setCurrentOperatingMode('multistep'); // Switch to Multi-Step Mode
                   }
                 );
               } else {

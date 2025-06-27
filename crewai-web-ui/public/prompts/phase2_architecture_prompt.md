@@ -102,7 +102,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
               "rationale": "A high-performance, cost-effective model from Google, excellent for complex reasoning, long-context understanding, and multimodal tasks. Ideal for manager agents or agents requiring deep analysis."
             },
             "constructor_args": {
-              "llm_id": "gemini/gemini-2.5-flash",
+              "model": "gemini/gemini-2.5-flash",
               "temperature": 0.0,
               "frequency_penalty": 0.0,
               "presence_penalty": 0.0,

@@ -66,9 +66,8 @@ RUN python -m pip install --upgrade pip && \
     langchain-community \
     duckduckgo-search
 
-RUN pip install --upgrade chromadb
+RUN pip install --upgrade chromadb crewai
 
-RUN pip install litellm==1.67.1
 
 # The container is now configured to use the venv's python by default.
 # The CMD below is just an example. The command you provide in `docker run` will
