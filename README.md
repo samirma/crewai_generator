@@ -130,6 +130,20 @@ docker run -it --rm  -v "./workspace:/workspace" --network="host" -p 8888:8888 p
 
 http://127.0.0.1:8888/lab
 
+
+
+Context:
+'''
+
+This describes a sequential, multi-phase development pipeline for generating a CrewAI application.
+Phase 1 (phase1_blueprint_prompt.md): This initial prompt is designed to produce a comprehensive 'Detailed Instruction Document' or 'Blueprint'. It focuses on defining the objective, process flow, and success criteria for a given task.
+Phase 2 (phase2_architecture_prompt.md): The 'Blueprint' generated in Phase 1 serves as the primary input for this prompt. Its purpose is to translate the high-level instructions into a structured 'CrewAI Architecture Design Blueprint' (a detailed JSON object), specifying agents, tasks, tools, and workflow.
+Phase 3 (phase3_script_prompt.md): The 'CrewAI Architecture Design Blueprint' (JSON) from Phase 2 is then used as the input for this final prompt. Its objective is to generate a complete, executable Python script that implements the designed CrewAI application.
+Result: This cascading process ensures a robust, well-defined, and automatically generated Python script, moving from high-level requirements to a concrete implementation.
+
+'''
+
+
 ## Future Enhancements
 
 *   Full integration of ChatGPT and DeepSeek LLMs.

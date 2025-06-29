@@ -61,11 +61,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 **'Design-Crew-Architecture-Plan' - JSON Schema:**
 
 *   `workflow_process` (Object):
-    *   `selected_process` (String): "Process.sequential" OR "Process.hierarchical".
-    *   `justification` (String): Explanation of why this process is optimal, referencing the specific steps in the Blueprint's Execution Outline.
-    *   `manager_llm_specification` (Object, Optional): Required if `selected_process` is "Process.hierarchical".
-        *   `llm_id` (String): The identifier for the manager's LLM, chosen from the `llm_registry`.
-        *   `rationale` (String): Justification for this manager LLM choice, referencing its capabilities (e.g., 'reasoner') from the `llm_registry`.
+    *   `selected_process` (String): "Process.sequential".
 
 *   `crew_memory` (Object, Optional):
     *   `activation` (Boolean): `True` to enable memory.
@@ -144,6 +140,24 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
               "max_tokens": 64000,
               "api_key": "DEEPSEEK_API_KEY"
             }
+          },
+          {
+            "design_metadata": {
+              "llm_id": "local_llma_cpp_model",
+              "reasoner": false,
+              "multimodal_support": false,
+              "rationale": "A high-performance, cost-effective model from llma_cpp, excellent for complex reasoning, long-context understanding, and multimodal tasks. Ideal for manager agents or agents requiring deep analysis."
+            },
+            "constructor_args": {
+              "model": "openai/qwen2.5-7b-or-not",
+              "base_url": "http://127.0.0.1:8080/v1/",
+              "temperature": 0.0,
+              "frequency_penalty": 0.0,
+              "presence_penalty": 0.0,
+              "timeout": 600,
+              "max_tokens": 64000,
+              "api_key": ""
+            }
           }
         ]
         ```
@@ -193,12 +207,17 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 *   `task_roster` (Array of Objects): **This is the most critical section of the design.** Each task definition must be treated as a direct, precise set of instructions for a new team member who needs explicit guidance. Each object represents a task, separating design rationale from instantiation parameters.
     *   `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
         *   `task_identifier` (String): A unique name for the task, used for context linking.
+        *   **`blueprint_reference` (String): The `step_id` from the Phase 1 Blueprint's 'Logical Steps' that this task implements. This is mandatory for traceability.**
+        *   **`blueprint_step_action` (String): A direct copy of the 'Action' from the corresponding blueprint step.**
+        *   **`blueprint_step_success_criteria` (String): A direct copy of the 'Success Criteria for this step' from the corresponding blueprint step.**
+        *   **`blueprint_step_error_handling` (String): A direct copy of the 'Error Handling & Edge Cases' from the corresponding blueprint step.**
         *   `quality_gate` (String): A high-level, human-readable statement of the success criteria for this task. This should answer the question: "How do we know this task was completed successfully and correctly?" It acts as a final check on the `expected_output`, ensuring it aligns with the overall goals of the project.
         *   `tool_rationale` (String, Optional): Justification for why the assigned agent needs specific tools to complete this task.
         *   `output_rationale` (String, Optional): Justification for using a for the output.
     *   `constructor_args` (Object): Contains only the parameters for the CrewAI `Task` class constructor.
-        *   `description` (String): **CRITICAL RULE:** This must be a highly specific, action-oriented prompt written **directly to the agent**. This is not a comment; it is the core instruction. It must use active verbs and break down the process into clear, logical steps. It should explicitly state *how* the agent should use its tools and the context it receives. **Crucially, if the task's ultimate goal is to create a file, the final step in the description MUST be an unambiguous command to use the file-writing tool to save the generated content to a specific file path.** For example: "...Finally, you MUST use the `file_writer_tool` to save this content to `{output_path}`."
+        *   `description` (String): **CRITICAL RULE:** This must be a highly specific, action-oriented prompt written **directly to the agent**. This is not a comment; it is the core instruction. It must be a synthesis of the `blueprint_step_action`, incorporating guidance on how to handle potential issues from `blueprint_step_error_handling`. It must use active verbs and break down the process into clear, logical steps. It should explicitly state *how* the agent should use its tools and the context it receives. **Crucially, if the task's ultimate goal is to create a file, the final step in the description MUST be an unambiguous command to use the file-writing tool to save the generated content to a specific file path.** For example: "...Finally, you MUST use the `file_writer_tool` to save this content to `{output_path}`."
         *   `agent` (String): The `role` of the designated agent.
-        *   `expected_output` (String): **CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed. It must define success in terms of a tangible, verifiable outcome.
+        *   `expected_output` (String): **CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed. It must be directly derived from the `blueprint_step_success_criteria`. It must define success in terms of a tangible, verifiable outcome.
             > **For tasks that create files:** The description MUST start by confirming the file's creation. Instead of describing only the content (e.g., "A JSON object..."), it must be phrased as: "**A file named `{file_path}` is successfully created in the file system.** The content of this file must be a {description of content, e.g., 'valid JSON object with the keys `summary`, `experience`, and `skills`'}." This makes the physical existence of the file the primary success criterion.
         *   `context` (Array of Strings, Optional): List of prerequisite `task_identifier`s.
+        * `tools` (Array of Strings, Optional): List of tool_ids from the tool_repository. For MCP Servers, the agent gains access to all tools provided by the server. You must pass the .tools property of the adapter instance to the task, so here you should reference the tool_id of the adapter itself (e.g., "web_scout_adapter").

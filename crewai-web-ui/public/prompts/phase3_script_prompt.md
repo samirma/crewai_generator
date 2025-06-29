@@ -113,28 +113,9 @@ if __name__ == "__main__":
     # If the first task description implies it needs data to start, define an 'inputs' dictionary.
     # For example: inputs = {'blueprint_file_path': 'path/to/your/blueprint.md'}
     
-    try:
-        # If inputs are needed:
-        # results = your_crew_instance.kickoff(inputs=inputs)
-        
-        # If no inputs are needed:
-        results = your_crew_instance.kickoff()
-        
-        print("\n## Crew Operation Complete.")
-        print("Final Results:")
-        print(results)
-
-        # To verify the final output, identify the task in the 'task_roster' that is responsible for
-        # creating the final deliverable (e.g., a task using FileWriterTool).
-        # Use the expected output filename from that task's description or expected_output field.
-        # For example: final_deliverable_filename = "final_report.md"
-        #
-        # if final_deliverable_filename and os.path.exists(final_deliverable_filename):
-        #    print(f"\nDeliverable '{final_deliverable_filename}' generated successfully.")
-        # else:
-        #    print(f"\nDeliverable file '{final_deliverable_filename}' was expected but not found.")
-
-    except Exception as e:
-        print(f"\n## CREW EXECUTION HALTED: An error occurred during the process.")
-        print(f"Error details: {e}")
+    # If inputs are needed:
+    # results = your_crew_instance.kickoff(inputs=inputs)
+    
+    # If no inputs are needed:
+    results = your_crew_instance.kickoff()
 ```
