@@ -71,13 +71,32 @@ export async function executePythonScript(scriptContent: string): Promise<Execut
     console.log(`Attempting to build Docker image '${imageName}' from ${projectRoot}/python-runner`);
     try {
       await new Promise<void>((resolve, reject) => {
-        exec(`docker build -t ${imageName} ./python-runner`, { cwd: projectRoot }, (err, stdout, stderr) => {
-          if (err) {
-            console.error(`Error building ${imageName} image:`, stderr);
-            return reject(new Error(`Failed to build ${imageName}: ${stderr}`));
+        const command = 'docker';
+        const args = ['build', '-t', imageName, './python-runner'];
+        const options = { cwd: projectRoot, stdio: 'pipe' as const }; // stdio: 'pipe' is important for capturing output
+
+        const child = exec(command + ' ' + args.join(' '), options);
+
+        child.stdout?.on('data', (data) => {
+          process.stdout.write(data); // Stream stdout directly
+        });
+
+        child.stderr?.on('data', (data) => {
+          process.stderr.write(data); // Stream stderr directly
+        });
+
+        child.on('close', (code) => {
+          if (code !== 0) {
+            console.error(`Docker build process exited with code ${code}`);
+            return reject(new Error(`Failed to build ${imageName}: process exited with code ${code}`));
           }
-          console.log(`${imageName} image build process output:`, stdout);
+          console.log(`${imageName} image build completed successfully.`);
           resolve();
+        });
+
+        child.on('error', (err) => {
+          console.error(`Error executing docker build:`, err);
+          reject(err);
         });
       });
     } catch (buildError: any) {
