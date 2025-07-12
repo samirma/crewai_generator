@@ -49,6 +49,7 @@ RUN python -m pip install --upgrade pip && \
     python -m pip install --no-cache-dir \
     uv \
     mcp \
+    zeroconf \
     fastmcp  \
     pypandoc \
     crewai \
