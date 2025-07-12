@@ -43,15 +43,9 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 
 #### MCP Servers
 
-*   **`DuckDuckGo`**:
-    *   `web-scout`: `{ "command": "npx", "args": ["-y", "@pinkpixel/web-scout-mcp"]}`
-    *   **Description**: Initiates a web search query using the DuckDuckGo search engine and returns a well-structured list of findings. Input the keywords, question, or topic you want to search for using DuckDuckGo as your query. Input the maximum number of search entries you'd like to receive using maxResults - defaults to 10 if not provided. Fetches and extracts content from a given webpage URL. Input the URL of the webpage you want to extract content from as a string using the url parameter. You can also input an array of URLs to fetch content from multiple pages at once.
-*   **`OneSearch`**:
-    *   `serverparams`: `{ "command": "npx", "args": ["-y", "one-search-mcp"],"env": {"SEARCH_PROVIDER": "searxng", "SEARCH_API_URL": "https://etsi.me/"} }`
-    *   **Description**: The provided tools include one_search for retrieving web content and SERP results.
-*   **`brave`**:
-    *   `serverparams`: `{ "command": "npx", "args": [ "-y", "@modelcontextprotocol/server-brave-search" ], "env": { "BRAVE_API_KEY": "BRAVE_API_KEY" } }`
-    *   **Description**: This tool uses the Brave Search API to perform comprehensive web searches for general information and to find local businesses with detailed information like ratings and addresses, automatically falling back to a web search for non-location-specific queries or if no local results are found.
+*   **`mcp-local-seaxng`**:
+    *   `serverparams`: `{ "command": "python", "args": ["/workspace/mcp/mcp_searxng.py"] }`
+    *   **Description**: This tool performs a web search based on a text query and an optional pageno for pagination. It returns a JSON formatted list of search results, with each result containing its url, title, and a content snippet. This snippet serves as a preview; a full scrape of the URL should be performed to retrieve the complete content of the page.
 *   **`time-stdio`**:
     *   `serverparams`: `{   "command": "uvx",  "args": ["mcp-server-time"]    }`
     *   **Description**: The Time MCP Server integrates with LLMs to provide accurate time information and timezone conversion capabilities. This server uses IANA timezone names and can automatically detect your system's timezone, allowing AI models to work with real-time temporal data.
