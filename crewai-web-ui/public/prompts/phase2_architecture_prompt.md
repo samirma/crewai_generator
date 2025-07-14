@@ -45,7 +45,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 
 *   **`mcp-local-seaxng`**:
     *   `serverparams`: `{ "command": "python", "args": ["/workspace/mcp/mcp_searxng.py"] }`
-    *   **Description**: This tool performs a web search based on a text query and an optional pageno for pagination. It returns a JSON formatted list of search results, with each result containing its url, title, and a content snippet. This snippet serves as a preview; a full scrape of the URL should be performed to retrieve the complete content of the page.
+    *   **Description**: This tool performs a web search based on a text query and an optional pageno for pagination. It returns a JSON formatted list of search results, with each result containing its url, title, and a only a snippet of the content. A scrape tool is required to get more information from each result.
 *   **`time-stdio`**:
     *   `serverparams`: `{   "command": "uvx",  "args": ["mcp-server-time"]    }`
     *   **Description**: The Time MCP Server integrates with LLMs to provide accurate time information and timezone conversion capabilities. This server uses IANA timezone names and can automatically detect your system's timezone, allowing AI models to work with real-time temporal data.
