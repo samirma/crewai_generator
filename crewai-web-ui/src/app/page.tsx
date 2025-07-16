@@ -1,6 +1,7 @@
 "use client"; // Required for Next.js App Router to use client-side features like useState
 
 import { useState, useEffect, useRef } from 'react';
+import SavedPrompts from './components/SavedPrompts';
 import CopyButton from './components/CopyButton';
 import Timer from './components/Timer'; // <-- Add this line
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -14,6 +15,11 @@ import type { ExecutionResult as ExecutionResultType } from './api/execute/types
 interface Model {
   id: string;
   name: string;
+}
+
+interface Prompt {
+  title: string;
+  prompt: string;
 }
 
 interface PhasedOutput {
@@ -51,6 +57,7 @@ function getCookie(name: string): string | null {
 export default function Home() {
   const [initialInput, setInitialInput] = useState<string>("");
   const [llmModel, setLlmModel] = useState<string>("");
+  const [savedPrompts, setSavedPrompts] = useState<Prompt[]>([]);
   const [generatedScript, setGeneratedScript] = useState<string>("");
   const [executionOutput, setExecutionOutput] = useState<string>(""); // Used for simple mode's docker output
   const [isExecutingScript, setIsExecutingScript] = useState<boolean>(false);
@@ -129,7 +136,21 @@ export default function Home() {
 
   const isLlmTimerRunning = isLoading || !!isLoadingPhase[1] || !!isLoadingPhase[2] || !!isLoadingPhase[3] || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3 || isLoadingSimpleMultiStepPhase1 || isLoadingSimpleMultiStepPhase2 || isLoadingSimpleMultiStepPhase3;
 
+  const fetchSavedPrompts = async () => {
+    try {
+      const response = await fetch('/api/prompts');
+      if (!response.ok) {
+        throw new Error('Failed to fetch prompts');
+      }
+      const prompts: Prompt[] = await response.json();
+      setSavedPrompts(prompts);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   useEffect(() => {
+    fetchSavedPrompts();
     // Initialize Audio objects - only on client side
     // IMPORTANT: Replace with actual paths to your sound files in the public directory
     llmRequestFinishSoundRef.current = new Audio('/sounds/llm_finish.mp3'); // Placeholder
@@ -153,6 +174,27 @@ export default function Home() {
       setLlmModel(llmModelCookie);
     }
   }, []); // Empty dependency array ensures this runs only on mount
+
+  const handleSavePrompt = async () => {
+    const title = prompt("Enter a title for the prompt:");
+    if (title) {
+      try {
+        const response = await fetch('/api/prompts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ title, prompt: initialInput }),
+        });
+        if (!response.ok) {
+          throw new Error('Failed to save prompt');
+        }
+        fetchSavedPrompts();
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  };
 
   useEffect(() => {
     const fetchModels = async () => {
@@ -918,128 +960,136 @@ export default function Home() {
   };
 
   return (
-    <main className="container mx-auto p-6 md:p-8">
-      <h1 className="text-3xl md:text-4xl font-bold mb-10 text-center text-slate-700 dark:text-slate-200">CrewAI Studio</h1>
+    <div className="flex h-screen">
+      <SavedPrompts prompts={savedPrompts} onSelectPrompt={setInitialInput} />
+      <main className="flex-1 overflow-y-auto p-6 md:p-8">
+        <h1 className="text-3xl md:text-4xl font-bold mb-10 text-center text-slate-700 dark:text-slate-200">CrewAI Studio</h1>
 
-      {/* Operating Mode Selection */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-3 text-center text-slate-700 dark:text-slate-200">Operating Mode</h2>
-        <div className="flex items-center justify-center space-x-2 md:space-x-4">
-          {(['simple', 'advanced', 'multistep'] as const).map((mode) => (
-            <button
-              key={mode}
-              onClick={() => {
-                setCurrentOperatingMode(mode);
-                resetOutputStates(); // Reset common outputs
-                // Clear mode-specific outputs
-                if (mode === 'simple') {
-                  setPhase1Output(""); setPhase2Output(""); // Clear advanced
-                  setMultiStepPhase1_Output(""); setMultiStepPhase2_Output(""); setMultiStepPhase3_Output(""); // Clear multistep
-                } else if (mode === 'advanced') {
-                  setGeneratedScript(""); setPhasedOutputs([]); // Clear simple
-                  setMultiStepPhase1_Output(""); setMultiStepPhase2_Output(""); setMultiStepPhase3_Output(""); // Clear multistep
-                } else if (mode === 'multistep') {
-                  setGeneratedScript(""); setPhasedOutputs([]); // Clear simple
-                  setPhase1Output(""); setPhase2Output(""); // Clear advanced
-                }
-              }}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors duration-150 ease-in-out
-                ${currentOperatingMode === mode
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200'
-                }
-                focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50`}
-            >
-              {mode === 'simple' && "Simple Mode"}
-              {mode === 'advanced' && "Advanced Mode"}
-              {mode === 'multistep' && "Multi-Step Mode"}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Shared Prompt Editing Area - initialInput always visible */}
-      <div className="mb-8">
-        <label htmlFor="initialInstruction" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
-          {currentOperatingMode === 'advanced' || currentOperatingMode === 'multistep' ? "Initial User Instruction (for Phase 1)" : "Initial Instruction Input"}
-        </label>
-        <div style={{ position: 'relative' }}>
-          <textarea
-            id="initialInstruction"
-            name="initialInstruction"
-          rows={4}
-          className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
-          placeholder="Enter your initial instructions here..."
-          value={initialInput}
-          onChange={(e) => setInitialInput(e.target.value)}
-          disabled={isLoading || isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3] || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3 || isLoadingSimpleMultiStepPhase1 || isLoadingSimpleMultiStepPhase2 || isLoadingSimpleMultiStepPhase3}
-          ></textarea>
-          <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
-            <CopyButton textToCopy={initialInput} />
+        {/* Operating Mode Selection */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-3 text-center text-slate-700 dark:text-slate-200">Operating Mode</h2>
+          <div className="flex items-center justify-center space-x-2 md:space-x-4">
+            {(['simple', 'advanced', 'multistep'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => {
+                  setCurrentOperatingMode(mode);
+                  resetOutputStates(); // Reset common outputs
+                  // Clear mode-specific outputs
+                  if (mode === 'simple') {
+                    setPhase1Output(""); setPhase2Output(""); // Clear advanced
+                    setMultiStepPhase1_Output(""); setMultiStepPhase2_Output(""); setMultiStepPhase3_Output(""); // Clear multistep
+                  } else if (mode === 'advanced') {
+                    setGeneratedScript(""); setPhasedOutputs([]); // Clear simple
+                    setMultiStepPhase1_Output(""); setMultiStepPhase2_Output(""); setMultiStepPhase3_Output(""); // Clear multistep
+                  } else if (mode === 'multistep') {
+                    setGeneratedScript(""); setPhasedOutputs([]); // Clear simple
+                    setPhase1Output(""); setPhase2Output(""); // Clear advanced
+                  }
+                }}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors duration-150 ease-in-out
+                  ${currentOperatingMode === mode
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200'
+                  }
+                  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50`}
+              >
+                {mode === 'simple' && "Simple Mode"}
+                {mode === 'advanced' && "Advanced Mode"}
+                {mode === 'multistep' && "Multi-Step Mode"}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
 
-      <div className="mb-8">
-        <label htmlFor="llmModelSelect" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
-          LLM Model Selection
-        </label>
-        <select
-          id="llmModelSelect"
-          name="llmModelSelect"
-          className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 bg-white hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
-          value={llmModel}
-          onChange={(e) => setLlmModel(e.target.value)}
-          disabled={isLoading || modelsLoading || modelsError !== "" || isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3] || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3 || isLoadingSimpleMultiStepPhase1 || isLoadingSimpleMultiStepPhase2 || isLoadingSimpleMultiStepPhase3}
-        >
-          {modelsLoading && <option value="">Loading models...</option>}
-          {modelsError && <option value="">Error loading models</option>}
-          {!modelsLoading && !modelsError && availableModels.length === 0 && <option value="">No models available</option>}
-          {!modelsLoading && !modelsError && availableModels.map(model => (
-            <option
-              key={model.id}
-              value={model.id}
-              disabled={model.id === 'ollama/not-configured' || model.id === 'ollama/error'}
-            >
-              {model.name}
-            </option>
-          ))}
-        </select>
-        {modelsError && <p className="text-sm text-red-600 dark:text-red-400 mt-1">{modelsError}</p>}
-      </div>
-
-      {/* LLM Request Timer */}
-      {isLlmTimerRunning && (
-        <div className="mt-4 mb-4 p-3 border border-blue-300 dark:border-blue-700 rounded-md bg-blue-50 dark:bg-blue-900/30 shadow-sm text-center">
-          <p className="text-sm text-blue-700 dark:text-blue-300">
-            LLM Request Timer: <Timer isRunning={isLlmTimerRunning} className="inline font-semibold" />
-          </p>
+        {/* Shared Prompt Editing Area - initialInput always visible */}
+        <div className="mb-8">
+          <label htmlFor="initialInstruction" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
+            {currentOperatingMode === 'advanced' || currentOperatingMode === 'multistep' ? "Initial User Instruction (for Phase 1)" : "Initial Instruction Input"}
+          </label>
+          <div style={{ position: 'relative' }}>
+            <textarea
+              id="initialInstruction"
+              name="initialInstruction"
+              rows={4}
+              className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
+              placeholder="Enter your initial instructions here..."
+              value={initialInput}
+              onChange={(e) => setInitialInput(e.target.value)}
+              disabled={isLoading || isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3] || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3 || isLoadingSimpleMultiStepPhase1 || isLoadingSimpleMultiStepPhase2 || isLoadingSimpleMultiStepPhase3}
+            ></textarea>
+            <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '8px' }}>
+              <button
+                onClick={handleSavePrompt}
+                className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Save
+              </button>
+              <CopyButton textToCopy={initialInput} />
+            </div>
+          </div>
         </div>
-      )}
 
-      {/* LLM Request Duration Display */}
-      {llmRequestDuration !== null && !isLlmTimerRunning && (
-        <div className="mt-4 mb-4 p-3 border border-slate-300 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 shadow-sm text-center">
-          <p className="text-sm text-slate-700 dark:text-slate-300">
-            LLM request took: <span className="font-semibold">{llmRequestDuration.toFixed(2)}</span> seconds
-          </p>
+        <div className="mb-8">
+          <label htmlFor="llmModelSelect" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
+            LLM Model Selection
+          </label>
+          <select
+            id="llmModelSelect"
+            name="llmModelSelect"
+            className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 bg-white hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
+            value={llmModel}
+            onChange={(e) => setLlmModel(e.target.value)}
+            disabled={isLoading || modelsLoading || modelsError !== "" || isLoadingPhase[1] || isLoadingPhase[2] || isLoadingPhase[3] || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3 || isLoadingSimpleMultiStepPhase1 || isLoadingSimpleMultiStepPhase2 || isLoadingSimpleMultiStepPhase3}
+          >
+            {modelsLoading && <option value="">Loading models...</option>}
+            {modelsError && <option value="">Error loading models</option>}
+            {!modelsLoading && !modelsError && availableModels.length === 0 && <option value="">No models available</option>}
+            {!modelsLoading && !modelsError && availableModels.map(model => (
+              <option
+                key={model.id}
+                value={model.id}
+                disabled={model.id === 'ollama/not-configured' || model.id === 'ollama/error'}
+              >
+                {model.name}
+              </option>
+            ))}
+          </select>
+          {modelsError && <p className="text-sm text-red-600 dark:text-red-400 mt-1">{modelsError}</p>}
         </div>
-      )}
 
-      {/* Display Full Prompt Section */}
-      {actualLlmInputPrompt && (
-        <div className="mt-6 mb-8 p-4 border border-slate-300 dark:border-slate-700 rounded-lg shadow">
-          <details>
-            <summary className="text-lg font-semibold text-slate-700 dark:text-slate-200 cursor-pointer flex justify-between items-center">
-              <span>View Full Prompt Sent to LLM</span>
-              <CopyButton textToCopy={actualLlmInputPrompt} />
-            </summary>
-            <pre className="mt-2 p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
-              {actualLlmInputPrompt}
-            </pre>
-          </details>
-        </div>
-      )}
+        {/* LLM Request Timer */}
+        {isLlmTimerRunning && (
+          <div className="mt-4 mb-4 p-3 border border-blue-300 dark:border-blue-700 rounded-md bg-blue-50 dark:bg-blue-900/30 shadow-sm text-center">
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              LLM Request Timer: <Timer isRunning={isLlmTimerRunning} className="inline font-semibold" />
+            </p>
+          </div>
+        )}
+
+        {/* LLM Request Duration Display */}
+        {llmRequestDuration !== null && !isLlmTimerRunning && (
+          <div className="mt-4 mb-4 p-3 border border-slate-300 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 shadow-sm text-center">
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              LLM request took: <span className="font-semibold">{llmRequestDuration.toFixed(2)}</span> seconds
+            </p>
+          </div>
+        )}
+
+        {/* Display Full Prompt Section */}
+        {actualLlmInputPrompt && (
+          <div className="mt-6 mb-8 p-4 border border-slate-300 dark:border-slate-700 rounded-lg shadow">
+            <details>
+              <summary className="text-lg font-semibold text-slate-700 dark:text-slate-200 cursor-pointer flex justify-between items-center">
+                <span>View Full Prompt Sent to LLM</span>
+                <CopyButton textToCopy={actualLlmInputPrompt} />
+              </summary>
+              <pre className="mt-2 p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
+                {actualLlmInputPrompt}
+              </pre>
+            </details>
+          </div>
+        )}
 
     {/* Display Raw LLM Result Section */}
     {actualLlmOutputPrompt && (
@@ -1347,7 +1397,9 @@ export default function Home() {
                   <summary className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer flex justify-between items-center mb-1">
                     <span>View Output of Phase {phase}</span>
                     <CopyButton textToCopy={
-                      phase === 1 ? multiStepPhase1_Output : phase === 2 ? multiStepPhase2_Output : multiStepPhase3_Output
+                      phase === 1 ? multiStepPhase1_Output :
+                      phase === 2 ? multiStepPhase2_Output :
+                      multiStepPhase3_Output
                     } />
                   </summary>
                   <pre className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 mt-2">
@@ -1517,7 +1569,8 @@ export default function Home() {
           </div>
         </div>
       )}
-    </main>
+      </main>
+    </div>
   );
 }
 
