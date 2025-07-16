@@ -196,6 +196,26 @@ export default function Home() {
     }
   };
 
+  const handleDeletePrompt = async (title: string) => {
+    if (confirm(`Are you sure you want to delete the prompt "${title}"?`)) {
+      try {
+        const response = await fetch('/api/prompts', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ title }),
+        });
+        if (!response.ok) {
+          throw new Error('Failed to delete prompt');
+        }
+        fetchSavedPrompts();
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  };
+
   useEffect(() => {
     const fetchModels = async () => {
       setModelsLoading(true);
@@ -961,7 +981,7 @@ export default function Home() {
 
   return (
     <div className="flex h-screen">
-      <SavedPrompts prompts={savedPrompts} onSelectPrompt={setInitialInput} />
+      <SavedPrompts prompts={savedPrompts} onSelectPrompt={setInitialInput} onDeletePrompt={handleDeletePrompt} />
       <main className="flex-1 overflow-y-auto p-6 md:p-8">
         <h1 className="text-3xl md:text-4xl font-bold mb-10 text-center text-slate-700 dark:text-slate-200">CrewAI Studio</h1>
 

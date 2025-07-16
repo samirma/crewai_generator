@@ -27,3 +27,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to save prompt' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const { title } = await request.json();
+    let prompts = JSON.parse(await fs.readFile(promptsFilePath, 'utf-8'));
+    prompts = prompts.filter((p: { title: string }) => p.title !== title);
+    await fs.writeFile(promptsFilePath, JSON.stringify(prompts, null, 2));
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to delete prompt' }, { status: 500 });
+  }
+}
