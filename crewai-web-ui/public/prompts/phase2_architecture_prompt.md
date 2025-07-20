@@ -61,12 +61,13 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 **'Design-Crew-Architecture-Plan' - JSON Schema:**
 
 *   `workflow_process` (Object):
-    *   `selected_process` (String): "Process.sequential".
+    *   `rationale` (String): Justification based on the Design Blueprint detail to use CrewAI with `Process.sequential` or `Process.hierarchical`.
+    *   `selected_process` (String): `Process.sequential` OR `Process.hierarchical`.
 
-*   `crew_memory` (Object, Optional):
+*   `crew_memory` (Object):
+    *   `rationale` (String): Justification for enablding or not the support for memory in crewai.
     *   `activation` (Boolean): `True` to enable memory.
-    *   `rationale` (String, Optional): Why memory is crucial for this crew.
-    *   `embedder_config` (Object, Optional): Required if `activation` is `True`.
+    *   `embedder_config` (Object, Optional): Required if `activation` is `True` else 'False'.
         *   `provider` (String): The name of the embedding provider (e.g., "ollama").
         *   `config` (Object): Provider-specific configuration.
             *   `model` (String): The model name (e.g., "nomic-embed-text:latest").
