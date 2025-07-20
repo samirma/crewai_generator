@@ -82,6 +82,37 @@ mcp = FastMCP("SearxNG Web Search Server")
 def perform_web_search(query: str, pageno: int = 1) -> str:
     """
     Performs a web search using the pre-discovered local SearxNG instance.
+
+    Args:
+        query (str): The search query string.
+        pageno (int, optional): The page number of the search results to retrieve.
+                                 Defaults to 1.
+
+    Returns:
+        str: A JSON formatted string containing the search results. Each result
+             in the JSON array will have 'url', and 'content' keys.
+             Note that the 'content' field provides a snippet of the URL's
+             content, not the full page content. This snippet can be used to
+             decide if a further, more in-depth scrape of the URL is required.
+             Returns an error message string if:
+             - The SearxNG service address is not available (e.g., discovery failed).
+             - A network error occurs during the request to SearxNG.
+             - The JSON response from SearxNG cannot be decoded.
+             - No results are found for the given query and page number.
+
+    Example of a successful output (JSON string):
+    ```json
+    [
+      {
+        "url": "[https://example.com/page1](https://example.com/page1)",
+        "content": "This is an example of content for page 1."
+      },
+      {
+        "url": "[https://example.com/page2](https://example.com/page2)",
+        "content": "This is an example of content for page 2."
+      }
+    ]
+    ```
     """
     if not searxng_service_address:
         return "Error: SearxNG service address is not available. The server may have failed to find the service at startup."
@@ -101,14 +132,13 @@ def perform_web_search(query: str, pageno: int = 1) -> str:
             for result in data["results"]:
                 formatted_results.append({
                     "url": result.get("url"),
-                    "title": result.get("title"),
                     "content": result.get("content")
                 })
         
         if not formatted_results:
             return f"No results found for '{query}' on page {pageno}."
             
-        return json.dumps(formatted_results, indent=2)
+        return json.dumps(formatted_results)
 
     except requests.exceptions.RequestException as e:
         return f"A network error occurred: {e}. The SearxNG server may be offline. Please restart this tool server."
