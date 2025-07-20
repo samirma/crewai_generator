@@ -10,7 +10,6 @@ import { extractScript } from './script.utils'; // Import the new utility functi
 export async function interactWithLLM(
   fullPrompt: string, // This is now the directly passed, fully constructed prompt
   llmModel: string, // Original casing
-  mode: string,
   runPhase: number | null
 ): Promise<{ llmResponseText: string; generatedScript?: string; duration: number }> {
   const startTime = Date.now();
@@ -178,17 +177,17 @@ export async function interactWithLLM(
     }
   } else {
     // Unhandled models
-    console.warn(`Unhandled model: ${llmModel}. Request mode: ${mode}, phase: ${runPhase}.`);
-    if (mode === 'advanced' && (runPhase === 1 || runPhase === 2)) {
+    console.warn(`Unhandled model: ${llmModel}. phase: ${runPhase}.`);
+    if (runPhase === 1 || runPhase === 2) {
       throw new Error(`Model ${llmModel} is not configured for advanced mode phases 1 or 2 direct output.`);
     }
     // Fallback to mock script generation for simple mode or advanced phase 3
-    llmResponseText = `# Mock response for unhandled model ${llmModel}\n# Mode: ${mode}, Phase: ${runPhase}\nprint("Hello from mock Python script for unhandled model!")`;
+    llmResponseText = `# Mock response for unhandled model ${llmModel}\n# Phase: ${runPhase}\nprint("Hello from mock Python script for unhandled model!")`;
     console.log(`Falling back to mock script generation for unhandled model ${llmModel}.`);
   }
 
   // Script extraction logic, applicable if not returning early for advanced phases 1 & 2
-  if (mode === 'simple' || (mode === 'advanced' && runPhase === 3)) {
+  if (runPhase === 3) {
     // Use the utility function to extract the script
     generatedScript = extractScript(llmResponseText);
     // The console logs from extractScript will indicate how the script was extracted.

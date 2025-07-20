@@ -152,11 +152,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
             "constructor_args": {
               "model": "openai/qwen2.5-7b-or-not",
               "base_url": "http://127.0.0.1:8080/v1/",
-              "temperature": 0.0,
-              "frequency_penalty": 0.0,
-              "presence_penalty": 0.0,
-              "timeout": 600,
-              "max_tokens": 64000,
+              "timeout": 6000,
               "api_key": ""
             }
           }
