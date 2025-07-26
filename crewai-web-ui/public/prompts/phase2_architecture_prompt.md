@@ -60,6 +60,19 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 
 **'Design-Crew-Architecture-Plan' - JSON Schema:**
 
+*   `crew_implementation_strategy` (Object): **This section is a mandatory pre-design analysis.** It provides a high-level strategic overview to justify the subsequent detailed design. It ensures the implementation is well-founded, considering task dependencies, parallelism, and resource requirements before defining individual agents and tasks.
+    *   `implementation_rationale` (String): A comprehensive justification for the chosen implementation approach. Explain why the selected strategy (e.g., number of agents, choice of sequential vs. hierarchical process, key tool categories) is the most effective way to implement the blueprint's goals.
+    *   `key_considerations` (String): A summary of critical factors, potential risks, or optimization opportunities that must be considered during the implementation. This could include data source reliability, API rate limits, or specific quality control measures.
+    *   `high_level_task_breakdown` (Array of Objects): A conceptual breakdown of the project into major logical phases or steps. This is not the final `task_roster`, but a strategic guide to structure it.
+        *   `phase_id` (String): A unique identifier for this strategic phase (e.g., "data_gathering", "content_generation", "quality_assurance").
+        *   `phase_description` (String): A clear, one-sentence description of what this phase aims to achieve.
+        *   `dependencies` (Array of Strings): A list of `phase_id`s that must be completed before this phase can begin. An empty array `[]` indicates it can start immediately.
+        *   `parallelizable` (Boolean): `True` if the individual tasks within this phase can be executed concurrently with tasks from other phases that have met their dependencies.
+        *   `key_requirements` (String): A high-level description of the essential inputs, tools, or data required for this phase to succeed (e.g., "Access to public web search," "File writing capabilities," "A structured list of topics").
+        *   `required_llm_capabilities` (Object): Specifies the necessary cognitive abilities for the agents performing tasks in this phase. This guides the `llm_id` selection in the `agent_cadre`.
+            *   `reasoning` (Boolean): `True` if tasks in this phase demand strong analytical, logical, or multi-step reasoning capabilities (typical for planning, critique, or complex data analysis).
+            *   `multimodal_support` (Boolean): `True` if tasks in this phase require processing visual information (images, charts) in addition to text.
+
 *   `workflow_process` (Object):
     *   `rationale` (String): Justification based on the Design Blueprint detail to use CrewAI with `Process.sequential` or `Process.hierarchical`.
     *   `selected_process` (String): `Process.sequential` OR `Process.hierarchical`.
@@ -83,8 +96,8 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
     *   `constructor_args` (Object): Contains only the parameters for the CrewAI `LLM` class constructor.
         *   `model` (String): The model name string required by the provider (e.g., "gemini/gemini-1.5-flash").
         *   `temperature` (Number): The sampling temperature.
-        *   `frequency_penalty` (Number): MUST BE 0.0.
-        *   `presence_penalty` (Number): MUST BE 0.0.
+        *   `frequency_penalty` (Number)
+        *   `presence_penalty` (Number)
         *   `timeout` (Number): The request timeout in seconds.
         *   `max_tokens` (Number): The maximum number of tokens for the model's response.
         *   `api_key` (String, Optional): Environment variable name for the API key.
