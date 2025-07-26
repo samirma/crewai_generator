@@ -55,6 +55,7 @@ function getCookie(name: string): string | null {
 }
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<string>("setup");
   const [initialInput, setInitialInput] = useState<string>("");
   const [llmModel, setLlmModel] = useState<string>("");
   const [savedPrompts, setSavedPrompts] = useState<Prompt[]>([]);
@@ -103,6 +104,8 @@ export default function Home() {
   const [isLoadingMultiStepPhase_3, setIsLoadingMultiStepPhase_3] = useState<boolean>(false);
   const [multiStepPhase_Durations, setMultiStepPhase_Durations] = useState<Record<number, number | null>>({ 1: null, 2: null, 3: null });
   const [multiStepPhase_Timers_Running, setMultiStepPhase_Timers_Running] = useState<Record<number, boolean>>({ 1: false, 2: false, 3: false });
+  const [isRecreatingDockerImage, setIsRecreatingDockerImage] = useState<boolean>(false);
+  const [isInterrupting, setIsInterrupting] = useState<boolean>(false);
 
   const isLlmTimerRunning = isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3;
 
@@ -116,6 +119,52 @@ export default function Home() {
       setSavedPrompts(prompts);
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const handleInterruptScript = async () => {
+    setIsInterrupting(true);
+    setError("");
+    try {
+      const response = await fetch('/api/execute/interrupt', {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to interrupt script');
+      }
+      alert('Script interrupted successfully!');
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred while interrupting the script.');
+      }
+    } finally {
+      setIsInterrupting(false);
+    }
+  };
+
+  const handleRecreateDockerImage = async () => {
+    setIsRecreatingDockerImage(true);
+    setError("");
+    try {
+      const response = await fetch('/api/docker/recreate', {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to recreate Docker image');
+      }
+      alert('Docker image recreated successfully!');
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred while recreating the Docker image.');
+      }
+    } finally {
+      setIsRecreatingDockerImage(false);
     }
   };
 
@@ -798,61 +847,352 @@ export default function Home() {
       <main className="flex-1 overflow-y-auto p-6 md:p-8">
         <h1 className="text-3xl md:text-4xl font-bold mb-10 text-center text-slate-700 dark:text-slate-200">CrewAI Studio</h1>
 
-        {/* Shared Prompt Editing Area - initialInput always visible */}
-        <div className="mb-8">
-          <label htmlFor="initialInstruction" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
-            Initial User Instruction (for Phase 1)
-          </label>
-          <div style={{ position: 'relative' }}>
-            <textarea
-              id="initialInstruction"
-              name="initialInstruction"
-              rows={4}
-              className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
-              placeholder="Enter your initial instructions here..."
-              value={initialInput}
-              onChange={(e) => setInitialInput(e.target.value)}
-              disabled={isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
-            ></textarea>
-            <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '8px' }}>
-              <button
-                onClick={handleSavePrompt}
-                className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                Save
-              </button>
-              <CopyButton textToCopy={initialInput} />
-            </div>
-          </div>
+        <div className="flex border-b border-slate-200 dark:border-slate-700">
+          <button onClick={() => setActiveTab('setup')} className={`-mb-px mr-1 rounded-t-lg border-l border-r border-t px-4 py-2 ${activeTab === 'setup' ? 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900' : 'bg-slate-100 dark:bg-slate-800'}`}>Setup</button>
+          <button onClick={() => setActiveTab('blueprint')} className={`-mb-px mr-1 rounded-t-lg border-l border-r border-t px-4 py-2 ${activeTab === 'blueprint' ? 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900' : 'bg-slate-100 dark:bg-slate-800'}`}>Blueprint</button>
+          <button onClick={() => setActiveTab('architecture')} className={`-mb-px mr-1 rounded-t-lg border-l border-r border-t px-4 py-2 ${activeTab === 'architecture' ? 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900' : 'bg-slate-100 dark:bg-slate-800'}`}>Architecture</button>
+          <button onClick={() => setActiveTab('code')} className={`-mb-px mr-1 rounded-t-lg border-l border-r border-t px-4 py-2 ${activeTab === 'code' ? 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900' : 'bg-slate-100 dark:bg-slate-800'}`}>Code</button>
+          <button onClick={() => setActiveTab('execute')} className={`-mb-px mr-1 rounded-t-lg border-l border-r border-t px-4 py-2 ${activeTab === 'execute' ? 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900' : 'bg-slate-100 dark:bg-slate-800'}`}>Execute</button>
         </div>
 
-        <div className="mb-8">
-          <label htmlFor="llmModelSelect" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
-            LLM Model Selection
-          </label>
-          <select
-            id="llmModelSelect"
-            name="llmModelSelect"
-            className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 bg-white hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
-            value={llmModel}
-            onChange={(e) => setLlmModel(e.target.value)}
-            disabled={modelsLoading || modelsError !== "" || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
-          >
-            {modelsLoading && <option value="">Loading models...</option>}
-            {modelsError && <option value="">Error loading models</option>}
-            {!modelsLoading && !modelsError && availableModels.length === 0 && <option value="">No models available</option>}
-            {!modelsLoading && !modelsError && availableModels.map(model => (
-              <option
-                key={model.id}
-                value={model.id}
-                disabled={model.id === 'ollama/not-configured' || model.id === 'ollama/error'}
+        <div className="tab-content p-6 border border-slate-200 dark:border-slate-700 rounded-b-md">
+          {activeTab === 'setup' && (
+            <div>
+              <div className="mb-8">
+                <label htmlFor="initialInstruction" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
+                  Initial User Instruction (for Phase 1)
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <textarea
+                    id="initialInstruction"
+                    name="initialInstruction"
+                    rows={4}
+                    className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
+                    placeholder="Enter your initial instructions here..."
+                    value={initialInput}
+                    onChange={(e) => setInitialInput(e.target.value)}
+                    disabled={isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
+                  ></textarea>
+                  <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={handleSavePrompt}
+                      className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                      Save
+                    </button>
+                    <CopyButton textToCopy={initialInput} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-8">
+                <label htmlFor="llmModelSelect" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
+                  LLM Model Selection
+                </label>
+                <select
+                  id="llmModelSelect"
+                  name="llmModelSelect"
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 bg-white hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
+                  value={llmModel}
+                  onChange={(e) => setLlmModel(e.target.value)}
+                  disabled={modelsLoading || modelsError !== "" || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
+                >
+                  {modelsLoading && <option value="">Loading models...</option>}
+                  {modelsError && <option value="">Error loading models</option>}
+                  {!modelsLoading && !modelsError && availableModels.length === 0 && <option value="">No models available</option>}
+                  {!modelsLoading && !modelsError && availableModels.map(model => (
+                    <option
+                      key={model.id}
+                      value={model.id}
+                      disabled={model.id === 'ollama/not-configured' || model.id === 'ollama/error'}
+                    >
+                      {model.name}
+                    </option>
+                  ))}
+                </select>
+                {modelsError && <p className="text-sm text-red-600 dark:text-red-400 mt-1">{modelsError}</p>}
+              </div>
+              <div className="mb-8">
+                <button
+                  onClick={handleRecreateDockerImage}
+                  className="w-full bg-blue-500 text-white rounded hover:bg-blue-600 px-3 py-2"
+                  disabled={isRecreatingDockerImage}
+                >
+                  {isRecreatingDockerImage ? 'Recreating Docker Image...' : 'Recreate Docker Image'}
+                </button>
+              </div>
+            </div>
+          )}
+          {activeTab === 'blueprint' && (
+            <div>
+              <div className="space-y-6 mb-8">
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label htmlFor="phase1Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 1 Prompt (Blueprint Definition)</label>
+                    <CopyButton textToCopy={phase1Prompt} />
+                  </div>
+                  <textarea
+                    id="phase1Prompt"
+                    value={phase1Prompt}
+                    onChange={(e) => setPhase1Prompt(e.target.value)}
+                    rows={8}
+                    className="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
+                    disabled={isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
+                  />
+                </div>
+              </div>
+              <details className="mt-4">
+                <summary className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer flex justify-between items-center mb-1">
+                  <span>View Input for Phase 1</span>
+                  <CopyButton textToCopy={multiStepPhase1_Input} />
+                </summary>
+                <pre className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 mt-2">
+                  {multiStepPhase1_Input || "Input will appear here..."}
+                </pre>
+              </details>
+              <details className="mt-4" open>
+                <summary className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer flex justify-between items-center mb-1">
+                  <span>View Output of Phase 1</span>
+                  <CopyButton textToCopy={multiStepPhase1_Output} />
+                </summary>
+                <pre className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 mt-2">
+                  {multiStepPhase1_Output || "Output will appear here..."}
+                </pre>
+              </details>
+            </div>
+          )}
+          {activeTab === 'architecture' && (
+            <div>
+              <div className="space-y-6 mb-8">
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label htmlFor="phase2Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 2 Prompt (Architecture Design / Elaboration)</label>
+                    <CopyButton textToCopy={phase2Prompt} />
+                  </div>
+                  <textarea
+                    id="phase2Prompt"
+                    value={phase2Prompt}
+                    onChange={(e) => setPhase2Prompt(e.target.value)}
+                    rows={8}
+                    className="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
+                    disabled={isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
+                  />
+                </div>
+              </div>
+              <details className="mt-4">
+                <summary className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer flex justify-between items-center mb-1">
+                  <span>View Input for Phase 2</span>
+                  <CopyButton textToCopy={multiStepPhase2_Input} />
+                </summary>
+                <pre className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 mt-2">
+                  {multiStepPhase2_Input || "Input will appear here..."}
+                </pre>
+              </details>
+              <details className="mt-4" open>
+                <summary className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer flex justify-between items-center mb-1">
+                  <span>View Output of Phase 2</span>
+                  <CopyButton textToCopy={multiStepPhase2_Output} />
+                </summary>
+                <pre className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 mt-2">
+                  {multiStepPhase2_Output || "Output will appear here..."}
+                </pre>
+              </details>
+            </div>
+          )}
+          {activeTab === 'code' && (
+            <div>
+              <div className="space-y-6 mb-8">
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label htmlFor="phase3Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 3 Prompt (Script Generation / Final Output)</label>
+                    <CopyButton textToCopy={phase3Prompt} />
+                  </div>
+                  <textarea
+                    id="phase3Prompt"
+                    value={phase3Prompt}
+                    onChange={(e) => setPhase3Prompt(e.target.value)}
+                    rows={8}
+                    className="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
+                    disabled={isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
+                  />
+                </div>
+              </div>
+              <details className="border border-slate-200 dark:border-slate-700 rounded-md shadow-sm mb-2" open>
+                <summary className="flex justify-between items-center p-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded-t-md">
+                  <span className="text-base font-medium text-slate-700 dark:text-slate-300">
+                    Generated Python Script (Multi-Step Phase 3)
+                  </span>
+                  <CopyButton textToCopy={multiStepPhase3_Output} />
+                </summary>
+                <div className="w-full p-4 bg-slate-800 dark:bg-slate-800 overflow-auto min-h-[160px] rounded-b-md">
+                  <SyntaxHighlighter
+                    language="python"
+                    style={atomDark}
+                    showLineNumbers={true}
+                    wrapLines={true}
+                    lineProps={{ style: { whiteSpace: 'pre-wrap', wordBreak: 'break-all' } }}
+                    customStyle={{ margin: 0, backgroundColor: 'transparent', height: 'auto', minHeight: '140px', overflow: 'auto' }}
+                    codeTagProps={{ style: { fontFamily: 'inherit' } }}
+                  >
+                    {multiStepPhase3_Output || "# Python script output will appear here"}
+                  </SyntaxHighlighter>
+                </div>
+              </details>
+            </div>
+          )}
+          {activeTab === 'execute' && (
+            <div>
+              <button
+                type="button"
+                onClick={() => handleExecuteScript()} // Pass script explicitly if needed, or handle inside
+                disabled={
+                  isExecutingScript ||
+                  !multiStepPhase3_Output ||
+                  (isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3)
+                }
+                className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2.5 rounded-md shadow-md transition duration-150 ease-in-out disabled:opacity-50 focus:ring-4 focus:ring-green-300 focus:outline-none dark:focus:ring-green-800"
               >
-                {model.name}
-              </option>
-            ))}
-          </select>
-          {modelsError && <p className="text-sm text-red-600 dark:text-red-400 mt-1">{modelsError}</p>}
+                {isExecutingScript ? 'Executing Script...' : 'Run This Script (Locally via API)'}
+              </button>
+              {isExecutingScript && (
+                <button
+                  onClick={handleInterruptScript}
+                  className="mt-2 w-full bg-red-600 hover:bg-red-700 text-white font-semibold px-5 py-2.5 rounded-md shadow-md transition duration-150 ease-in-out disabled:opacity-50 focus:ring-4 focus:ring-red-300 focus:outline-none dark:focus:ring-red-800"
+                  disabled={isInterrupting}
+                >
+                  {isInterrupting ? 'Interrupting...' : 'Interrupt Script'}
+                </button>
+              )}
+              {(multiStepPhase3_Output || scriptLogOutput.length > 0 || phasedOutputs.length > 0) && (
+                <div className="grid md:grid-cols-2 gap-6 mt-10 mb-8">
+                  <div>
+                    <label htmlFor="scriptExecutionArea" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
+                      Script Execution Output (Multi-Step Phase 3)
+                    </label>
+                    <div id="scriptExecutionArea" className="space-y-4 p-4 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 shadow-sm min-h-[160px]">
+                      {/* Display Docker Command */}
+                      {dockerCommandToDisplay && (
+                        <div>
+                          <div className="flex justify-between items-center mb-1">
+                            <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300">
+                              Docker Command Used:
+                            </h3>
+                            <CopyButton textToCopy={dockerCommandToDisplay} />
+                          </div>
+                          <pre className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-inner overflow-auto whitespace-pre-wrap text-xs text-slate-600 dark:text-slate-300">
+                            {dockerCommandToDisplay}
+                          </pre>
+                        </div>
+                      )}
+                      {/* Script Execution Timer */}
+                      {(isExecutingScript || (hasExecutionAttempted && scriptExecutionDuration !== null)) && (
+                        <div className="mt-2 mb-2 p-2 border border-green-300 dark:border-green-700 rounded-md bg-green-50 dark:bg-green-900/30 shadow-sm text-center">
+                          <p className="text-xs text-green-700 dark:text-green-300">
+                            Script Execution Timer: <Timer key={scriptTimerKey} isRunning={isExecutingScript} className="inline font-semibold" />
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Script Execution Duration Display */}
+                      {scriptExecutionDuration !== null && !isExecutingScript && (
+                        <div className="mt-2 mb-2 p-2 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm text-center">
+                          <p className="text-xs text-slate-600 dark:text-slate-300">
+                            Script execution took: <span className="font-semibold">{scriptExecutionDuration.toFixed(2)}</span> seconds
+                          </p>
+                        </div>
+                      )}
+                      {/* Live Logs */}
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300">
+                            {isExecutingScript ? "Execution Logs (Streaming...)" : "Execution Logs:"}
+                          </h3>
+                          <CopyButton textToCopy={scriptLogOutput.join('\n')} />
+                        </div>
+                        {(scriptLogOutput.length > 0 || isExecutingScript) ? (
+                          <pre className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-inner overflow-auto whitespace-pre-wrap max-h-[300px] min-h-[100px] text-xs text-slate-600 dark:text-slate-300">
+                            {scriptLogOutput.length > 0 ? scriptLogOutput.join('\n') : "Waiting for script output..."}
+                          </pre>
+                        ) : (
+                          <p className="text-sm text-slate-500 dark:text-slate-400">No logs produced.</p>
+                        )}
+                      </div>
+
+                      {/* Phased Outputs */}
+                      {phasedOutputs.length > 0 && (
+                        <div>
+                          <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300 mb-1">Task Outputs:</h3>
+                          <ul className="space-y-2">
+                            {phasedOutputs.map((out, index) => (
+                              <li key={index} className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm relative">
+                                <div className="flex justify-between items-start">
+                                  <strong className="text-sm text-indigo-600 dark:text-indigo-400 pr-2">{out.taskName}:</strong>
+                                  <div style={{ position: 'absolute', top: '4px', right: '4px' }}>
+                                    <CopyButton textToCopy={out.output} />
+                                  </div>
+                                </div>
+                                <pre className="mt-1 text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap overflow-auto">{out.output}</pre>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className="space-y-10">
+                <button
+                  type="button"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2.5 rounded-md shadow-md transition duration-150 ease-in-out disabled:opacity-50 focus:ring-4 focus:ring-green-300 focus:outline-none dark:focus:ring-green-800"
+                  onClick={handleRunAllPhases}
+                  disabled={modelsLoading || !llmModel || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
+                >
+                  {isLoadingMultiStepPhase_1 ? 'Running Phase 1: Blueprint Definition...' : isLoadingMultiStepPhase_2 ? 'Running Phase 2: Architecture Elaboration...' : isLoadingMultiStepPhase_3 ? 'Running Phase 3: Script Generation...' : 'Generate Script (All Phases)'}
+                </button>
+                <hr className="my-8" />
+                <h2 className="text-2xl font-semibold text-center text-slate-700 dark:text-slate-200">Or Run Phase by Phase</h2>
+                {[1, 2, 3].map((phase) => (
+                  <details key={phase} className="p-6 border border-slate-300 dark:border-slate-700 rounded-lg shadow" open>
+                    <summary className="text-2xl font-semibold text-slate-700 dark:text-slate-200 cursor-pointer">
+                      Phase {phase}: {phase === 1 ? "Define Blueprint" : phase === 2 ? "Elaborate / Refine" : "Generate Final Output"}
+                    </summary>
+                    <div className="mt-4 space-y-4">
+                      <button
+                        onClick={() => handleMultiStepPhaseExecution(phase)}
+                        disabled={
+                          (phase === 1 && (isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3 || !initialInput || !phase1Prompt)) ||
+                          (phase === 2 && (isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3 || !multiStepPhase1_Output || !phase2Prompt)) ||
+                          (phase === 3 && (isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3 || !multiStepPhase2_Output || !phase3Prompt))
+                        }
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-purple-400 focus:outline-none dark:focus:ring-purple-700"
+                      >
+                        {isLoadingMultiStepPhase_1 && phase === 1 && 'Running Phase 1...'}
+                        {isLoadingMultiStepPhase_2 && phase === 2 && 'Running Phase 2...'}
+                        {isLoadingMultiStepPhase_3 && phase === 3 && 'Running Phase 3...'}
+                        {!((isLoadingMultiStepPhase_1 && phase === 1) || (isLoadingMultiStepPhase_2 && phase === 2) || (isLoadingMultiStepPhase_3 && phase === 3)) && `Run Multi-Step Phase ${phase}`}
+                      </button>
+
+                      <div className="mt-2 mb-2 p-2 border border-purple-300 dark:border-purple-700 rounded-md bg-purple-50 dark:bg-purple-900/30 shadow-sm text-center">
+                        <p className="text-xs text-purple-700 dark:text-purple-300">
+                          Phase {phase} LLM Request Timer: <Timer isRunning={multiStepPhase_Timers_Running[phase]} className="inline font-semibold" />
+                        </p>
+                      </div>
+                      {multiStepPhase_Durations[phase] !== null && (
+                        <div className="mt-2 mb-2 p-2 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm text-center">
+                          <p className="text-xs text-slate-600 dark:text-slate-300">
+                            Phase {phase} LLM request took: <span className="font-semibold">{multiStepPhase_Durations[phase]?.toFixed(2)} seconds</span>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+        {/* The rest of the page content will be moved into the tabs in the next steps */}
 
         {/* LLM Request Timer */}
         {isLlmTimerRunning && (
@@ -874,126 +1214,10 @@ export default function Home() {
 
         {/* Shared Prompt Editing Area for Advanced and Multi-Step Modes */}
       <div className="space-y-6 mb-8">
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label htmlFor="phase1Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 1 Prompt (Blueprint Definition)</label>
-              <CopyButton textToCopy={phase1Prompt} />
-            </div>
-            <textarea
-              id="phase1Prompt"
-              value={phase1Prompt}
-              onChange={(e) => setPhase1Prompt(e.target.value)}
-              rows={8}
-              className="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
-              disabled={isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
-            />
-          </div>
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label htmlFor="phase2Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 2 Prompt (Architecture Design / Elaboration)</label>
-              <CopyButton textToCopy={phase2Prompt} />
-            </div>
-            <textarea
-              id="phase2Prompt"
-              value={phase2Prompt}
-              onChange={(e) => setPhase2Prompt(e.target.value)}
-              rows={8}
-              className="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
-              disabled={isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
-            />
-          </div>
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label htmlFor="phase3Prompt" className="block text-sm font-medium text-slate-600 dark:text-slate-400">Phase 3 Prompt (Script Generation / Final Output)</label>
-              <CopyButton textToCopy={phase3Prompt} />
-            </div>
-            <textarea
-              id="phase3Prompt"
-              value={phase3Prompt}
-              onChange={(e) => setPhase3Prompt(e.target.value)}
-              rows={8}
-              className="w-full p-2.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
-              disabled={isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
-            />
-          </div>
         </div>
 
       {/* Multi-Step Mode UI */}
       <div className="space-y-10">
-          <button
-            type="button"
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2.5 rounded-md shadow-md transition duration-150 ease-in-out disabled:opacity-50 focus:ring-4 focus:ring-green-300 focus:outline-none dark:focus:ring-green-800"
-            onClick={handleRunAllPhases}
-            disabled={modelsLoading || !llmModel || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
-          >
-            {isLoadingMultiStepPhase_1 ? 'Running Phase 1: Blueprint Definition...' : isLoadingMultiStepPhase_2 ? 'Running Phase 2: Architecture Elaboration...' : isLoadingMultiStepPhase_3 ? 'Running Phase 3: Script Generation...' : 'Generate Script (All Phases)'}
-          </button>
-          <hr className="my-8" />
-          <h2 className="text-2xl font-semibold text-center text-slate-700 dark:text-slate-200">Or Run Phase by Phase</h2>
-          {[1, 2, 3].map((phase) => (
-            <details key={phase} className="p-6 border border-slate-300 dark:border-slate-700 rounded-lg shadow" open>
-              <summary className="text-2xl font-semibold text-slate-700 dark:text-slate-200 cursor-pointer">
-                Phase {phase}: {phase === 1 ? "Define Blueprint" : phase === 2 ? "Elaborate / Refine" : "Generate Final Output"}
-              </summary>
-              <div className="mt-4 space-y-4">
-                <button
-                  onClick={() => handleMultiStepPhaseExecution(phase)}
-                  disabled={
-                    (phase === 1 && (isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3 || !initialInput || !phase1Prompt)) ||
-                    (phase === 2 && (isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3 || !multiStepPhase1_Output || !phase2Prompt)) ||
-                    (phase === 3 && (isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3 || !multiStepPhase2_Output || !phase3Prompt))
-                  }
-                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-purple-400 focus:outline-none dark:focus:ring-purple-700"
-                >
-                  {isLoadingMultiStepPhase_1 && phase === 1 && 'Running Phase 1...'}
-                  {isLoadingMultiStepPhase_2 && phase === 2 && 'Running Phase 2...'}
-                  {isLoadingMultiStepPhase_3 && phase === 3 && 'Running Phase 3...'}
-                  {!((isLoadingMultiStepPhase_1 && phase === 1) || (isLoadingMultiStepPhase_2 && phase === 2) || (isLoadingMultiStepPhase_3 && phase === 3)) && `Run Multi-Step Phase ${phase}`}
-                </button>
-
-                <div className="mt-2 mb-2 p-2 border border-purple-300 dark:border-purple-700 rounded-md bg-purple-50 dark:bg-purple-900/30 shadow-sm text-center">
-                  <p className="text-xs text-purple-700 dark:text-purple-300">
-                    Phase {phase} LLM Request Timer: <Timer isRunning={multiStepPhase_Timers_Running[phase]} className="inline font-semibold" />
-                  </p>
-                </div>
-                {multiStepPhase_Durations[phase] !== null && (
-                  <div className="mt-2 mb-2 p-2 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm text-center">
-                    <p className="text-xs text-slate-600 dark:text-slate-300">
-                      Phase {phase} LLM request took: <span className="font-semibold">{multiStepPhase_Durations[phase]?.toFixed(2)} seconds</span>
-                    </p>
-                  </div>
-                )}
-
-                <details className="mt-4">
-                  <summary className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer flex justify-between items-center mb-1">
-                    <span>View Input for Phase {phase}</span>
-                    <CopyButton textToCopy={
-                      phase === 1 ? multiStepPhase1_Input :
-                      phase === 2 ? multiStepPhase2_Input :
-                      multiStepPhase3_Input
-                    } />
-                  </summary>
-                  <pre className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 mt-2">
-                    {(phase === 1 ? multiStepPhase1_Input : phase === 2 ? multiStepPhase2_Input : multiStepPhase3_Input) || "Input will appear here..."}
-                  </pre>
-                </details>
-
-                <details className="mt-4" open>
-                  <summary className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer flex justify-between items-center mb-1">
-                    <span>View Output of Phase {phase}</span>
-                    <CopyButton textToCopy={
-                      phase === 1 ? multiStepPhase1_Output :
-                      phase === 2 ? multiStepPhase2_Output :
-                      multiStepPhase3_Output
-                    } />
-                  </summary>
-                  <pre className="w-full p-3 border border-slate-200 rounded-md bg-slate-50 shadow-inner overflow-auto whitespace-pre-wrap min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 mt-2">
-                    {(phase === 1 ? multiStepPhase1_Output : phase === 2 ? multiStepPhase2_Output : multiStepPhase3_Output) || "Output will appear here..."}
-                  </pre>
-                </details>
-              </div>
-            </details>
-          ))}
         </div>
 
       {error && (
@@ -1029,120 +1253,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Output sections: Generated Script and Script Execution Output / Phased Outputs */}
-      {(multiStepPhase3_Output || scriptLogOutput.length > 0 || phasedOutputs.length > 0) && (
-         <div className="grid md:grid-cols-2 gap-6 mt-10 mb-8">
-          <div>
-            <label htmlFor="scriptExecutionArea" className="block text-base font-medium mb-2 text-slate-700 dark:text-slate-300">
-              Script Execution Output (Multi-Step Phase 3)
-            </label>
-            <div id="scriptExecutionArea" className="space-y-4 p-4 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 shadow-sm min-h-[160px]">
-              {/* Display Docker Command */}
-              {dockerCommandToDisplay && (
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300">
-                      Docker Command Used:
-                    </h3>
-                    <CopyButton textToCopy={dockerCommandToDisplay} />
-                  </div>
-                  <pre className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-inner overflow-auto whitespace-pre-wrap text-xs text-slate-600 dark:text-slate-300">
-                    {dockerCommandToDisplay}
-                  </pre>
-                </div>
-              )}
-              {/* Script Execution Timer */}
-              {(isExecutingScript || (hasExecutionAttempted && scriptExecutionDuration !== null)) && (
-                <div className="mt-2 mb-2 p-2 border border-green-300 dark:border-green-700 rounded-md bg-green-50 dark:bg-green-900/30 shadow-sm text-center">
-                  <p className="text-xs text-green-700 dark:text-green-300">
-                    Script Execution Timer: <Timer key={scriptTimerKey} isRunning={isExecutingScript} className="inline font-semibold" />
-                  </p>
-                </div>
-              )}
-
-              {/* Script Execution Duration Display */}
-              {scriptExecutionDuration !== null && !isExecutingScript && (
-                <div className="mt-2 mb-2 p-2 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm text-center">
-                  <p className="text-xs text-slate-600 dark:text-slate-300">
-                    Script execution took: <span className="font-semibold">{scriptExecutionDuration.toFixed(2)}</span> seconds
-                  </p>
-                </div>
-              )}
-              {/* Live Logs */}
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300">
-                    {isExecutingScript ? "Execution Logs (Streaming...)" : "Execution Logs:"}
-                  </h3>
-                  <CopyButton textToCopy={scriptLogOutput.join('\n')} />
-                </div>
-                {(scriptLogOutput.length > 0 || isExecutingScript) ? (
-                  <pre className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-inner overflow-auto whitespace-pre-wrap max-h-[300px] min-h-[100px] text-xs text-slate-600 dark:text-slate-300">
-                    {scriptLogOutput.length > 0 ? scriptLogOutput.join('\n') : "Waiting for script output..."}
-                  </pre>
-                ) : (
-                  <p className="text-sm text-slate-500 dark:text-slate-400">No logs produced.</p>
-                )}
-              </div>
-
-              {/* Phased Outputs */}
-              {phasedOutputs.length > 0 && (
-                <div>
-                  <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300 mb-1">Task Outputs:</h3>
-                  <ul className="space-y-2">
-                    {phasedOutputs.map((out, index) => (
-                      <li key={index} className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm relative">
-                        <div className="flex justify-between items-start">
-                          <strong className="text-sm text-indigo-600 dark:text-indigo-400 pr-2">{out.taskName}:</strong>
-                          <div style={{ position: 'absolute', top: '4px', right: '4px' }}>
-                            <CopyButton textToCopy={out.output} />
-                          </div>
-                        </div>
-                        <pre className="mt-1 text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap overflow-auto">{out.output}</pre>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
-          <div> {/* This is the main container for this part of the UI, likely a grid column */}
-            <details className="border border-slate-200 dark:border-slate-700 rounded-md shadow-sm mb-2" open>
-              <summary className="flex justify-between items-center p-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded-t-md">
-                <span className="text-base font-medium text-slate-700 dark:text-slate-300">
-                  Generated Python Script (Multi-Step Phase 3)
-                </span>
-                <CopyButton textToCopy={multiStepPhase3_Output} />
-              </summary>
-              <div className="w-full p-4 bg-slate-800 dark:bg-slate-800 overflow-auto min-h-[160px] rounded-b-md">
-                <SyntaxHighlighter
-                  language="python"
-                  style={atomDark}
-                  showLineNumbers={true}
-                  wrapLines={true}
-                  lineProps={{ style: { whiteSpace: 'pre-wrap', wordBreak: 'break-all' } }}
-                  customStyle={{ margin: 0, backgroundColor: 'transparent', height: 'auto', minHeight: '140px', overflow: 'auto' }}
-                  codeTagProps={{ style: { fontFamily: 'inherit' } }}
-                >
-                  {multiStepPhase3_Output || "# Python script output will appear here"}
-                </SyntaxHighlighter>
-              </div>
-            </details>
-            <button
-              type="button"
-              onClick={() => handleExecuteScript()} // Pass script explicitly if needed, or handle inside
-              disabled={
-                isExecutingScript ||
-                !multiStepPhase3_Output ||
-                (isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3)
-              }
-              className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2.5 rounded-md shadow-md transition duration-150 ease-in-out disabled:opacity-50 focus:ring-4 focus:ring-green-300 focus:outline-none dark:focus:ring-green-800"
-            >
-              {isExecutingScript ? 'Executing Script...' : 'Run This Script (Locally via API)'}
-            </button>
-          </div>
-        </div>
-      )}
       </main>
     </div>
   );
