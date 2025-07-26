@@ -6,6 +6,73 @@ import { exec } from 'child_process';
 
 import { ExecutePythonScriptSetupResult, StageOutput } from './types';
 
+export async function ensureDockerImage(forceRebuild = false) {
+  const imageName = 'python-runner';
+  const projectRoot = path.resolve(process.cwd(), '..');
+
+  if (forceRebuild) {
+    try {
+      // Stop any running containers using the python-runner image
+      const { stdout: runningContainers } = await new Promise<{ stdout: string }>((resolve, reject) => {
+        exec(`docker ps -q --filter "ancestor=${imageName}"`, (error, stdout) => {
+          if (error) return reject(error);
+          resolve({ stdout });
+        });
+      });
+
+      if (runningContainers) {
+        await new Promise<void>((resolve, reject) => {
+          exec(`docker stop ${runningContainers.trim()}`, (error) => {
+            if (error) return reject(error);
+            resolve();
+          });
+        });
+      }
+
+      // Remove the existing image
+      await new Promise<void>((resolve, reject) => {
+        exec(`docker rmi -f ${imageName}`, (error) => {
+          if (error) return reject(error);
+          resolve();
+        });
+      });
+    } catch (error) {
+      console.warn('Could not remove existing Docker image, continuing with build...', error);
+    }
+  }
+
+  console.log(`Attempting to build Docker image '${imageName}' from ${projectRoot}/python-runner`);
+  await new Promise<void>((resolve, reject) => {
+    const command = 'docker';
+    const args = ['build', '-t', imageName, './python-runner'];
+    const options = { cwd: projectRoot, stdio: 'pipe' as const };
+
+    const child = exec(command + ' ' + args.join(' '), options);
+
+    child.stdout?.on('data', (data) => {
+      process.stdout.write(data);
+    });
+
+    child.stderr?.on('data', (data) => {
+      process.stderr.write(data);
+    });
+
+    child.on('close', (code) => {
+      if (code !== 0) {
+        console.error(`Docker build process exited with code ${code}`);
+        return reject(new Error(`Failed to build ${imageName}: process exited with code ${code}`));
+      }
+      console.log(`${imageName} image build completed successfully.`);
+      resolve();
+    });
+
+    child.on('error', (err) => {
+      console.error(`Error executing docker build:`, err);
+      reject(err);
+    });
+  });
+}
+
 // Helper function to execute Python script in Docker
 export async function executePythonScript(scriptContent: string): Promise<ExecutePythonScriptSetupResult> { // Changed return type
   const docker = new Docker(); // Assumes Docker is accessible (e.g., /var/run/docker.sock)
@@ -67,40 +134,10 @@ export async function executePythonScript(scriptContent: string): Promise<Execut
     }
 
     // --- Docker Image Build ---
-    const imageName = 'python-runner';
-    console.log(`Attempting to build Docker image '${imageName}' from ${projectRoot}/python-runner`);
     try {
-      await new Promise<void>((resolve, reject) => {
-        const command = 'docker';
-        const args = ['build', '-t', imageName, './python-runner'];
-        const options = { cwd: projectRoot, stdio: 'pipe' as const }; // stdio: 'pipe' is important for capturing output
-
-        const child = exec(command + ' ' + args.join(' '), options);
-
-        child.stdout?.on('data', (data) => {
-          process.stdout.write(data); // Stream stdout directly
-        });
-
-        child.stderr?.on('data', (data) => {
-          process.stderr.write(data); // Stream stderr directly
-        });
-
-        child.on('close', (code) => {
-          if (code !== 0) {
-            console.error(`Docker build process exited with code ${code}`);
-            return reject(new Error(`Failed to build ${imageName}: process exited with code ${code}`));
-          }
-          console.log(`${imageName} image build completed successfully.`);
-          resolve();
-        });
-
-        child.on('error', (err) => {
-          console.error(`Error executing docker build:`, err);
-          reject(err);
-        });
-      });
+      await ensureDockerImage();
     } catch (buildError: any) {
-      console.error(`Critical failure to build ${imageName} image:`, buildError);
+      console.error(`Critical failure to build python-runner image:`, buildError);
       overallStatus = 'failure';
       topLevelError = `Docker image build failed: ${buildError.message}`;
       // Early exit for Docker build failure
