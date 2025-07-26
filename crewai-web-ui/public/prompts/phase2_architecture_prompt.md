@@ -116,37 +116,6 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
               "timeout": 600,
               "api_key": "DEEPSEEK_API_KEY"
             }
-          },
-          {
-            "design_metadata": {
-              "llm_id": "deepseek_reasoner",
-              "reasoner": false,
-              "multimodal_support": false,
-              "rationale": "A high-performance, cost-effective model from DeepSeek, excellent for complex reasoning, long-context understanding, and multimodal tasks. Ideal for manager agents or agents requiring deep analysis."
-            },
-            "constructor_args": {
-              "model": "deepseek/deepseek-reasoner",
-              "temperature": 0.0,
-              "frequency_penalty": 0.0,
-              "presence_penalty": 0.0,
-              "timeout": 600,
-              "max_tokens": 64000,
-              "api_key": "DEEPSEEK_API_KEY"
-            }
-          },
-          {
-            "design_metadata": {
-              "llm_id": "local_llma_cpp_model",
-              "reasoner": false,
-              "multimodal_support": false,
-              "rationale": "A high-performance, cost-effective model from llma_cpp, excellent for complex reasoning, long-context understanding, and multimodal tasks. Ideal for manager agents or agents requiring deep analysis."
-            },
-            "constructor_args": {
-              "model": "openai/qwen2.5-7b-or-not",
-              "base_url": "http://127.0.0.1:8080/v1/",
-              "timeout": 6000,
-              "api_key": ""
-            }
           }
         ]
         ```
