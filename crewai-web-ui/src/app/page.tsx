@@ -192,7 +192,7 @@ export default function Home() {
     if (llmModelCookie) {
       setLlmModel(llmModelCookie);
     }
-  }, []); // Empty dependency array ensures this runs only on mount
+  }, []);
 
   const handleSavePrompt = async () => {
     const title = prompt("Enter a title for the prompt:");
@@ -247,7 +247,10 @@ export default function Home() {
         }
         const models: Model[] = await response.json();
         setAvailableModels(models);
-        if (models.length > 0) {
+        const llmModelCookie = getCookie('llmModelSelection');
+        if (llmModelCookie) {
+          setLlmModel(llmModelCookie);
+        } else if (models.length > 0) {
           // Filter out non-selectable models before determining the default
           const selectableModels = models.filter(model => model.id !== 'ollama/not-configured' && model.id !== 'ollama/error');
 
@@ -894,7 +897,10 @@ export default function Home() {
                   name="llmModelSelect"
                   className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 bg-white hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500"
                   value={llmModel}
-                  onChange={(e) => setLlmModel(e.target.value)}
+            onChange={(e) => {
+              setLlmModel(e.target.value);
+              setCookie('llmModelSelection', e.target.value, 30);
+            }}
                   disabled={modelsLoading || modelsError !== "" || isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3}
                 >
                   {modelsLoading && <option value="">Loading models...</option>}
