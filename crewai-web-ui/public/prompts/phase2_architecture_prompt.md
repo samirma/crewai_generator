@@ -100,11 +100,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
             },
             "constructor_args": {
               "model": "gemini/gemini-2.5-flash",
-              "temperature": 0.0,
-              "frequency_penalty": 0.0,
-              "presence_penalty": 0.0,
               "timeout": 600,
-              "max_tokens": 65536,
               "api_key": "GEMINI_API_KEY"
             }
           },
@@ -117,11 +113,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
             },
             "constructor_args": {
               "model": "deepseek/deepseek-chat",
-              "temperature": 0.0,
-              "frequency_penalty": 0.0,
-              "presence_penalty": 0.0,
               "timeout": 600,
-              "max_tokens": 8000,
               "api_key": "DEEPSEEK_API_KEY"
             }
           },
