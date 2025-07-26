@@ -6,8 +6,14 @@ const execAsync = util.promisify(exec);
 
 export async function POST() {
   try {
-    // First, remove the existing image
-    await execAsync('docker rmi python-runner');
+    // Stop any running containers using the python-runner image
+    const { stdout: runningContainers } = await execAsync('docker ps -q --filter "ancestor=python-runner"');
+    if (runningContainers) {
+      await execAsync(`docker stop ${runningContainers.trim()}`);
+    }
+
+    // Remove the existing image
+    await execAsync('docker rmi -f python-runner');
     // Then, rebuild the image
     await execAsync('docker build -t python-runner ./python-runner');
     return NextResponse.json({ message: 'Docker image recreated successfully' });
