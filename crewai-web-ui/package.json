@@ -14,10 +14,10 @@
     "dockerode": "^4.0.6",
     "next": "15.3.3",
     "openai": "^4.47.1",
+    "prismjs": "^1.29.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-syntax-highlighter": "^15.5.0",
-    "prismjs": "^1.29.0"
+    "react-syntax-highlighter": "^15.5.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -26,9 +26,9 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/react-syntax-highlighter": "^15.5.13",
-    "node-loader": "^2.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.3.3",
+    "node-loader": "^2.1.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

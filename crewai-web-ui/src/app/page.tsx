@@ -1086,7 +1086,7 @@ export default function Home() {
                           style={atomDark}
                           showLineNumbers={true}
                           wrapLines={true}
-                          lineProps={{ style: { whiteWhiteSpace: 'pre-wrap', wordBreak: 'break-all' } }}
+                          lineProps={{ style: { whiteSpace: 'pre-wrap', wordBreak: 'break-all' } }}
                           customStyle={{ margin: 0, backgroundColor: 'transparent', height: 'auto', overflow: 'auto' }}
                           codeTagProps={{ style: { fontFamily: 'inherit' } }}
                         >

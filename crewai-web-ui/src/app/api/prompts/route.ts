@@ -9,7 +9,7 @@ export async function GET() {
     const prompts = await fs.readFile(promptsFilePath, 'utf-8');
     return NextResponse.json(JSON.parse(prompts));
   } catch (error) {
-    if (error.code === 'ENOENT') {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
       return NextResponse.json([]);
     }
     return NextResponse.json({ error: 'Failed to read prompts' }, { status: 500 });
