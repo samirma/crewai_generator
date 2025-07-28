@@ -1017,9 +1017,15 @@ export default function Home() {
                             multiStepPhase3_Input
                           } />
                         </summary>
-                        <pre className="mt-2 w-full p-3 border border-slate-300 rounded-md bg-slate-100 shadow-inner overflow-auto whitespace-pre-wrap min-h-[80px] max-h-[200px] text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-slate-400">
-                          {(phase === 1 ? multiStepPhase1_Input : phase === 2 ? multiStepPhase2_Input : multiStepPhase3_Input) || "Input will appear here after running the phase."}
-                        </pre>
+                        <textarea
+                          value={(phase === 1 ? multiStepPhase1_Input : phase === 2 ? multiStepPhase2_Input : multiStepPhase3_Input) || "Input will appear here after running the phase."}
+                          onChange={(e) => {
+                            if (phase === 1) setMultiStepPhase1_Input(e.target.value);
+                            else if (phase === 2) setMultiStepPhase2_Input(e.target.value);
+                            else setMultiStepPhase3_Input(e.target.value);
+                          }}
+                          className="mt-2 w-full p-3 border border-slate-300 rounded-md bg-slate-100 shadow-inner overflow-auto whitespace-pre-wrap min-h-[80px] text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-slate-400 resize-y"
+                        />
                       </details>
 
                       <details className="mt-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600 shadow-inner" open={false}>
@@ -1031,9 +1037,15 @@ export default function Home() {
                             multiStepPhase3_Output
                           } />
                         </summary>
-                        <pre className="mt-2 w-full p-3 border border-slate-300 rounded-md bg-slate-100 shadow-inner overflow-auto whitespace-pre-wrap min-h-[80px] max-h-[200px] text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-slate-400">
-                          {(phase === 1 ? multiStepPhase1_Output : phase === 2 ? multiStepPhase2_Output : multiStepPhase3_Output) || "Output will appear here after running the phase."}
-                        </pre>
+                        <textarea
+                          value={(phase === 1 ? multiStepPhase1_Output : phase === 2 ? multiStepPhase2_Output : multiStepPhase3_Output) || "Output will appear here after running the phase."}
+                          onChange={(e) => {
+                            if (phase === 1) setMultiStepPhase1_Output(e.target.value);
+                            else if (phase === 2) setMultiStepPhase2_Output(e.target.value);
+                            else setMultiStepPhase3_Output(e.target.value);
+                          }}
+                          className="mt-2 w-full p-3 border border-slate-300 rounded-md bg-slate-100 shadow-inner overflow-auto whitespace-pre-wrap min-h-[80px] text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-slate-400 resize-y"
+                        />
                       </details>
                     </div>
                   ))}
