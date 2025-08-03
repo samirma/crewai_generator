@@ -19,8 +19,7 @@ To improve the robustness and logical flow of the design, the JSON object's keys
 4.  `agent_cadre`
 5.  `tool_repository`
 6.  `custom_tool_definitions`
-7.  `pydantic_model_registry`
-8.  `task_roster`
+7.  `task_roster`
 
 ### **Canonical Tool Library for Evaluation**
 
@@ -164,17 +163,6 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
             *   `description` (String): A description for the argument.
         *   `run_method_logic` (String)
 
-*   `pydantic_model_registry` (Array of Objects): A central list defining reusable Pydantic model schemas for structured task outputs.
-    *   `model_id` (String): A unique identifier for this Pydantic model (e.g., "UserProfileSummary", "ProjectPlanOutput").
-    *   `class_name` (String): The desired Python class name for this Pydantic model (e.g., "UserProfileSummaryModel").
-    *   `description` (String): A high-level description of what this Pydantic model represents and its purpose.
-    *   `fields` (Array of Objects): Defines the fields (attributes) of the Pydantic model.
-        *   `name` (String): The name of the field (e.g., "summary", "skills_list").
-        *   `python_type` (String): The Python type hint for the field (e.g., "str", "List[str]", "int", "Optional[float]"). Use string representation for types.
-        *   `field_description` (String): A concise description of the field's content and purpose. This will be used in `Field(description=...)`.
-        *   `is_required` (Boolean): `True` if the field is mandatory, `False` if optional (implies `Optional` in `python_type`).
-        *   `default_value` (Any, Optional): The default value for the field if `is_required` is `False`.
-
 *   `task_roster` (Array of Objects): **This is the most critical section of the design.** Each task definition must be treated as a direct, precise set of instructions for a new team member who needs explicit guidance. Each object represents a task, separating design rationale from instantiation parameters.
     *   `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
         *   `task_identifier` (String): A unique name for the task, used for context linking.
@@ -184,12 +172,11 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         *   **`blueprint_step_error_handling` (String): A direct copy of the 'Error Handling & Edge Cases' from the corresponding blueprint step.**
         *   `quality_gate` (String): A high-level, human-readable statement of the success criteria for this task. This should answer the question: "How do we know this task was completed successfully and correctly?" It acts as a final check on the `expected_output`, ensuring it aligns with the overall goals of the project.
         *   `tool_rationale` (String, Optional): Justification for why the assigned agent needs specific tools to complete this task.
-        *   `output_rationale` (String, Optional): Justification for using a Pydantic model or a file for the output.
+        *   `output_rationale` (String, Optional): Justification for using a for the output.
     *   `constructor_args` (Object): Contains only the parameters for the CrewAI `Task` class constructor.
-        *   `description` (String): **CRITICAL RULE:** This must be a highly specific, action-oriented prompt written **directly to the agent**. This is not a comment; it is the core instruction. It must be a synthesis of the `blueprint_step_action`, incorporating guidance on how to handle potential issues from `blueprint_step_error_handling`. It must use active verbs and break down the process into clear, logical steps. It should explicitly state *how* the agent should use its tools and the context it receives. **Crucially, if the task's ultimate goal is to create a file, the final step in the description MUST be an unambiguous command to use the file-writing tool to save the generated content to a specific file path.** For example: "...Finally, you MUST use the `file_writer_tool` to save this content to `{output_path}`." **If `output_pydantic_model_id` is specified, the description MUST explicitly instruct the agent to return an instance of the Pydantic model referenced by that ID. For example: "...Your final output MUST be a valid JSON string that can be parsed into an instance of the `{PydanticModelClassName}` Pydantic model."**
+        *   `description` (String): **CRITICAL RULE:** This must be a highly specific, action-oriented prompt written **directly to the agent**. This is not a comment; it is the core instruction. It must be a synthesis of the `blueprint_step_action`, incorporating guidance on how to handle potential issues from `blueprint_step_error_handling`. It must use active verbs and break down the process into clear, logical steps. It should explicitly state *how* the agent should use its tools and the context it receives. **Crucially, if the task's ultimate goal is to create a file, the final step in the description MUST be an unambiguous command to use the file-writing tool to save the generated content to a specific file path.** For example: "...Finally, you MUST use the `file_writer_tool` to save this content to `{output_path}`."
         *   `agent` (String): The `role` of the designated agent.
         *   `expected_output` (String): **CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed. It must be directly derived from the `blueprint_step_success_criteria`. It must define success in terms of a tangible, verifiable outcome.
-            > **For tasks that create files:** The description MUST start by confirming the file's creation. Instead of describing only the content (e.g., "A JSON object..."), it must be phrased as: "**A file named `{file_path}` is successfully created in the file system.** The content of this file must be a {description of content, e.g., 'valid JSON object with the keys `summary`, `experience`, and `skills`'}." This makes the physical existence of the file the primary success criterion. **If `output_pydantic_model_id` is specified, the description MUST start by confirming the output is a valid instance of the Pydantic model. For example: "A valid instance of the `{PydanticModelClassName}` Pydantic model, containing the following fields: {list of fields and their expected content}." If a file is also created, combine this with the file creation rule.**
+            > **For tasks that create files:** The description MUST start by confirming the file's creation. Instead of describing only the content (e.g., "A JSON object..."), it must be phrased as: "**A file named `{file_path}` is successfully created in the file system.** The content of this file must be a {description of content, e.g., 'valid JSON object with the keys `summary`, `experience`, and `skills`'}." This makes the physical existence of the file the primary success criterion.
         *   `context` (Array of Strings, Optional): List of prerequisite `task_identifier`s.
         * `tools` (Array of Strings, Optional): List of tool_ids from the tool_repository. For MCP Servers, the agent gains access to all tools provided by the server. You must pass the .tools property of the adapter instance to the task, so here you should reference the tool_id of the adapter itself (e.g., "web_scout_adapter").
-        *   `output_pydantic_model_id` (String, Optional): The `model_id` from the `pydantic_model_registry` that defines the expected Pydantic output structure for this task. If specified, the `output_pydantic` parameter of the CrewAI Task will be set to the corresponding Pydantic class.
