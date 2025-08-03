@@ -1,5 +1,7 @@
 **Script Structure & Content Requirements:**
 
+Use the JSON object before as the souly source of truth and basis to develop a python code
+
 * **Self-Correction:** The output will be a valid and working python script
 
 **Environment Setup (Order is CRITICAL):**

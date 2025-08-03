@@ -29,3 +29,6 @@ For **each step** in the numbered list, you must include the following sub-secti
 
 ### 5. Example Scenario (Optional but Recommended)
 Provide a concrete example of an 'Overall Expected Input' and the corresponding 'Final Expected Output' to illustrate the instruction's functionality. A clear example is highly valuable for guiding the subsequent AI generation phases.
+
+
+* **Output Format:** It should be document, identified as 'Project Blueprint' within `{{{ }}}` delimiter
