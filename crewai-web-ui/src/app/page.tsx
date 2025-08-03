@@ -1024,7 +1024,7 @@ export default function Home() {
                             else if (phase === 2) setMultiStepPhase2_Input(e.target.value);
                             else setMultiStepPhase3_Input(e.target.value);
                           }}
-                          className="mt-2 w-full p-3 border border-slate-300 rounded-md bg-slate-100 shadow-inner overflow-auto whitespace-pre-wrap min-h-[80px] text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-slate-400 resize-y"
+                          className="mt-2 w-full p-3 border border-slate-300 rounded-md bg-slate-100 shadow-inner overflow-auto whitespace-pre-wrap min-h-[160px] text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-slate-400 resize-y"
                         />
                       </details>
 
@@ -1044,7 +1044,7 @@ export default function Home() {
                             else if (phase === 2) setMultiStepPhase2_Output(e.target.value);
                             else setMultiStepPhase3_Output(e.target.value);
                           }}
-                          className="mt-2 w-full p-3 border border-slate-300 rounded-md bg-slate-100 shadow-inner overflow-auto whitespace-pre-wrap min-h-[80px] text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-slate-400 resize-y"
+                          className="mt-2 w-full p-3 border border-slate-300 rounded-md bg-slate-100 shadow-inner overflow-auto whitespace-pre-wrap min-h-[160px] text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-slate-400 resize-y"
                         />
                       </details>
                     </div>
