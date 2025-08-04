@@ -10,28 +10,29 @@ Use the JSON object before as the souly source of truth and basis to develop a p
 import os
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv()) # MUST BE CALLED EARLY
-````
+```
 
 **Core Imports:**
 
   * Based on the input JSON, import all necessary libraries.
   * For all tools specified in `tool_repository`, import the class specified in `constructor_args.class_name` directly from `crewai_tools`.
   * Import `MCPServerAdapter` from `crewai_tools` and `StdioServerParameters` from `mcp` if any tool uses the `MCPServerAdapter` class.
+  * Import `BaseModel`, `Field`, and `RootModel` from `pydantic`.
+  * Import `List` and `Optional` from `typing`.
   * Uncomment `from crewai.tools import BaseTool` if `custom_tool_definitions` exists and is not empty in the JSON.
-  * Uncomment `from typing import Type, List, Optional` for advanced type hinting if needed.
 
 
 ```python
 from crewai import Agent, Task, Crew, Process
 from crewai import LLM # For LLM section
+from pydantic import BaseModel, Field, RootModel
+from typing import List, Optional
 
 # Example for import for tools from crewai_tools
 from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerAdapter
 
 # from mcp import StdioServerParameters # UNCOMMENT if MCP tools are defined
 # from crewai.tools import BaseTool # UNCOMMENT if custom tools are defined
-# from pydantic import BaseModel, Field # UNCOMMENT if Pydantic models are defined
-# from typing import Type, List, Optional # UNCOMMENT for advanced type hinting if needed
 ```
 
 **API Key Access:**
@@ -76,6 +77,32 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerA
       * **For all other tools:**
           * If `initialization_params` exists and is non-empty, pass its contents as keyword arguments to the class constructor.
 
+**Pydantic Model Definitions:**
+
+  * Iterate through the `pydantic_model_definitions` list in the JSON.
+  * For each model definition object:
+      * **If `is_root_model` is `true`:**
+          * Get the `python_type` from the first (and only) entry in `model_fields`.
+          * Generate a class that inherits from `RootModel[<python_type>]`.
+          * The class name MUST be the `model_id`.
+          * The class body should just be `pass`.
+          * Example: `class MyRootModel(RootModel[List[str]]): pass`
+      * **If `is_root_model` is `false`:**
+          * Generate a Python class that inherits from `BaseModel`.
+          * The class name MUST be the `model_id`.
+          * The class docstring MUST be the `model_description`.
+          * Iterate through the `model_fields` list. For each field, generate a class attribute:
+              * The attribute name is `name`.
+              * The type hint is `python_type`.
+              * The value MUST be an instance of `Field`. The `description` parameter for `Field` MUST be set to the field's `description` string. **DO NOT include any other keyword arguments like `required` in the `Field` constructor.**
+          * Example:
+            ```python
+            class ProfileAnalysisResult(BaseModel):
+                """A structured analysis of a professional profile."""
+                summary: str = Field(description="A concise summary of the profile.")
+                skills: List[str] = Field(description="A list of identified technical and soft skills.")
+            ```
+
 **Agent Definitions:**
 
   * Iterate through the `agent_cadre` list.
@@ -90,8 +117,12 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerA
   * Iterate through the `task_roster` list.
   * For each task object:
       * The variable name for the instance MUST be the `task_identifier` from the task's `design_metadata` object.
-      * Instantiate the `Task` using the keys from the `constructor_args` object.
+      * Instantiate the `Task` class.
       * The `agent` parameter is assigned the agent instance whose `role` matches the `constructor_args.agent` string.
+      * The `description` and `expected_output` parameters are taken directly from `constructor_args`.
+      * **CRITICAL for Pydantic Output**: If `constructor_args.output_pydantic_model_id` is present and not null:
+          * Add the `output_pydantic` parameter to the `Task` constructor.
+          * Its value MUST be the Python class object corresponding to the `output_pydantic_model_id` (e.g., if `output_pydantic_model_id` is "ProfileAnalysisResult", the code should be `output_pydantic=ProfileAnalysisResult`).
       * **CRITICAL for Tool Lists**: Create a Python list for the task's tools. For standard tools, use the tool instance variable. For `MCPServerAdapter` tools, you MUST unpack the adapter's `.tools` property into the list (e.g., `tools=[*brave_search_adapter.tools, file_writer_tool]`).
       * Set `context` by finding the task instances that match the identifiers in `constructor_args.context`.
 
