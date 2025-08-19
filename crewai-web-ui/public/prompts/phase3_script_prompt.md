@@ -51,7 +51,7 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerA
 
 **Reusable RAG and Embedder Configuration:**
 
-  * **If `crew_memory.activation` is `true`:**
+  * **If `crew_memory.activation` is `true` or any tool in the `tool_repository` list in the JSON has `design_metadata.is_custom_embedding_supported` set to `true`:**
     1.  **Create `embedder_config`:**
           * Create a Python dictionary variable named `embedder_config`.
           * Populate it using the `provider` and `config` from the `crew_memory.embedder_config` object in the JSON.
@@ -69,7 +69,7 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerA
       * The Python variable name for the tool instance MUST be the `tool_id` from the `constructor_args` object.
       * **CRITICAL**: Before each tool instantiation line, insert the `tool_selection_justification` from the `design_metadata` object as a Python comment (`#`).
       * The class to instantiate is specified in `class_name` within `constructor_args`.
-      * **If `design_metadata.is_custom_embedding_supported` is `true` AND `crew_memory.activation` is `true`:**
+      * **If `design_metadata.is_custom_embedding_supported` is `true`:**
           * Instantiate the tool by passing the pre-defined `rag_config` variable to its `config` parameter (e.g., `tool_instance = PDFSearchTool(config=rag_config)`).
       * **If `class_name` is `MCPServerAdapter`:**
           * First, instantiate `StdioServerParameters`. The variable name should be `<tool_id>_params`. The `command` and `args` are taken from `constructor_args.initialization_params.serverparams`.
@@ -120,9 +120,9 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerA
       * Instantiate the `Task` class.
       * The `agent` parameter is assigned the agent instance whose `role` matches the `constructor_args.agent` string.
       * The `description` and `expected_output` parameters are taken directly from `constructor_args`.
-      * **CRITICAL for Pydantic Output**: If `constructor_args.output_pydantic_model_id` is present and not null:
-          * Add the `output_pydantic` parameter to the `Task` constructor.
-          * Its value MUST be the Python class object corresponding to the `output_pydantic_model_id` (e.g., if `output_pydantic_model_id` is "ProfileAnalysisResult", the code should be `output_pydantic=ProfileAnalysisResult`).
+      * **CRITICAL for Pydantic Output**: If `constructor_args.output_json_model_id` is present and not null:
+          * Add the `output_json` parameter to the `Task` constructor.
+          * Its value MUST be the Python class object corresponding to the `output_json_model_id` (e.g., if `output_json_model_id` is "ProfileAnalysisResult", the code should be `output_json=ProfileAnalysisResult`).
       * **CRITICAL for Tool Lists**: Create a Python list for the task's tools. For standard tools, use the tool instance variable. For `MCPServerAdapter` tools, you MUST unpack the adapter's `.tools` property into the list (e.g., `tools=[*brave_search_adapter.tools, file_writer_tool]`).
       * Set `context` by finding the task instances that match the identifiers in `constructor_args.context`.
 
