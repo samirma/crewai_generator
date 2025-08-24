@@ -1,13 +1,10 @@
-## **CrewAI Architecture Design Blueprint (Phase 2)**
 
-Use this document as a blueprint to achieve the goal described in the initial instruction document. Your objective is to design the optimal CrewAI configuration in a single, comprehensive JSON object. This involves developing the complete specifications for the workflow, agents, tools, tasks, and Pydantic output models. Your role is exclusively architectural design.
+* **Instruction:** Only use the document identified as 'Project Blueprint' within `{{{ }}}` as your sole source of truth.
+* **Objective:** Your task is to design a complete and optimal CrewAI configuration. This design must fully implement the goals from the 'Project Blueprint'. Your role is strictly that of an architect; you are not to write code or execute the plan.
+* **Self-Correction:** The final design must include agents and tasks specifically for quality assurance and critique to ensure the output is of the highest quality.
+* **Output Structure:** The design must clearly separate the technical parameters for Python class constructors (`constructor_args`) from the contextual justification and rationale for those parameters (`design_metadata`).
+* **Final Output Format:** Your entire response must be a single, comprehensive JSON object. Do not include any other text before or after the JSON.
 
-The design process must follow a logical, top-down cascade to ensure robustness and internal consistency. Key considerations include:
-
-*   **Instruction:** Only use the document identified as 'Project Blueprint' within `{{{ }}}` delimiter as only source of truth to be used to guide the crewai plan.
-*   **Self-Correction:** The architecture must include agents and tasks dedicated to quality assurance and critique, ensuring the final output meets the highest standards.
-*   **Clarity for Code Generation:** The design must strictly separate parameters intended for Python class constructors (`constructor_args`) from the contextual justification and rationale for those parameters (`design_metadata`).
-*   **Output Format:** You will ONLY output this JSON object. Your entire response must be the JSON object itself, without any preceding or succeeding text.
 
 ### **Design Section Order**
 
@@ -189,12 +186,8 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         *   `description` (String): **CRITICAL RULE:** This must be a highly specific, action-oriented prompt written **directly to the agent**. This is not a comment; it is the core instruction. It must be a synthesis of the `blueprint_step_action`, incorporating guidance on how to handle potential issues from `blueprint_step_error_handling`. It must use active verbs and break down the process into clear, logical steps. It should explicitly state *how* the agent should use its tools and the context it receives. **Crucially, if the task's ultimate goal is to create a file, the final step in the description MUST be an unambiguous command to use the file-writing tool to save the generated content to a specific file path.** For example: "...Finally, you MUST use the `file_writer_tool` to save this content to `{output_path}`."
         *   `agent` (String): The `role` of the designated agent.
         *   `expected_output` (String): **CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed.
-            > **If using a Pydantic model (`output_pydantic_model_id` is set):** This description must detail the *expected content* that will populate the fields of the Pydantic model. For example: "A fully populated Pydantic object containing a concise summary of the user's profile, a list of their technical skills, and a list of their soft skills."
+            > **If using a Pydantic model (`output_json` is set):** This description must detail the *expected content* that will populate the fields of the Pydantic model. For example: "A fully populated Pydantic object containing a concise summary of the user's profile, a list of their technical skills, and a list of their soft skills."
             > **If creating a file:** The description MUST start by confirming the file's creation. Instead of describing only the content (e.g., "A JSON object..."), it must be phrased as: "**A file named `{file_path}` is successfully created in the file system.** The content of this file must be a {description of content, e.g., 'valid JSON object with the keys `summary`, `experience`, and `skills`'}." This makes the physical existence of the file the primary success criterion.
-        *   `output_pydantic_model_id` (String, Optional): The `model_id` of the Pydantic model (from `pydantic_model_definitions`) that this task must output. If this is specified, the task's result will be an instance of this Pydantic class.
+        *   `output_json` (String, Optional): The `model_id` of the Pydantic model (from `pydantic_model_definitions`) that this task must output. If this is specified, the task's result will be an instance of this Pydantic class.
         *   `context` (Array of Strings, Optional): List of prerequisite `task_identifier`s.
         *   `tools` (Array of Strings, Optional): List of tool_ids from the tool_repository. For MCP Servers, the agent gains access to all tools provided by the server. You must pass the .tools property of the adapter instance to the task, so here you should reference the tool_id of the adapter itself (e.g., "web_scout_adapter").
-
----
-### `phase3_script_prompt.md` (Updated)
----
