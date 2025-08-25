@@ -60,7 +60,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 **'Design-Crew-Architecture-Plan' - JSON Schema:**
 
 *   `workflow_process` (Object):
-    *   `rationale` (String): Justification based on the Design Blueprint detail to use CrewAI with `Process.sequential` or `Process.hierarchical`.
+    *   `rationale` (String): The Justification for the choice between Process.sequential and Process.hierarchical, which determined by the complexity and interdependencies of the project goals. Process.sequential is best for linear, straightforward tasks with a clear, predetermined order, where the output of one task is the direct input for the next. This model ensures precise and orderly progression and is suitable for projects with low to medium complexity. In contrast, Process.hierarchical is the ideal choice for complex, multi-stage projects that require dynamic, multi-agent collaboration, where a manager agent delegates tasks to specialized worker agents to achieve a common goal. This model is selected when the solution benefits from a variety of specialized perspectives and complex, non-linear workflows."
     *   `selected_process` (String): `Process.sequential` OR `Process.hierarchical`.
 
 *   `crew_memory` (Object):
@@ -88,36 +88,64 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         *   `max_tokens` (Number): The maximum number of tokens for the model's response.
         *   `api_key` (String, Optional): Environment variable name for the API key.
     *   **Pre-defined List to Use:**
-        ```json
-        [
-          {
-            "design_metadata": {
-              "llm_id": "gemini/gemini-2.5-flash",
-              "reasoner": true,
-              "multimodal_support": true,
-              "rationale": "A high-performance, cost-effective model from Google, excellent for complex reasoning, long-context understanding, and multimodal tasks. Ideal for manager agents or agents requiring deep analysis."
-            },
-            "constructor_args": {
-              "model": "gemini/gemini-2.5-flash",
-              "timeout": 600,
-              "api_key": "GEMINI_API_KEY"
-            }
-          },
-          {
-            "design_metadata": {
-              "llm_id": "deepseek_chat_worker",
-              "reasoner": false,
-              "multimodal_support": false,
-              "rationale": "A capable and efficient model for general-purpose tasks like writing, summarization, and data extraction. A good choice for worker agents that don't require advanced reasoning."
-            },
-            "constructor_args": {
-              "model": "deepseek/deepseek-chat",
-              "timeout": 600,
-              "api_key": "DEEPSEEK_API_KEY"
-            }
-          }
-        ]
-        ```
+```json
+[
+  {
+    "design_metadata": {
+      "llm_id": "gemini/gemini-2.5-flash",
+      "reasoner": true,
+      "multimodal_support": true,
+      "rationale": "A high-performance, cost-effective model from Google, excellent for complex reasoning, long-context understanding, and multimodal tasks. Ideal for manager agents or agents requiring deep analysis."
+    },
+    "constructor_args": {
+      "model": "gemini/gemini-2.5-flash",
+      "timeout": 600,
+      "api_key": "GEMINI_API_KEY"
+    }
+  },
+  {
+    "design_metadata": {
+      "llm_id": "qwen-3-235b-a22b-instruct",
+      "reasoner": false,
+      "multimodal_support": false,
+      "rationale": "A powerful non-thinking model with 235 billion parameters, excelling in instruction following, multilingual tasks, and efficient text generation at speeds exceeding 1,400 tokens per second. Ideal for worker agents handling high-volume, general-purpose tasks."
+    },
+    "constructor_args": {
+      "model": "cerebras/qwen-3-235b-a22b-instruct-2507",
+      "timeout": 600,
+      "api_key": "CEREBRAS_API_KEY",
+      "base_url": "https://api.cerebras.ai/v1"
+    }
+  },
+  {
+    "design_metadata": {
+      "llm_id": "qwen-3-235b-a22b-thinking-2507",
+      "reasoner": true,
+      "multimodal_support": false,
+      "rationale": "An advanced reasoning model designed for complex, multi-step tasks such as logical reasoning, mathematics, and coding. It can complete intricate reasoning processes very quickly, making it suitable for agents requiring deep analysis and problem-solving capabilities."
+    },
+    "constructor_args": {
+      "model": "cerebras/qwen-3-235b-a22b-thinking-2507",
+      "timeout": 600,
+      "api_key": "CEREBRAS_API_KEY",
+      "base_url": "https://api.cerebras.ai/v1"
+    }
+  },
+  {
+    "design_metadata": {
+      "llm_id": "deepseek_chat_worker",
+      "reasoner": false,
+      "multimodal_support": false,
+      "rationale": "A capable and efficient model for general-purpose tasks like writing, summarization, and data extraction. A good choice for worker agents that don't require advanced reasoning."
+    },
+    "constructor_args": {
+      "model": "deepseek/deepseek-chat",
+      "timeout": 600,
+      "api_key": "DEEPSEEK_API_KEY"
+    }
+  }
+]
+```
 
 *   `agent_cadre` (Array of Objects): Each object represents an agent. The structure separates constructor arguments from design rationale.
     *   `design_metadata` (Object): Contains contextual information and justifications, not used for code generation.
@@ -172,7 +200,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         *   `python_type` (String): The Python type hint for the field (e.g., "str", "List[str]", "Optional[int]").
         *   `description` (String): A clear description of the field's content, used for the Pydantic `Field` description.
 
-*   `task_roster` (Array of Objects): **This is the most critical section of the design.** Each task definition must be treated as a direct, precise set of instructions for a new team member who needs explicit guidance. Each object represents a task, separating design rationale from instantiation parameters.
+*   `task_roster` (Array of Objects): **This is the most critical section of the design.** Considering `selected_process` of `workflow_process`. Each task definition must be treated as a direct, precise set of instructions for a new team member who needs explicit guidance. Each object represents a task, separating design rationale from instantiation parameters.
     *   `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
         *   `task_identifier` (String): A unique name for the task, used for context linking.
         *   **`blueprint_reference` (String): The `step_id` from the Phase 1 Blueprint's 'Logical Steps' that this task implements. This is mandatory for traceability.**
