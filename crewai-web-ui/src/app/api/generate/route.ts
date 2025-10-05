@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { interactWithLLM } from './llm.service';
 
-const promptsDir = path.join(process.cwd(), 'crewai-web-ui', 'public', 'prompts');
+const promptsDir = path.join(process.cwd(), 'public', 'prompts');
 
 async function readPrompt(promptName: string): Promise<string> {
   const promptPath = path.join(promptsDir, promptName);
