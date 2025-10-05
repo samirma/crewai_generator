@@ -69,6 +69,8 @@ RUN python -m pip install --upgrade pip && \
 
 RUN pip install --upgrade chromadb crewai
 
+COPY pre_docker_run.sh /workspace/pre_docker_run.sh
+RUN chmod +x /workspace/pre_docker_run.sh
 
 # The container is now configured to use the venv's python by default.
 # The CMD below is just an example. The command you provide in `docker run` will

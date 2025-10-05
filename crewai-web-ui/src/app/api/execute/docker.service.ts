@@ -7,23 +7,33 @@ import { exec } from 'child_process';
 import { ExecutePythonScriptSetupResult, StageOutput } from './types';
 
 // Helper function to execute Python script in Docker
-export async function executePythonScript(scriptContent: string): Promise<ExecutePythonScriptSetupResult> { // Changed return type
-  const docker = new Docker(); // Assumes Docker is accessible (e.g., /var/run/docker.sock)
+export async function executePythonScript(files: { [key: string]: string }): Promise<ExecutePythonScriptSetupResult> {
+  const docker = new Docker();
   const projectRoot = path.resolve(process.cwd(), '..');
   const workspaceDir = path.join(projectRoot, 'workspace');
+  const agentCodeDir = path.join(workspaceDir, 'agent_code');
+  const srcDir = path.join(agentCodeDir, 'src', 'agent_code');
+  const configDir = path.join(srcDir, 'config');
 
-  // Initialize preHostRunResult for the return value
   const preHostRunResult: StageOutput = { stdout: '', stderr: '', status: 'not_run' };
   let overallStatus: 'success' | 'failure' = 'success';
   let topLevelError: string | undefined = undefined;
 
   try {
-    await fs.mkdir(workspaceDir, { recursive: true });
-    const scriptPath = path.join(workspaceDir, 'crewai_generated.py');
-    await fs.writeFile(scriptPath, scriptContent);
-    console.log(`Python script saved to ${scriptPath}`);
+    await fs.rm(agentCodeDir, { recursive: true, force: true });
+    await fs.mkdir(configDir, { recursive: true });
 
-    // --- Execute pre_host_run.sh if it exists ---
+    for (const [fileName, content] of Object.entries(files)) {
+      let filePath: string;
+      if (fileName.endsWith('.yaml')) {
+        filePath = path.join(configDir, fileName);
+      } else {
+        filePath = path.join(srcDir, fileName);
+      }
+      await fs.writeFile(filePath, content);
+      console.log(`File saved to ${filePath}`);
+    }
+
     const preHostRunScriptPath = path.join(workspaceDir, 'pre_host_run.sh');
     preHostRunResult.status = 'running';
     try {
@@ -109,23 +119,13 @@ export async function executePythonScript(scriptContent: string): Promise<Execut
 
     // --- Docker Container Setup ---
     const dockerCommand = `
-  if [ -f /workspace/pre_docker_run.sh ]; then
-    echo "--- Running pre_docker_run.sh ---";
-    /bin/sh /workspace/pre_docker_run.sh;
-    PRE_DOCKER_RUN_EXIT_CODE=$?;
-    echo "--- pre_docker_run.sh finished with exit code $PRE_DOCKER_RUN_EXIT_CODE ---";
-    if [ $PRE_DOCKER_RUN_EXIT_CODE -ne 0 ]; then exit $PRE_DOCKER_RUN_EXIT_CODE; fi;
-  else
-    echo "--- /workspace/pre_docker_run.sh not found, skipping. ---";
-  fi &&
-  echo "--- Running crewai_generated.py ---" &&
-  python /workspace/crewai_generated.py &&
-  echo "--- crewai_generated.py finished ---"
+  cd /workspace/agent_code &&
+  crewai run
 `;
     try {
       const container = await docker.createContainer({
         Image: imageName,
-        Cmd: ['/bin/sh', '-c', dockerCommand], // dockerCommand is defined above
+        Cmd: ['/bin/sh', '-c', dockerCommand],
         WorkingDir: '/workspace',
         HostConfig: {
           Mounts: [{ Type: 'bind', Source: workspaceDir, Target: '/workspace' }],

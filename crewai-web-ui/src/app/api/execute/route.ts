@@ -6,20 +6,27 @@ import { StageOutput, ExecutionResult, ExecutePythonScriptSetupResult } from './
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const scriptContent = body.script;
+    const { agents_yaml, tasks_yaml, crew_py, main_py } = body;
 
-    if (!scriptContent || typeof scriptContent !== 'string') {
-      const errorResult: ExecutionResult = { // Still use ExecutionResult for final API response
-        preHostRun: { stdout: '', stderr: '', status: 'skipped', error: "scriptContent is required"},
+    if (!agents_yaml || !tasks_yaml || !crew_py || !main_py) {
+      const errorResult: ExecutionResult = {
+        preHostRun: { stdout: '', stderr: '', status: 'skipped', error: "Missing required files" },
         overallStatus: 'failure',
-        error: "scriptContent is required in the request body and must be a string."
+        error: "agents_yaml, tasks_yaml, crew_py, and main_py are required in the request body."
       };
       return NextResponse.json(errorResult, { status: 400 });
     }
 
-    console.log("Received script for execution. Setting up Docker container and stream...");
+    const files = {
+      "agents.yaml": agents_yaml,
+      "tasks.yaml": tasks_yaml,
+      "crew.py": crew_py,
+      "main.py": main_py,
+    };
+
+    console.log("Received files for execution. Setting up Docker container and stream...");
     const scriptStartTime = Date.now(); // Record start time before execution setup
-    const setupResult = await executePythonScript(scriptContent);
+    const setupResult = await executePythonScript(files);
 
     // If setup failed (e.g., pre-host, docker build, container creation failed)
     if (setupResult.overallStatus === 'failure' || !setupResult.container || !setupResult.stream) {
