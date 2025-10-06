@@ -57,9 +57,12 @@ export async function getOllamaModels(): Promise<ModelConfig[]> {
       }
       return modelConfig;
     });
-  } catch (error) {
-    // Now fetchUrl is accessible here
-    console.error("Error fetching Ollama models:", error, fetchUrl ? `(Attempted URL: ${fetchUrl})` : "(URL not determined)");
+  } catch (error: any) {
+    if (error.cause && error.cause.code === 'ECONNREFUSED') {
+      console.log(`Ollama server not available at ${fetchUrl}. Skipping Ollama models.`);
+    } else {
+      console.error("Error fetching Ollama models:", error, fetchUrl ? `(Attempted URL: ${fetchUrl})` : "(URL not determined)");
+    }
     return [];
   }
 }
