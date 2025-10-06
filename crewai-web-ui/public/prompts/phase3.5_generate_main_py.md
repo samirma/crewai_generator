@@ -1,6 +1,6 @@
 * **Instruction:** Use the `task_roster` section from the 'Design-Crew-Architecture-Plan' JSON as your sole source of truth.
 * **Objective:** Your task is to generate the complete Python code for the `main.py` file. This script will be the entry point to run the crew.
-* **Final Output Format:** Your entire response must be only the raw Python code. Do not include any other text, explanations, or markdown formatting like `python ...`.
+* **Final Output Format:** Your entire response must be a single Python code block enclosed in ```python ... ```. Do not include any other text or explanations before or after the code block.
 
 ---
 

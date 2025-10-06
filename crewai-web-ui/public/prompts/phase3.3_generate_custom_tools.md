@@ -1,7 +1,7 @@
 * **Instruction:** Use the `custom_tool_definitions` section from the 'Design-Crew-Architecture-Plan' JSON as your sole source of truth.
 * **Objective:** Your task is to generate the complete Python code for a `custom_tools.py` file. This file will contain all custom tool classes required by the crew.
 * **Conditional Generation:** If the `custom_tool_definitions` array is empty, you should output nothing.
-* **Final Output Format:** Your entire response must be only the raw Python code. Do not include any other text, explanations, or markdown formatting like `python ...`.
+* **Final Output Format:** Your entire response must be a single Python code block enclosed in ```python ... ```. Do not include any other text or explanations before or after the code block.
 
 ---
 

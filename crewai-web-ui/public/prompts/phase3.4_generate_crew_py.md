@@ -1,6 +1,6 @@
 * **Instruction:** Use the full 'Design-Crew-Architecture-Plan' JSON as your sole source of truth.
 * **Objective:** Your task is to generate the complete Python code for the `crew.py` file. This script will define and instantiate components not supported by YAML (like LLMs and Tools) and then assemble the `Crew` object, pointing it to the YAML configuration for agents and tasks.
-* **Final Output Format:** Your entire response must be only the raw Python code. Do not include any other text, explanations, or markdown formatting.
+* **Final Output Format:** Your entire response must be a single Python code block enclosed in ```python ... ```. Do not include any other text or explanations before or after the code block.
 
 ---
 

@@ -1,6 +1,6 @@
 * **Instruction:** Use the `task_roster` section from the 'Design-Crew-Architecture-Plan' JSON as your sole source of truth.
 * **Objective:** Your task is to generate the complete content for a valid `tasks.yaml` file compatible with the `crewai` CLI.
-* **Final Output Format:** Your entire response must be only the raw YAML content. Do not include any other text, explanations, or markdown formatting like `yaml ...`.
+* **Final Output Format:** Your entire response must be a single YAML code block enclosed in ```yaml ... ```. Do not include any other text or explanations before or after the code block.
 
 ---
 
