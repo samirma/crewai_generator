@@ -74,8 +74,8 @@ export async function interactWithLLM(
       if (result.response && result.response.promptFeedback) {
         detailedError += ` Prompt feedback: ${JSON.stringify(result.response.promptFeedback)}`;
       }
-      console.error("Gemini API call successful but response format is unexpected or content is missing.");
-      throw new Error(`Gemini API Error: ${detailedError}`);
+      console.warn("Gemini API call successful but response format is unexpected or content is missing. Returning empty string.", detailedError);
+      llmResponseText = "";
     }
   } else if (currentModelId.startsWith('deepseek/')) {
     const deepSeekApiKey = process.env.DEEPSEEK_API_KEY;
