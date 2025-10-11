@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     prompts.push({ title, prompt });
     await fs.writeFile(promptsFilePath, JSON.stringify(prompts, null, 2));
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to save prompt' }, { status: 500 });
   }
 }
@@ -35,7 +35,7 @@ export async function DELETE(request: Request) {
     prompts = prompts.filter((p: { title: string }) => p.title !== title);
     await fs.writeFile(promptsFilePath, JSON.stringify(prompts, null, 2));
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to delete prompt' }, { status: 500 });
   }
 }

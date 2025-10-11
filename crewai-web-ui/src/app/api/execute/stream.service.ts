@@ -6,9 +6,10 @@ import { ExecutionResult, StageOutput } from './types'; // ExecutePythonScriptSe
 // The actual type is Docker.Container.
 // NodeJS.ReadableStream is generally available in Node environments.
 
+import Docker from 'dockerode';
 export function handleDockerStream(
   dockerStream: NodeJS.ReadableStream,
-  container: any, // Should be Docker.Container
+  container: Docker.Container, // Should be Docker.Container
   preHostRunResult: StageOutput,
   setupOverallStatus: 'success' | 'failure',
   setupError: string | undefined,
@@ -102,11 +103,12 @@ export function handleDockerStream(
             // This part might need refinement if raw chunks are common and need strict separation
             if (inPreDockerScript && chunk[0] === 2) stderrChunks.push(chunk); else stdoutChunks.push(chunk);
           }
-        } catch (e: any) {
-          console.error("Error processing chunk for client stream or server log:", e);
+        } catch (e) {
+          const error = e as Error;
+          console.error("Error processing chunk for client stream or server log:", error);
           // Send error with context if possible
           const errorPrefix = inPreDockerScript ? "PRE_DOCKER_ERROR" : "LOG_ERROR";
-          controller.enqueue(`${errorPrefix}: Error processing Docker log chunk: ${e.message}`);
+          controller.enqueue(`${errorPrefix}: Error processing Docker log chunk: ${error.message}`);
         }
       });
 
@@ -114,7 +116,7 @@ export function handleDockerStream(
         try {
           console.log("Docker stream ended. Waiting for container to exit...");
           // container is 'any' here, but it should have a 'wait' method if it's a Dockerode container object
-          const waitResponse = await container!.wait();
+          const waitResponse = await container.wait();
           const containerStatusCode = waitResponse.StatusCode;
           console.log(`Container exited with status code: ${containerStatusCode}.`);
 
@@ -139,17 +141,18 @@ export function handleDockerStream(
 
           controller.enqueue(`RESULT: ${JSON.stringify(resultPayload)}`);
           controller.close();
-        } catch (e: any) {
-          console.error("Error in stream 'end' processing or finalization:", e);
+        } catch (e) {
+          const error = e as Error;
+          console.error("Error in stream 'end' processing or finalization:", error);
           const scriptEndTime = Date.now();
           const scriptExecutionDuration = parseFloat(((scriptEndTime - scriptStartTime) / 1000).toFixed(2));
           // Send a final error to the client if possible
           const errorResult: ExecutionResult = {
             overallStatus: 'failure',
-            error: `Error during final processing: ${e.message}`,
+            error: `Error during final processing: ${error.message}`,
             preHostRun: preHostRunResult,
-            preDockerRun: { stdout: Buffer.concat(stdoutChunks).toString('utf-8'), stderr: Buffer.concat(stderrChunks).toString('utf-8'), status: 'failure', error: `Error during final processing: ${e.message}` },
-            mainScript: { stdout: '', stderr: '', status: 'failure', error: `Error during final processing: ${e.message}` },
+            preDockerRun: { stdout: Buffer.concat(stdoutChunks).toString('utf-8'), stderr: Buffer.concat(stderrChunks).toString('utf-8'), status: 'failure', error: `Error during final processing: ${error.message}` },
+            mainScript: { stdout: '', stderr: '', status: 'failure', error: `Error during final processing: ${error.message}` },
             scriptExecutionDuration: scriptExecutionDuration, // Include duration in error
           };
           try {

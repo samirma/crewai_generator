@@ -1,19 +1,16 @@
 "use client";
-
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { useState, useEffect, useMemo } from 'react';
 import CopyButton from './CopyButton';
 import Timer from './Timer';
 import type { ExecutionResult as ExecutionResultType } from '../api/execute/types';
 
 interface PhasedOutput {
-    taskName: string;
-    output: string;
-  }
+  taskName: string;
+  output: string;
+}
 
 interface ExecutionTabProps {
   isExecutingScript: boolean;
-  multiStepPhase3_Output: string;
   isLlmTimerRunning: boolean;
   handleExecuteScript: () => void;
   finalExecutionStatus: string | null;
@@ -27,9 +24,54 @@ interface ExecutionTabProps {
   finalExecutionResult: ExecutionResultType | null;
 }
 
+interface FileTreeNode {
+  name: string;
+  type: 'file' | 'folder';
+  path: string;
+  children?: FileTreeNode[];
+}
+
+const FileTree = ({ tree, activeFile, setActiveFile }: { tree: FileTreeNode[], activeFile: string | null, setActiveFile: (path: string) => void }) => {
+  const renderNode = (node: FileTreeNode, level: number) => (
+    <div key={node.path} style={{ paddingLeft: `${level * 20}px` }}>
+      <button
+        onClick={() => node.type === 'file' && setActiveFile(node.path)}
+        className={`w-full text-left px-2 py-1 rounded-md transition-colors ${
+          activeFile === node.path
+            ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
+            : 'hover:bg-slate-200 dark:hover:bg-slate-700'
+        }`}
+      >
+        {node.type === 'folder' ? '📁' : '📄'} {node.name}
+      </button>
+      {node.children && node.children.map(child => renderNode(child, level + 1))}
+    </div>
+  );
+
+  const uniqueTree = useMemo(() => {
+    const seen = new Set();
+    const filterDuplicates = (nodes: FileTreeNode[]): FileTreeNode[] => {
+      return nodes.filter(node => {
+        const duplicate = seen.has(node.path);
+        seen.add(node.path);
+        if (node.children) {
+          node.children = filterDuplicates(node.children);
+        }
+        return !duplicate;
+      });
+    };
+    return filterDuplicates(tree);
+  }, [tree]);
+
+  return (
+    <div>
+      {uniqueTree.map(node => renderNode(node, 0))}
+    </div>
+  )
+};
+
 const ExecutionTab = ({
   isExecutingScript,
-  multiStepPhase3_Output,
   isLlmTimerRunning,
   handleExecuteScript,
   finalExecutionStatus,
@@ -42,6 +84,70 @@ const ExecutionTab = ({
   scriptExecutionError,
   finalExecutionResult,
 }: ExecutionTabProps) => {
+  const [fileTree, setFileTree] = useState<FileTreeNode[]>([]);
+  const [activeFile, setActiveFile] = useState<string | null>(null);
+  const [activeFileContent, setActiveFileContent] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProjectStructure = async () => {
+      try {
+        const response = await fetch('/api/project-structure');
+        if (!response.ok) {
+          throw new Error('Failed to fetch project structure');
+        }
+        const tree = await response.json();
+        setFileTree(tree);
+        if (tree.length > 0) {
+          const firstFile = findFirstFile(tree);
+          if (firstFile) {
+            setActiveFile(firstFile.path);
+          }
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchProjectStructure();
+  }, []);
+
+  useEffect(() => {
+    const fetchFileContent = async () => {
+      if (activeFile) {
+        try {
+          const response = await fetch(`/api/project-structure?file=${encodeURIComponent(activeFile)}`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch file content');
+          }
+          const content = await response.text();
+          setActiveFileContent(content);
+        } catch (error) {
+          console.error(error);
+          setActiveFileContent('Error loading file content.');
+        }
+      }
+    };
+
+    fetchFileContent();
+  }, [activeFile]);
+
+  const findFirstFile = (nodes: FileTreeNode[]): FileTreeNode | null => {
+    for (const node of nodes) {
+      if (node.type === 'file') {
+        return node;
+      }
+      if (node.children) {
+        const firstFile = findFirstFile(node.children);
+        if (firstFile) {
+          return firstFile;
+        }
+      }
+    }
+    return null;
+  };
+
+  const scriptIsEmpty = fileTree.length === 0;
+
   return (
     <section className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
       <h2 className="text-2xl font-semibold mb-6 text-slate-700 dark:text-slate-200">
@@ -53,7 +159,7 @@ const ExecutionTab = ({
         onClick={handleExecuteScript}
         disabled={
           isExecutingScript ||
-          !multiStepPhase3_Output.trim() ||
+          scriptIsEmpty ||
           isLlmTimerRunning
         }
         className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg px-6 py-3 rounded-xl shadow-lg transition duration-200 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:bg-gray-400 focus:ring-4 focus:ring-indigo-300 focus:outline-none dark:focus:ring-indigo-800 flex items-center justify-center gap-2 mb-6"
@@ -70,28 +176,25 @@ const ExecutionTab = ({
       </button>
 
       <div className="grid md:grid-cols-2 gap-6">
-        <div>
-          <details className="border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm mb-4" open>
-            <summary className="flex justify-between items-center p-4 cursor-pointer bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-t-xl">
-              <span className="text-lg font-medium text-slate-700 dark:text-slate-300">
-                Generated Python Script
-              </span>
-              <CopyButton textToCopy={multiStepPhase3_Output} />
-            </summary>
-            <div className="w-full p-4 bg-slate-900 overflow-auto min-h-[200px] max-h-[500px] rounded-b-xl">
-              <SyntaxHighlighter
-                language="python"
-                style={atomDark}
-                showLineNumbers={true}
-                wrapLines={true}
-                lineProps={{ style: { whiteSpace: 'pre-wrap', wordBreak: 'break-all' } }}
-                customStyle={{ margin: 0, backgroundColor: 'transparent', height: 'auto', overflow: 'auto' }}
-                codeTagProps={{ style: { fontFamily: 'inherit' } }}
-              >
-                {multiStepPhase3_Output || "# Python script will appear here after Phase 3 generation."}
-              </SyntaxHighlighter>
+        <div className="border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm p-4 bg-slate-50 dark:bg-slate-700">
+          <h3 className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-3">
+            Generated Project Files
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border-r border-slate-200 dark:border-slate-600 pr-2">
+              <FileTree tree={fileTree} activeFile={activeFile} setActiveFile={setActiveFile} />
             </div>
-          </details>
+            <div className="relative bg-slate-100 dark:bg-slate-900 rounded-md p-2 min-h-[200px]">
+              <pre className="text-xs text-slate-700 dark:text-slate-200 whitespace-pre-wrap overflow-auto h-full max-h-[400px]">
+                {activeFileContent || 'Select a file to view its content.'}
+              </pre>
+              {activeFileContent && (
+                <div className="absolute top-2 right-2">
+                  <CopyButton textToCopy={activeFileContent} />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <div>

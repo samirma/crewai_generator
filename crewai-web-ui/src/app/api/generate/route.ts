@@ -1,11 +1,43 @@
 import { NextResponse } from 'next/server';
-// Import GoogleGenerativeAI, OpenAI, fs, path are now in llm.service.ts
-import fs from 'fs/promises'; // fs is still needed for reading files in POST
-import path from 'path'; // path is still needed for joining paths in POST
-import { interactWithLLM } from './llm.service'; // Import the refactored function
-// injectOllamaConfig import removed as the function is no longer used
+import fs from 'fs/promises';
+import path from 'path';
+import { interactWithLLM } from './llm.service';
+import { parseFileBlocks } from '../../../utils/fileParser';
 
-// Main API Handler
+const WORKSPACE_DIR = path.join(process.cwd(), '..', 'workspace');
+const GENERATED_DIR = path.join(WORKSPACE_DIR, 'crewai_generated');
+
+async function ensureDirectoryExists(dir: string) {
+  try {
+    await fs.mkdir(dir, { recursive: true });
+  } catch (error) {
+    if (error.code !== 'EEXIST') {
+      throw error;
+    }
+  }
+}
+
+async function cleanDirectory(dir: string) {
+  try {
+    const files = await fs.readdir(dir);
+    for (const file of files) {
+      const filePath = path.join(dir, file);
+      const stat = await fs.lstat(filePath);
+      if (stat.isDirectory()) {
+        await cleanDirectory(filePath);
+        await fs.rmdir(filePath);
+      } else {
+        await fs.unlink(filePath);
+      }
+    }
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      console.error(`Error cleaning directory ${dir}:`, error);
+      throw error;
+    }
+  }
+}
+
 export async function POST(request: Request) {
   let llmInputPromptContent = "";
   let llmOutputPromptContent = "";
@@ -13,31 +45,25 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       llmModel,
-      runPhase,        // 1, 2, or 3 for advanced mode. Can be null/undefined if mode is 'simple'.
-      fullPrompt       // The pre-constructed prompt from the frontend
+      runPhase,
+      fullPrompt,
+      filePath,
+      outputType,
     } = body;
 
-    // Validate essential parameters
     if (!llmModel || !fullPrompt) {
       return NextResponse.json({ error: "Missing required parameters: llmModel and fullPrompt." }, { status: 400 });
     }
-    if (runPhase !== 1 && runPhase !== 2 && runPhase !== 3) {
-      return NextResponse.json({ error: "Invalid 'runPhase'. Must be 1, 2, or 3." }, { status: 400 });
+    if (runPhase < 1 || runPhase > 9) {
+      return NextResponse.json({ error: "Invalid 'runPhase'. Must be between 1 and 9." }, { status: 400 });
     }
 
-
-    // Simplified logging
     console.log(`Received request: llmModel='${llmModel}', fullPrompt length: ${fullPrompt.length}`);
     console.log(`Advanced mode phase: ${runPhase}`);
 
-    // The fullPrompt is now received directly from the client.
-    // No need to call readPromptFile or constructPrompt on the backend.
-
     try {
-      // Call interactWithLLM with the fullPrompt received from the client
-      // fs and path imports for GoogleGenerativeAI and OpenAI are handled within llm.service.ts
       const { llmResponseText, generatedScript: llmGeneratedScript, duration } = await interactWithLLM(fullPrompt, llmModel, runPhase);
-      let generatedScript = llmGeneratedScript; // Optional, changed to let
+      const generatedScript = llmGeneratedScript;
 
       const inputFilePath = path.join(process.cwd(), 'llm_input_prompt.txt');
       const outputFilePath = path.join(process.cwd(), 'llm_output_prompt.txt');
@@ -46,33 +72,37 @@ export async function POST(request: Request) {
         llmInputPromptContent = await fs.readFile(inputFilePath, 'utf-8');
       } catch (error) {
         console.error('Failed to read llm_input_prompt.txt:', error);
-        // Keep llmInputPromptContent as ""
       }
 
       try {
         llmOutputPromptContent = await fs.readFile(outputFilePath, 'utf-8');
       } catch (error) {
         console.error('Failed to read llm_output_prompt.txt:', error);
-        // Keep llmOutputPromptContent as ""
       }
 
-      // Return structure now includes the fullPrompt that was sent in the request
-      if (runPhase === 1 || runPhase === 2) {
-        return NextResponse.json({ phase: runPhase, output: llmResponseText, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent, duration });
+      if (runPhase === 1) {
+        await cleanDirectory(GENERATED_DIR);
+        await ensureDirectoryExists(GENERATED_DIR);
+        const readmePath = path.join(GENERATED_DIR, 'README.md');
+        await fs.writeFile(readmePath, `# CrewAI Project: ${fullPrompt}`);
       }
 
-      // Ollama-specific LLM configuration injection block removed
-      // as injectOllamaConfig has been removed from script.utils.ts
-
-      if (generatedScript !== undefined) {
-        return NextResponse.json({ generatedScript, phase: 3, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent, duration /* phasedOutputs: [] an example if needed */ });
-      } else {
-        // This case should ideally not be reached if llmModel.startsWith('ollama/') and generatedScript was initially undefined,
-        // as the injection logic itself checks for generatedScript.
-        // However, if generatedScript was undefined from llmResult and it's not an Ollama model, this path is valid.
-        console.error(`Error: generatedScript is undefined for runPhase='${runPhase}'. This should not happen if a script was expected.`);
-        return NextResponse.json({ error: "Failed to process LLM output for script generation.", llmInputPromptContent, llmOutputPromptContent }, { status: 500 });
+      if (filePath && outputType === 'file') {
+        const absolutePath = path.join(GENERATED_DIR, filePath);
+        await ensureDirectoryExists(path.dirname(absolutePath));
+        await fs.writeFile(absolutePath, llmResponseText);
+        console.log(`Successfully wrote file: ${absolutePath}`);
+      } else if (outputType === 'directory') {
+        const fileBlocks = parseFileBlocks(llmResponseText);
+        for (const file of fileBlocks) {
+          const absolutePath = path.join(GENERATED_DIR, file.name);
+          await ensureDirectoryExists(path.dirname(absolutePath));
+          await fs.writeFile(absolutePath, file.content);
+          console.log(`Successfully wrote file: ${absolutePath}`);
+        }
       }
+
+      return NextResponse.json({ phase: runPhase, output: llmResponseText, generatedScript, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent, duration });
 
     } catch (apiError) {
       console.error(`Error interacting with LLM for model ${llmModel}:`, apiError);

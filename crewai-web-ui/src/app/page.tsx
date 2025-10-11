@@ -7,8 +7,9 @@ import { buildPrompt } from '../utils/promptUtils';
 import ProjectSetup from './components/ProjectSetup';
 import GenerationTab from './components/GenerationTab';
 import ExecutionTab from './components/ExecutionTab';
-
 import type { ExecutionResult as ExecutionResultType } from './api/execute/types';
+import { parseFileBlocks } from '@/utils/fileParser';
+import { useGenerationApi } from '@/hooks/useGenerationApi';
 
 export interface Model {
   id: string;
@@ -25,9 +26,38 @@ export interface PhasedOutput {
   output: string;
 }
 
-const DEFAULT_PHASE1_PROMPT_FILENAME = "phase1_blueprint_prompt.md";
-const DEFAULT_PHASE2_PROMPT_FILENAME = "phase2_architecture_prompt.md";
-const DEFAULT_PHASE3_PROMPT_FILENAME = "phase3_script_prompt.md";
+export interface GeneratedFile {
+  name: string;
+  content: string;
+}
+
+// New type for a single phase's state
+export interface PhaseState {
+  id: number;
+  title: string;
+  prompt: string;
+  defaultPrompt: string;
+  input: string;
+  output: string;
+  isLoading: boolean;
+  duration: number | null;
+  isTimerRunning: boolean;
+  filePath?: string;
+  outputType?: 'file' | 'directory';
+}
+
+
+const initialPhases: PhaseState[] = [
+  { id: 1, title: "Blueprint Definition", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 2, title: "Architecture Elaboration", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 3, title: "User Preference Generation", filePath: "knowledge/user_preference.txt", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 4, title: "PyProject Generation", filePath: "pyproject.toml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 5, title: "Agents.yaml Generation", filePath: "src/crewai_generated/config/agents.yaml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 6, title: "Tasks.yaml Generation", filePath: "src/crewai_generated/config/tasks.yaml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 7, title: "Crew.py Generation", filePath: "src/crewai_generated/crew.py", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 8, title: "Main.py Generation", filePath: "src/crewai_generated/main.py", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 9, title: "Tools Generation", filePath: "src/crewai_generated/tools", outputType: 'directory', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+];
 
 // Helper function to set a cookie
 function setCookie(name: string, value: string, days: number) {
@@ -53,6 +83,36 @@ function getCookie(name: string): string | null {
 }
 
 export default function Home() {
+  const { generate: generateApi, isLoading: isLlmLoading } = useGenerationApi({
+    onSuccess: (data) => {
+      playLlmSound();
+      const { phase: completedPhaseId, output, generatedScript, duration, phasedOutputs: newPhasedOutputs } = data;
+      const scriptOutput = completedPhaseId === 9 ? generatedScript : output;
+
+      setPhases(currentPhases =>
+        currentPhases.map(p =>
+          p.id === completedPhaseId
+            ? { ...p, output: scriptOutput, duration, isLoading: false, isTimerRunning: false }
+            : p
+        )
+      );
+
+      if (completedPhaseId === 9) {
+        if (newPhasedOutputs) {
+          setPhasedOutputs(newPhasedOutputs);
+        }
+        const files = parseFileBlocks(scriptOutput);
+        setGeneratedFiles(files);
+      }
+    },
+    onError: (error) => {
+      playErrorSound();
+      setError(error);
+    },
+    onFinally: () => {
+      setCurrentActivePhase(null);
+    },
+  });
   const [initialInput, setInitialInput] = useState<string>("");
   const [llmModel, setLlmModel] = useState<string>("");
   const [savedPrompts, setSavedPrompts] = useState<Prompt[]>([]);
@@ -66,19 +126,15 @@ export default function Home() {
   const [scriptLogOutput, setScriptLogOutput] = useState<string[]>([]);
   const [dockerCommandToDisplay, setDockerCommandToDisplay] = useState<string>("");
 
-  // Advanced Mode State
-  const [phase1Prompt, setPhase1Prompt] = useState<string>("");
-  const [phase2Prompt, setPhase2Prompt] = useState<string>("");
-  const [phase3Prompt, setPhase3Prompt] = useState<string>("");
-  const [actualLlmInputPrompt, setActualLlmInputPrompt] = useState<string>("");
-  const [actualLlmOutputPrompt, setActualLlmOutputPrompt] = useState<string>("");
+  // Refactored State Management
+  const [phases, setPhases] = useState<PhaseState[]>(initialPhases);
+  const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
+
+
   const [llmRequestDuration, setLlmRequestDuration] = useState<number | null>(null);
   const [scriptExecutionDuration, setScriptExecutionDuration] = useState<number | null>(null);
   const [hasExecutionAttempted, setHasExecutionAttempted] = useState<boolean>(false);
   const [scriptTimerKey, setScriptTimerKey] = useState<number>(0);
-  const [defaultPhase1PromptText, setDefaultPhase1PromptText] = useState<string>("");
-  const [defaultPhase2PromptText, setDefaultPhase2PromptText] = useState<string>("");
-  const [defaultPhase3PromptText, setDefaultPhase3PromptText] = useState<string>("");
 
   // State for detailed execution status
   const [finalExecutionStatus, setFinalExecutionStatus] = useState<string | null>(null);
@@ -89,26 +145,13 @@ export default function Home() {
   const scriptSuccessSoundRef = useRef<HTMLAudioElement | null>(null);
   const scriptErrorSoundRef = useRef<HTMLAudioElement | null>(null);
 
-  // State for Multi-Step Mode
-  const [multiStepPhase1_Input, setMultiStepPhase1_Input] = useState<string>("");
-  const [multiStepPhase1_Output, setMultiStepPhase1_Output] = useState<string>("");
-  const [multiStepPhase2_Input, setMultiStepPhase2_Input] = useState<string>("");
-  const [multiStepPhase2_Output, setMultiStepPhase2_Output] = useState<string>("");
-  const [multiStepPhase3_Input, setMultiStepPhase3_Input] = useState<string>("");
-  const [multiStepPhase3_Output, setMultiStepPhase3_Output] = useState<string>("");
-  const [isLoadingMultiStepPhase_1, setIsLoadingMultiStepPhase_1] = useState<boolean>(false);
-  const [isLoadingMultiStepPhase_2, setIsLoadingMultiStepPhase_2] = useState<boolean>(false);
-  const [isLoadingMultiStepPhase_3, setIsLoadingMultiStepPhase_3] = useState<boolean>(false);
-  const [multiStepPhase_Durations, setMultiStepPhase_Durations] = useState<Record<number, number | null>>({ 1: null, 2: null, 3: null });
-  const [multiStepPhase_Timers_Running, setMultiStepPhase_Timers_Running] = useState<Record<number, boolean>>({ 1: false, 2: false, 3: false });
-
   // State to manage the active phase for visual highlighting
   const [currentActivePhase, setCurrentActivePhase] = useState<number | null>(null);
   // State for managing active tab
   const [activeTab, setActiveTab] = useState<'generation' | 'execution'>('generation');
 
 
-  const isLlmTimerRunning = isLoadingMultiStepPhase_1 || isLoadingMultiStepPhase_2 || isLoadingMultiStepPhase_3;
+
 
   const fetchSavedPrompts = async () => {
     try {
@@ -234,29 +277,28 @@ export default function Home() {
   useEffect(() => {
     const fetchInitialPrompts = async () => {
       try {
-        const r1 = await fetch('/prompts/phase1_blueprint_prompt.md');
-        const r2 = await fetch('/prompts/phase2_architecture_prompt.md');
-        const r3 = await fetch('/prompts/phase3_script_prompt.md');
+        const responses = await Promise.all(
+          promptFileNames.map(fileName => fetch(`/prompts/${fileName}`))
+        );
 
-        if (!r1.ok || !r2.ok || !r3.ok) {
-          console.error("Failed to fetch one or more default prompts.");
-          setError("Failed to load default prompts for Advanced Mode. You may need to copy them manually if running locally. Check console for details.");
-          if (!r1.ok) console.error(`Phase 1 prompt fetch failed: ${r1.status}`);
-          if (!r2.ok) console.error(`Phase 2 prompt fetch failed: ${r2.status}`);
-          if (!r3.ok) console.error(`Phase 3 prompt fetch failed: ${r3.status}`);
-          return;
+        for (const response of responses) {
+          if (!response.ok) {
+            console.error(`Failed to fetch a default prompt: ${response.status} ${response.url}`);
+            setError("Failed to load one or more default prompts. Please check the console.");
+            return;
+          }
         }
 
-        const p1Text = await r1.text();
-        const p2Text = await r2.text();
-        const p3Text = await r3.text();
+        const texts = await Promise.all(responses.map(res => res.text()));
 
-        setPhase1Prompt(p1Text);
-        setDefaultPhase1PromptText(p1Text);
-        setPhase2Prompt(p2Text);
-        setDefaultPhase2PromptText(p2Text);
-        setPhase3Prompt(p3Text);
-        setDefaultPhase3PromptText(p3Text);
+        setPhases(prevPhases =>
+          prevPhases.map((phase, index) => ({
+            ...phase,
+            prompt: texts[index],
+            defaultPrompt: texts[index],
+          }))
+        );
+
       } catch (e) {
         console.error("Error fetching initial prompts:", e);
         setError("Error loading initial prompts. Check console.");
@@ -282,30 +324,31 @@ export default function Home() {
     setPhasedOutputs([]);
     setScriptExecutionError("");
     setModelsError("");
-    setActualLlmInputPrompt("");
-    setActualLlmOutputPrompt("");
     setLlmRequestDuration(null);
     setScriptExecutionDuration(null);
     setFinalExecutionStatus(null);
     setFinalExecutionResult(null);
     setDockerCommandToDisplay("");
     setScriptLogOutput([]);
+    setGeneratedFiles([]);
 
-    setMultiStepPhase1_Input("");
-    setMultiStepPhase1_Output("");
-    setMultiStepPhase2_Input("");
-    setMultiStepPhase2_Output("");
-    setMultiStepPhase3_Input("");
-    setMultiStepPhase3_Output("");
-    setIsLoadingMultiStepPhase_1(false);
-    setIsLoadingMultiStepPhase_2(false);
-    setIsLoadingMultiStepPhase_3(false);
-    setMultiStepPhase_Durations({ 1: null, 2: null, 3: null });
-    setMultiStepPhase_Timers_Running({ 1: false, 2: false, 3: false });
+    // Reset all phase-specific states
+    setPhases(prevPhases =>
+      prevPhases.map(phase => ({
+        ...phase,
+        input: "",
+        output: "",
+        isLoading: false,
+        duration: null,
+        isTimerRunning: false,
+      }))
+    );
+
     setCurrentActivePhase(null);
   };
 
-  const handleMultiStepPhaseExecution = async (phase: number) => {
+
+  const handlePhaseExecution = async (phaseId: number) => {
     setCookie('initialInstruction', initialInput, 30);
     setCookie('llmModelSelection', llmModel, 30);
     if (!llmModel) {
@@ -313,117 +356,36 @@ export default function Home() {
       return;
     }
 
-    setError("");
-    setScriptExecutionError("");
-    setActualLlmInputPrompt("");
-    setActualLlmOutputPrompt("");
-    setFinalExecutionStatus(null);
-    setFinalExecutionResult(null);
-    setDockerCommandToDisplay("");
-    setScriptLogOutput([]);
-    setPhasedOutputs([]);
-    setScriptExecutionDuration(null);
-
-    if (phase === 1) setIsLoadingMultiStepPhase_1(true);
-    else if (phase === 2) setIsLoadingMultiStepPhase_2(true);
-    else if (phase === 3) setIsLoadingMultiStepPhase_3(true);
-
-    setMultiStepPhase_Timers_Running(prev => ({ ...prev, [phase]: true }));
-    setMultiStepPhase_Durations(prev => ({ ...prev, [phase]: null }));
-    setCurrentActivePhase(phase);
-
-    if (phase === 1) {
-      setMultiStepPhase1_Input(""); setMultiStepPhase1_Output("");
-      setMultiStepPhase2_Input(""); setMultiStepPhase2_Output("");
-      setMultiStepPhase3_Input(""); setMultiStepPhase3_Output("");
-    } else if (phase === 2) {
-      setMultiStepPhase2_Input(""); setMultiStepPhase2_Output("");
-      setMultiStepPhase3_Input(""); setMultiStepPhase3_Output("");
-    } else if (phase === 3) {
-      setMultiStepPhase3_Input(""); setMultiStepPhase3_Output("");
+    setPhases(currentPhases =>
+      currentPhases.map(p =>
+        p.id >= phaseId ? { ...p, input: "", output: "", duration: null } : p
+      )
+    );
+    if (phaseId === 1) {
+      resetOutputStates();
     }
+
+    setCurrentActivePhase(phaseId);
+    let currentPhaseState = phases.find(p => p.id === phaseId)!;
+    const prevPhaseState = phaseId > 1 ? phases.find(p => p.id === phaseId - 1) : null;
+    const phase2State = phases.find(p => p.id === 2);
 
     let fullPromptValue = "";
-    try {
-      if (phase === 1) {
-        if (!initialInput.trim() || !phase1Prompt.trim()) {
-          setError("Initial input and Phase 1 prompt cannot be empty.");
-          throw new Error("Prompt validation failed for Phase 1.");
-        }
-        fullPromptValue = buildPrompt(initialInput, phase1Prompt, null, null);
-        setMultiStepPhase1_Input(fullPromptValue);
-      } else if (phase === 2) {
-        if (!multiStepPhase1_Output.trim()) {
-          setError("Phase 1 output is missing. Cannot run Phase 2.");
-          throw new Error("Missing Phase 1 output for Phase 2.");
-        }
-        if (!phase2Prompt.trim()) {
-          setError("Phase 2 prompt cannot be empty.");
-          throw new Error("Prompt validation failed for Phase 2.");
-        }
-        fullPromptValue = multiStepPhase1_Output + "\n\n" + phase2Prompt;
-        setMultiStepPhase2_Input(fullPromptValue);
-      } else if (phase === 3) {
-        if (!multiStepPhase2_Output.trim()) {
-          setError("Phase 2 output is missing. Cannot run Phase 3.");
-          throw new Error("Missing Phase 2 output for Phase 3.");
-        }
-        if (!phase3Prompt.trim()) {
-          setError("Phase 3 prompt cannot be empty.");
-          throw new Error("Prompt validation failed for Phase 3.");
-        }
-        fullPromptValue = multiStepPhase2_Output + "\n\n" + phase3Prompt;
-        setMultiStepPhase3_Input(fullPromptValue);
-      } else {
-        setError("Invalid phase number provided.");
-        throw new Error("Invalid phase number.");
-      }
-
-      const payload = {
-        llmModel,
-        mode: 'advanced',
-        fullPrompt: fullPromptValue,
-        runPhase: phase,
-      };
-
-      await executeGenerateRequest(
-        '/api/generate',
-        payload,
-        (data) => {
-          setMultiStepPhase_Durations(prev => ({ ...prev, [phase]: data.duration !== undefined ? data.duration : null }));
-
-          if (phase === 1) {
-            setMultiStepPhase1_Output(data.output || "");
-          } else if (phase === 2) {
-            setMultiStepPhase2_Output(data.output || "");
-          } else if (phase === 3) {
-            setMultiStepPhase3_Output(data.generatedScript || "");
-            if (data.phasedOutputs) {
-              setPhasedOutputs(data.phasedOutputs);
-            }
-          }
-        },
-        (errorMessage) => {
-          setError(errorMessage);
-        }
-      );
-
-    } catch (err) {
-      if (err instanceof Error && !error) {
-        setError(err.message);
-      }
-      if (phase === 1) setIsLoadingMultiStepPhase_1(false);
-      else if (phase === 2) setIsLoadingMultiStepPhase_2(false);
-      else if (phase === 3) setIsLoadingMultiStepPhase_3(false);
-      setMultiStepPhase_Timers_Running(prev => ({ ...prev, [phase]: false }));
-      setCurrentActivePhase(null);
-    } finally {
-      if (phase === 1) setIsLoadingMultiStepPhase_1(false);
-      else if (phase === 2) setIsLoadingMultiStepPhase_2(false);
-      else if (phase === 3) setIsLoadingMultiStepPhase_3(false);
-      setMultiStepPhase_Timers_Running(prev => ({ ...prev, [phase]: false }));
-      setCurrentActivePhase(null);
+    if (phaseId === 1) {
+      fullPromptValue = buildPrompt(initialInput, currentPhaseState.prompt, null, null);
+    } else if (phaseId > 2 && phase2State) {
+      fullPromptValue = `${phase2State.output}\n\n${currentPhaseState.prompt}`;
+    } else if (prevPhaseState) {
+      fullPromptValue = `${prevPhaseState.output}\n\n${currentPhaseState.prompt}`;
     }
+
+    setPhases(currentPhases =>
+      currentPhases.map(p =>
+        p.id === phaseId ? { ...p, input: fullPromptValue, isLoading: true, isTimerRunning: true } : p
+      )
+    );
+
+    await generateApi({ llmModel, mode: 'advanced', fullPrompt: fullPromptValue, runPhase: phaseId, filePath: currentPhaseState.filePath, outputType: currentPhaseState.outputType });
   };
 
   const handleRunAllPhases = async () => {
@@ -433,135 +395,40 @@ export default function Home() {
       setError("Please select an LLM model.");
       return;
     }
+
     resetOutputStates();
-    setCurrentActivePhase(1);
-    setActiveTab('generation'); // Ensure generation tab is active when running all phases
+    setActiveTab('generation');
 
-    // --- Phase 1 ---
-    setIsLoadingMultiStepPhase_1(true);
-    setMultiStepPhase_Timers_Running(prev => ({ ...prev, 1: true }));
-    setMultiStepPhase_Durations(prev => ({ ...prev, 1: null }));
+    let currentPhases = [...phases]; // Create a mutable copy
 
-    const phase1PromptValue = buildPrompt(initialInput, defaultPhase1PromptText, null, null);
-    setMultiStepPhase1_Input(phase1PromptValue);
-    setActualLlmInputPrompt(phase1PromptValue);
+    for (const phase of phases) {
+      setCurrentActivePhase(phase.id);
 
-    await executeGenerateRequest(
-      '/api/generate',
-      { llmModel, mode: 'advanced', fullPrompt: phase1PromptValue, runPhase: 1 },
-      async (phase1Data) => {
-        const phase1DataOutput = phase1Data.output;
-        setMultiStepPhase_Durations(prev => ({ ...prev, 1: phase1Data.duration !== undefined ? phase1Data.duration : null }));
-        setActualLlmOutputPrompt(phase1Data.llmOutputPromptContent || "");
-        setMultiStepPhase1_Output(phase1DataOutput || "");
+      const currentPhaseState = currentPhases.find(p => p.id === phase.id)!;
+      const prevPhaseState = phase.id > 1 ? currentPhases.find(p => p.id === phase.id - 1) : null;
+      const phase2State = currentPhases.find(p => p.id === 2);
 
-        setIsLoadingMultiStepPhase_1(false);
-        setMultiStepPhase_Timers_Running(prev => ({ ...prev, 1: false }));
-        setCurrentActivePhase(null);
-
-        if (phase1DataOutput && phase1DataOutput.trim() !== "") {
-          // --- Phase 2 ---
-          setCurrentActivePhase(2);
-          setIsLoadingMultiStepPhase_2(true);
-          setMultiStepPhase_Timers_Running(prev => ({ ...prev, 2: true }));
-          setMultiStepPhase_Durations(prev => ({ ...prev, 2: null }));
-
-          const phase2PromptValue = (phase1DataOutput || "") + "\n\n" + defaultPhase2PromptText;
-          setMultiStepPhase2_Input(phase2PromptValue);
-          setActualLlmInputPrompt(phase2PromptValue);
-
-          await executeGenerateRequest(
-            '/api/generate',
-            { llmModel, mode: 'advanced', fullPrompt: phase2PromptValue, runPhase: 2 },
-            async (phase2Data) => {
-              const phase2DataOutput = phase2Data.output;
-              setMultiStepPhase_Durations(prev => ({ ...prev, 2: phase2Data.duration !== undefined ? phase2Data.duration : null }));
-              setActualLlmOutputPrompt(phase2Data.llmOutputPromptContent || "");
-              setMultiStepPhase2_Output(phase2DataOutput || "");
-
-              setIsLoadingMultiStepPhase_2(false);
-              setMultiStepPhase_Timers_Running(prev => ({ ...prev, 2: false }));
-              setCurrentActivePhase(null);
-
-              if (phase2DataOutput && phase2DataOutput.trim() !== "") {
-                // --- Phase 3 ---
-                setCurrentActivePhase(3);
-                setIsLoadingMultiStepPhase_3(true);
-                setMultiStepPhase_Timers_Running(prev => ({ ...prev, 3: true }));
-                setMultiStepPhase_Durations(prev => ({ ...prev, 3: null }));
-
-                const phase3PromptValue = (phase2DataOutput || "") + "\n\n" + defaultPhase3PromptText;
-                setMultiStepPhase3_Input(phase3PromptValue);
-                setActualLlmInputPrompt(phase3PromptValue);
-
-                await executeGenerateRequest(
-                  '/api/generate',
-                  { llmModel, mode: 'advanced', fullPrompt: phase3PromptValue, runPhase: 3 },
-                  (phase3Data) => {
-                    const phase3GeneratedScript = phase3Data.generatedScript;
-                    setMultiStepPhase_Durations(prev => ({ ...prev, 3: phase3Data.duration !== undefined ? phase3Data.duration : null }));
-                    if (phase3Data.phasedOutputs) setPhasedOutputs(phase3Data.phasedOutputs);
-                    setActualLlmOutputPrompt(phase3Data.llmOutputPromptContent || "");
-                    setMultiStepPhase3_Output(phase3GeneratedScript || "");
-
-                    if (!phase3GeneratedScript || phase3GeneratedScript.trim() === "") {
-                      setError("Phase 3 failed to produce a script. Please check the logs or try again.");
-                    }
-                  },
-                  (errorMessage) => {
-                    setError(`Phase 3 failed: ${errorMessage}`);
-                    setMultiStepPhase3_Output("");
-                  },
-                  () => {
-                    setIsLoadingMultiStepPhase_3(false);
-                    setMultiStepPhase_Timers_Running(prev => ({ ...prev, 3: false }));
-                    setCurrentActivePhase(null);
-                  }
-                );
-              } else {
-                setError("Phase 2 failed to produce an output. Please check the logs or try again.");
-                setIsLoadingMultiStepPhase_2(false);
-                setMultiStepPhase_Timers_Running(prev => ({ ...prev, 2: false }));
-                setCurrentActivePhase(null);
-              }
-            },
-            (errorMessage) => {
-              setError(`Phase 2 failed: ${errorMessage}`);
-              setMultiStepPhase2_Output("");
-            },
-            () => {
-              setIsLoadingMultiStepPhase_2(false);
-              setMultiStepPhase_Timers_Running(prev => ({ ...prev, 2: false }));
-              setCurrentActivePhase(null);
-            }
-          );
-        } else {
-          setError("Phase 1 failed to produce an output. Please check the logs or try again.");
-          setIsLoadingMultiStepPhase_1(false);
-          setMultiStepPhase_Timers_Running(prev => ({ ...prev, 1: false }));
-          setCurrentActivePhase(null);
-        }
-      },
-      (errorMessage) => {
-        setError(`Phase 1 failed: ${errorMessage}`);
-        setMultiStepPhase1_Output("");
-      },
-      () => {
-        setIsLoadingMultiStepPhase_1(false);
-        setMultiStepPhase_Timers_Running(prev => ({ ...prev, 1: false }));
-        setCurrentActivePhase(null);
+      let fullPromptValue = "";
+      if (phase.id === 1) {
+        fullPromptValue = buildPrompt(initialInput, currentPhaseState.prompt, null, null);
+      } else if (phase.id > 2 && phase2State) {
+        // All phases after 2 use phase 2's output as the base
+        fullPromptValue = `${phase2State.output}\n\n${currentPhaseState.prompt}`;
+      } else if (prevPhaseState) {
+        fullPromptValue = `${prevPhaseState.output}\n\n${currentPhaseState.prompt}`;
       }
-    );
+
+      currentPhases = currentPhases.map(p =>
+        p.id === phase.id ? { ...p, input: fullPromptValue, isLoading: true, isTimerRunning: true } : p
+      );
+      setPhases(currentPhases);
+
+      await generateApi({ llmModel, mode: 'advanced', fullPrompt: fullPromptValue, runPhase: phase.id, filePath: currentPhaseState.filePath, outputType: currentPhaseState.outputType });
+    }
   };
 
   const handleExecuteScript = async () => {
     setHasExecutionAttempted(true);
-    const scriptToExecute = multiStepPhase3_Output;
-
-    if (!scriptToExecute) {
-      setScriptExecutionError("No script to execute.");
-      return;
-    }
     setIsExecutingScript(true);
     setScriptTimerKey(prevKey => prevKey + 1);
     setScriptExecutionError("");
@@ -579,7 +446,6 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ script: scriptToExecute }),
       });
 
       if (!response.ok) {
@@ -587,7 +453,8 @@ export default function Home() {
         try {
           const errorData = await response.json();
           errorText = errorData.error || errorText;
-        } catch (e) {
+        } catch {
+          // ignore
         }
         playErrorSound();
         throw new Error(errorText);
@@ -607,7 +474,7 @@ export default function Home() {
         let done;
         try {
           ({ value, done } = await reader.read());
-        } catch (streamReadError: any) {
+        } catch (streamReadError) {
           console.error("Error reading from stream:", streamReadError);
           setScriptExecutionError("Error reading script output stream. Connection may have been lost or the process terminated unexpectedly.");
           setScriptLogOutput(prev => [...prev, "STREAM_ERROR: The log stream ended unexpectedly due to a read error."]);
@@ -620,7 +487,7 @@ export default function Home() {
 
         try {
           buffer += decoder.decode(value, { stream: true });
-        } catch (decodeError: any) {
+        } catch (decodeError) {
           console.error("Error decoding stream data:", decodeError);
           setScriptExecutionError("Error decoding script output. The data may be corrupted.");
           setScriptLogOutput(prev => [...prev, "STREAM_ERROR: The log stream contained undecodable data."]);
@@ -654,7 +521,7 @@ export default function Home() {
               }
 
               if (finalResult.mainScript && finalResult.mainScript.stdout) {
-                const taskOutputs = parsePhasedOutputs(finalResult.mainScript.stdout);
+                const taskOutputs = parsePhasedOutputsFromStdout(finalResult.mainScript.stdout);
                 setPhasedOutputs(taskOutputs);
               }
 
@@ -701,7 +568,7 @@ export default function Home() {
               }
 
               if (finalResult.mainScript && finalResult.mainScript.stdout) {
-                const taskOutputs = parsePhasedOutputs(finalResult.mainScript.stdout);
+                const taskOutputs = parsePhasedOutputsFromStdout(finalResult.mainScript.stdout);
                 setPhasedOutputs(taskOutputs);
               }
 
@@ -737,49 +604,36 @@ export default function Home() {
     }
   };
 
-  const executeGenerateRequest = async (
-    url: string,
-    payload: object,
-    onSuccess: (data: any) => void,
-    onError: (errorMessage: string) => void,
-    onFinally?: () => void
-  ) => {
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
 
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (parseError) {
-          throw new Error(`API request failed with status ${response.status}: ${response.statusText}`);
-        }
-        throw new Error(errorData.error || `API request failed with status ${response.status}`);
-      }
-      const data = await response.json();
-      setActualLlmInputPrompt(data.llmInputPromptContent || "");
-      setActualLlmOutputPrompt(data.llmOutputPromptContent || "");
-      if (data.duration !== undefined) {
-        setLlmRequestDuration(data.duration);
-      } else {
-        setLlmRequestDuration(null);
-      }
-      onSuccess(data);
-    } catch (err) {
-      console.error("API Request Error:", err);
-      onError(err instanceof Error ? err.message : "An unknown API error occurred.");
-      playErrorSound();
-    } finally {
-      playLlmSound();
-      if (onFinally) {
-        onFinally();
-      }
-    }
-  };
+  const phaseData = phases.map((phase, index) => {
+    const prevPhase = index > 0 ? phases[index - 1] : null;
+    const isRunDisabled =
+      isLlmLoading ||
+      isExecutingScript ||
+      !phase.prompt.trim() ||
+      (index === 0 && !initialInput.trim()) ||
+      (index > 0 && (!prevPhase || !prevPhase.output.trim()));
+
+    return {
+      ...phase,
+      isRunDisabled,
+      setPrompt: (value: string) => {
+        setPhases(currentPhases =>
+          currentPhases.map(p => (p.id === phase.id ? { ...p, prompt: value } : p))
+        );
+      },
+      setInput: (value: string) => {
+        setPhases(currentPhases =>
+            currentPhases.map(p => (p.id === phase.id ? { ...p, input: value } : p))
+        );
+      },
+      setOutput: (value: string) => {
+        setPhases(currentPhases =>
+            currentPhases.map(p => (p.id === phase.id ? { ...p, output: value } : p))
+        );
+      },
+    };
+  });
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-inter">
@@ -799,16 +653,16 @@ export default function Home() {
           availableModels={availableModels}
           modelsLoading={modelsLoading}
           modelsError={modelsError}
-          isLlmTimerRunning={isLlmTimerRunning}
+          isLlmTimerRunning={isLlmLoading}
           isExecutingScript={isExecutingScript}
           handleRunAllPhases={handleRunAllPhases}
         />
 
-        {(isLlmTimerRunning || llmRequestDuration !== null) && (
+        {(isLlmLoading || llmRequestDuration !== null) && (
           <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg mb-8 border border-slate-200 dark:border-slate-700 text-center">
-            {isLlmTimerRunning ? (
+            {isLlmLoading ? (
               <p className="text-lg text-blue-700 dark:text-blue-300 font-medium">
-                LLM Request Timer: <Timer isRunning={isLlmTimerRunning} className="inline font-bold text-xl" />
+                LLM Request Timer: <Timer isRunning={isLlmLoading} className="inline font-bold text-xl" />
               </p>
             ) : (
               llmRequestDuration !== null && (
@@ -842,41 +696,20 @@ export default function Home() {
             {activeTab === 'generation' && (
               <GenerationTab
                 currentActivePhase={currentActivePhase}
-                isLoadingMultiStepPhase_1={isLoadingMultiStepPhase_1}
-                isLoadingMultiStepPhase_2={isLoadingMultiStepPhase_2}
-                isLoadingMultiStepPhase_3={isLoadingMultiStepPhase_3}
-                phase1Prompt={phase1Prompt}
-                setPhase1Prompt={setPhase1Prompt}
-                phase2Prompt={phase2Prompt}
-                setPhase2Prompt={setPhase2Prompt}
-                phase3Prompt={phase3Prompt}
-                setPhase3Prompt={setPhase3Prompt}
-                isLlmTimerRunning={isLlmTimerRunning}
+                isLlmTimerRunning={isLlmLoading}
                 isExecutingScript={isExecutingScript}
-                handleMultiStepPhaseExecution={handleMultiStepPhaseExecution}
-                initialInput={initialInput}
-                multiStepPhase1_Output={multiStepPhase1_Output}
-                multiStepPhase2_Output={multiStepPhase2_Output}
-                multiStepPhase_Timers_Running={multiStepPhase_Timers_Running}
-                multiStepPhase_Durations={multiStepPhase_Durations}
-                multiStepPhase1_Input={multiStepPhase1_Input}
-                setMultiStepPhase1_Input={setMultiStepPhase1_Input}
-                multiStepPhase2_Input={multiStepPhase2_Input}
-                setMultiStepPhase2_Input={setMultiStepPhase2_Input}
-                multiStepPhase3_Input={multiStepPhase3_Input}
-                setMultiStepPhase3_Input={setMultiStepPhase3_Input}
-                setMultiStepPhase1_Output={setMultiStepPhase1_Output}
-                setMultiStepPhase2_Output={setMultiStepPhase2_Output}
-                multiStepPhase3_Output={multiStepPhase3_Output}
-                setMultiStepPhase3_Output={setMultiStepPhase3_Output}
+                handleMultiStepPhaseExecution={handlePhaseExecution}
+                multiStepPhase_Timers_Running={Object.fromEntries(phases.map(p => [p.id, p.isTimerRunning]))}
+                multiStepPhase_Durations={Object.fromEntries(phases.map(p => [p.id, p.duration]))}
+                phaseData={phaseData}
               />
             )}
 
             {activeTab === 'execution' && (
               <ExecutionTab
                 isExecutingScript={isExecutingScript}
-                multiStepPhase3_Output={multiStepPhase3_Output}
-                isLlmTimerRunning={isLlmTimerRunning}
+                generatedFiles={generatedFiles}
+                isLlmTimerRunning={isLlmLoading}
                 handleExecuteScript={handleExecuteScript}
                 finalExecutionStatus={finalExecutionStatus}
                 hasExecutionAttempted={hasExecutionAttempted}
@@ -904,7 +737,7 @@ export default function Home() {
 }
 
 // Helper function to parse phased outputs from script stdout
-const parsePhasedOutputs = (stdout: string): PhasedOutput[] => {
+const parsePhasedOutputsFromStdout = (stdout: string): PhasedOutput[] => {
   const outputs: PhasedOutput[] = [];
   const lines = stdout.split('\n');
   let currentTaskName = "Unknown Task";
