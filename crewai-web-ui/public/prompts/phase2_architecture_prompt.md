@@ -152,10 +152,12 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         *   `multimodal` (Boolean): `True` ONLY if this agent needs to process both text and images.
         *   `llm_rationale` (String): Justification for the chosen `llm_id`. If `multimodal` is `True`, this rationale MUST confirm the selected model has `multimodal_support=True`. It should also reference the model's 'reasoner' capability.
         *   `delegation_rationale` (String): Justification for the `allow_delegation` setting.
-    *   `constructor_args` (Object): Contains only the parameters for the CrewAI `Agent` class constructor.
+    *   `yaml_definition` (Object): Contains only the parameters for config/agents.yaml file.
         *   `role` (String): Concise functional title that defines the agent's expertise. This acts as the primary identifier for the agent.
         *   `goal` (String): A single, focused sentence describing the agent's primary objective and what it is responsible for.
         *   `backstory` (String): A narrative that reinforces the agent's expertise and persona, giving it context and personality. This should align with its role and goal.
+        *   `yaml_id` (String): Unique yaml_id to be used to indendify this agent.
+    *   `constructor_args` (Object): Contains only the parameters for the CrewAI `Agent` class constructor.
         *   `llm_id` (String): The identifier of the LLM to be used by this agent, referencing an entry in the `llm_registry`.
         *   `tools` (Array of Strings, Optional): List of `tool_id`s from the `tool_repository` that this agent is equipped with. **For MCP Servers, the agent gains access to all tools provided by the server. You must reference the `tool_id` of the adapter itself (e.g., "web_scout_adapter").**
         *   `allow_delegation` (Boolean): `True` or `False`.
@@ -210,12 +212,14 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         *   `quality_gate` (String): A high-level, human-readable statement of the success criteria for this task. This should answer the question: "How do we know this task was completed successfully and correctly?" It acts as a final check on the `expected_output`, ensuring it aligns with the overall goals of the project.
         *   `tool_rationale` (String, Optional): Justification for why the assigned agent needs specific tools to complete this task.
         *   `output_rationale` (String, Optional): Justification for using a for the output.
-    *   `constructor_args` (Object): Contains only the parameters for the CrewAI `Task` class constructor.
+    *   `yaml_definition` (Object): Contains only the parameters for config/tasks.yaml file.
         *   `description` (String): **CRITICAL RULE:** This must be a highly specific, action-oriented prompt written **directly to the agent**. This is not a comment; it is the core instruction. It must be a synthesis of the `blueprint_step_action`, incorporating guidance on how to handle potential issues from `blueprint_step_error_handling`. It must use active verbs and break down the process into clear, logical steps. It should explicitly state *how* the agent should use its tools and the context it receives. **Crucially, if the task's ultimate goal is to create a file, the final step in the description MUST be an unambiguous command to use the file-writing tool to save the generated content to a specific file path.** For example: "...Finally, you MUST use the `file_writer_tool` to save this content to `{output_path}`."
-        *   `agent` (String): The `role` of the designated agent.
         *   `expected_output` (String): **CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed.
             > **If using a Pydantic model (`output_json` is set):** This description must detail the *expected content* that will populate the fields of the Pydantic model. For example: "A fully populated Pydantic object containing a concise summary of the user's profile, a list of their technical skills, and a list of their soft skills."
             > **If creating a file:** The description MUST start by confirming the file's creation. Instead of describing only the content (e.g., "A JSON object..."), it must be phrased as: "**A file named `{file_path}` is successfully created in the file system.** The content of this file must be a {description of content, e.g., 'valid JSON object with the keys `summary`, `experience`, and `skills`'}." This makes the physical existence of the file the primary success criterion.
+        *   `agent` (String): The `yaml_id` of the designated agent.
+        *   `yaml_id` (String): Unique yaml_id to be used to indendify this task.
+    *   `constructor_args` (Object): Contains only the parameters for the CrewAI `Task` class constructor.
         *   `output_json` (String, Optional): The `model_id` of the Pydantic model (from `pydantic_model_definitions`) that this task must output. If this is specified, the task's result will be an instance of this Pydantic class.
         *   `context` (Array of Strings, Optional): List of prerequisite `task_identifier`s.
         *   `tools` (Array of Strings, Optional): List of tool_ids from the tool_repository. For MCP Servers, the agent gains access to all tools provided by the server. You must pass the .tools property of the adapter instance to the task, so here you should reference the tool_id of the adapter itself (e.g., "web_scout_adapter").
