@@ -27,8 +27,5 @@ For **each step** in the numbered list, you must include the following sub-secti
 *   **Error Handling & Edge Cases:** Identify potential issues for this specific step and how they should be managed (e.g., "If the API call fails, retry up to 3 times," "If the input file is empty, terminate with an error message").
 *   **Success Criteria for this step:** Define a measurable, verifiable condition that proves this individual step was completed successfully (e.g., "The output file `summary.md` exists and is not empty," "The in-memory dictionary is not None and contains the key 'skills'").
 
-### 5. Example Scenario (Optional but Recommended)
-Provide a concrete example of an 'Overall Expected Input' and the corresponding 'Final Expected Output' to illustrate the instruction's functionality. A clear example is highly valuable for guiding the subsequent AI generation phases.
-
 
 * **Output Format:** It should be document, identified as 'Project Blueprint' within `{{{ }}}` delimiter

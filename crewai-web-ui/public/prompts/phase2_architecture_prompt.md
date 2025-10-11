@@ -60,7 +60,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 **'Design-Crew-Architecture-Plan' - JSON Schema:**
 
 *   `workflow_process` (Object):
-    *   `rationale` (String): Justification based on the Design Blueprint detail to use CrewAI with `Process.sequential` or `Process.hierarchical`.
+    *   `rationale` (String): The Justification for the choice between Process.sequential and Process.hierarchical, which determined by the complexity and interdependencies of the project goals. Process.sequential is best for linear, straightforward tasks with a clear, predetermined order, where the output of one task is the direct input for the next. This model ensures precise and orderly progression and is suitable for projects with low to medium complexity. In contrast, Process.hierarchical is the ideal choice for complex, multi-stage projects that require dynamic, multi-agent collaboration, where a manager agent delegates tasks to specialized worker agents to achieve a common goal. This model is selected when the solution benefits from a variety of specialized perspectives and complex, non-linear workflows."
     *   `selected_process` (String): `Process.sequential` OR `Process.hierarchical`.
 
 *   `crew_memory` (Object):
@@ -88,46 +88,76 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         *   `max_tokens` (Number): The maximum number of tokens for the model's response.
         *   `api_key` (String, Optional): Environment variable name for the API key.
     *   **Pre-defined List to Use:**
-        ```json
-        [
-          {
-            "design_metadata": {
-              "llm_id": "gemini/gemini-2.5-flash",
-              "reasoner": true,
-              "multimodal_support": true,
-              "rationale": "A high-performance, cost-effective model from Google, excellent for complex reasoning, long-context understanding, and multimodal tasks. Ideal for manager agents or agents requiring deep analysis."
-            },
-            "constructor_args": {
-              "model": "gemini/gemini-2.5-flash",
-              "timeout": 600,
-              "api_key": "GEMINI_API_KEY"
-            }
-          },
-          {
-            "design_metadata": {
-              "llm_id": "deepseek_chat_worker",
-              "reasoner": false,
-              "multimodal_support": false,
-              "rationale": "A capable and efficient model for general-purpose tasks like writing, summarization, and data extraction. A good choice for worker agents that don't require advanced reasoning."
-            },
-            "constructor_args": {
-              "model": "deepseek/deepseek-chat",
-              "timeout": 600,
-              "api_key": "DEEPSEEK_API_KEY"
-            }
-          }
-        ]
-        ```
+```json
+[
+  {
+    "design_metadata": {
+      "llm_id": "gemini/gemini-2.5-flash",
+      "reasoner": true,
+      "multimodal_support": true,
+      "rationale": "A high-performance, cost-effective model from Google, excellent for complex reasoning, long-context understanding, and multimodal tasks. Ideal for manager agents or agents requiring deep analysis."
+    },
+    "constructor_args": {
+      "model": "gemini/gemini-2.5-flash",
+      "timeout": 600,
+      "api_key": "GEMINI_API_KEY"
+    }
+  },
+  {
+    "design_metadata": {
+      "llm_id": "qwen-3-235b-a22b-instruct",
+      "reasoner": false,
+      "multimodal_support": false,
+      "rationale": "A powerful non-thinking model with 235 billion parameters, excelling in instruction following, multilingual tasks, and efficient text generation at speeds exceeding 1,400 tokens per second. Ideal for worker agents handling high-volume, general-purpose tasks."
+    },
+    "constructor_args": {
+      "model": "cerebras/qwen-3-235b-a22b-instruct-2507",
+      "timeout": 600,
+      "api_key": "CEREBRAS_API_KEY",
+      "base_url": "https://api.cerebras.ai/v1"
+    }
+  },
+  {
+    "design_metadata": {
+      "llm_id": "qwen-3-235b-a22b-thinking-2507",
+      "reasoner": true,
+      "multimodal_support": false,
+      "rationale": "An advanced reasoning model designed for complex, multi-step tasks such as logical reasoning, mathematics, and coding. It can complete intricate reasoning processes very quickly, making it suitable for agents requiring deep analysis and problem-solving capabilities."
+    },
+    "constructor_args": {
+      "model": "cerebras/qwen-3-235b-a22b-thinking-2507",
+      "timeout": 600,
+      "api_key": "CEREBRAS_API_KEY",
+      "base_url": "https://api.cerebras.ai/v1"
+    }
+  },
+  {
+    "design_metadata": {
+      "llm_id": "deepseek_chat_worker",
+      "reasoner": false,
+      "multimodal_support": false,
+      "rationale": "A capable and efficient model for general-purpose tasks like writing, summarization, and data extraction. A good choice for worker agents that don't require advanced reasoning."
+    },
+    "constructor_args": {
+      "model": "deepseek/deepseek-chat",
+      "timeout": 600,
+      "api_key": "DEEPSEEK_API_KEY"
+    }
+  }
+]
+```
 
 *   `agent_cadre` (Array of Objects): Each object represents an agent. The structure separates constructor arguments from design rationale.
     *   `design_metadata` (Object): Contains contextual information and justifications, not used for code generation.
         *   `multimodal` (Boolean): `True` ONLY if this agent needs to process both text and images.
         *   `llm_rationale` (String): Justification for the chosen `llm_id`. If `multimodal` is `True`, this rationale MUST confirm the selected model has `multimodal_support=True`. It should also reference the model's 'reasoner' capability.
         *   `delegation_rationale` (String): Justification for the `allow_delegation` setting.
-    *   `constructor_args` (Object): Contains only the parameters for the CrewAI `Agent` class constructor.
+    *   `yaml_definition` (Object): Contains only the parameters for config/agents.yaml file.
         *   `role` (String): Concise functional title that defines the agent's expertise. This acts as the primary identifier for the agent.
         *   `goal` (String): A single, focused sentence describing the agent's primary objective and what it is responsible for.
         *   `backstory` (String): A narrative that reinforces the agent's expertise and persona, giving it context and personality. This should align with its role and goal.
+        *   `yaml_id` (String): Unique yaml_id to be used to indendify this agent.
+    *   `constructor_args` (Object): Contains only the parameters for the CrewAI `Agent` class constructor.
         *   `llm_id` (String): The identifier of the LLM to be used by this agent, referencing an entry in the `llm_registry`.
         *   `tools` (Array of Strings, Optional): List of `tool_id`s from the `tool_repository` that this agent is equipped with. **For MCP Servers, the agent gains access to all tools provided by the server. You must reference the `tool_id` of the adapter itself (e.g., "web_scout_adapter").**
         *   `allow_delegation` (Boolean): `True` or `False`.
@@ -172,7 +202,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         *   `python_type` (String): The Python type hint for the field (e.g., "str", "List[str]", "Optional[int]").
         *   `description` (String): A clear description of the field's content, used for the Pydantic `Field` description.
 
-*   `task_roster` (Array of Objects): **This is the most critical section of the design.** Each task definition must be treated as a direct, precise set of instructions for a new team member who needs explicit guidance. Each object represents a task, separating design rationale from instantiation parameters.
+*   `task_roster` (Array of Objects): **This is the most critical section of the design.** Considering `selected_process` of `workflow_process`. Each task definition must be treated as a direct, precise set of instructions for a new team member who needs explicit guidance. Each object represents a task, separating design rationale from instantiation parameters.
     *   `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
         *   `task_identifier` (String): A unique name for the task, used for context linking.
         *   **`blueprint_reference` (String): The `step_id` from the Phase 1 Blueprint's 'Logical Steps' that this task implements. This is mandatory for traceability.**
@@ -182,12 +212,14 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         *   `quality_gate` (String): A high-level, human-readable statement of the success criteria for this task. This should answer the question: "How do we know this task was completed successfully and correctly?" It acts as a final check on the `expected_output`, ensuring it aligns with the overall goals of the project.
         *   `tool_rationale` (String, Optional): Justification for why the assigned agent needs specific tools to complete this task.
         *   `output_rationale` (String, Optional): Justification for using a for the output.
-    *   `constructor_args` (Object): Contains only the parameters for the CrewAI `Task` class constructor.
+    *   `yaml_definition` (Object): Contains only the parameters for config/tasks.yaml file.
         *   `description` (String): **CRITICAL RULE:** This must be a highly specific, action-oriented prompt written **directly to the agent**. This is not a comment; it is the core instruction. It must be a synthesis of the `blueprint_step_action`, incorporating guidance on how to handle potential issues from `blueprint_step_error_handling`. It must use active verbs and break down the process into clear, logical steps. It should explicitly state *how* the agent should use its tools and the context it receives. **Crucially, if the task's ultimate goal is to create a file, the final step in the description MUST be an unambiguous command to use the file-writing tool to save the generated content to a specific file path.** For example: "...Finally, you MUST use the `file_writer_tool` to save this content to `{output_path}`."
-        *   `agent` (String): The `role` of the designated agent.
         *   `expected_output` (String): **CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed.
             > **If using a Pydantic model (`output_json` is set):** This description must detail the *expected content* that will populate the fields of the Pydantic model. For example: "A fully populated Pydantic object containing a concise summary of the user's profile, a list of their technical skills, and a list of their soft skills."
             > **If creating a file:** The description MUST start by confirming the file's creation. Instead of describing only the content (e.g., "A JSON object..."), it must be phrased as: "**A file named `{file_path}` is successfully created in the file system.** The content of this file must be a {description of content, e.g., 'valid JSON object with the keys `summary`, `experience`, and `skills`'}." This makes the physical existence of the file the primary success criterion.
+        *   `agent` (String): The `yaml_id` of the designated agent.
+        *   `yaml_id` (String): Unique yaml_id to be used to indendify this task.
+    *   `constructor_args` (Object): Contains only the parameters for the CrewAI `Task` class constructor.
         *   `output_json` (String, Optional): The `model_id` of the Pydantic model (from `pydantic_model_definitions`) that this task must output. If this is specified, the task's result will be an instance of this Pydantic class.
         *   `context` (Array of Strings, Optional): List of prerequisite `task_identifier`s.
         *   `tools` (Array of Strings, Optional): List of tool_ids from the tool_repository. For MCP Servers, the agent gains access to all tools provided by the server. You must pass the .tools property of the adapter instance to the task, so here you should reference the tool_id of the adapter itself (e.g., "web_scout_adapter").

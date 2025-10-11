@@ -59,6 +59,8 @@ RUN python -m pip install --upgrade pip && \
     ollama \
     pymupdf \
     odfpy \
+    pandas \
+    textblob \
     jupyterlab \
     PyPDF2 \
     weasyprint \

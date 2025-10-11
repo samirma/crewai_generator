@@ -1,17 +1,16 @@
-"use client"; // Required for Next.js App Router to use client-side features like useState
+"use client";
 
 import { useState, useEffect, useRef } from 'react';
 import SavedPrompts from './components/SavedPrompts';
-import CopyButton from './components/CopyButton';
 import Timer from './components/Timer';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { buildPrompt } from '../utils/promptUtils';
+import ProjectSetup from './components/ProjectSetup';
+import GenerationTab from './components/GenerationTab';
+import ExecutionTab from './components/ExecutionTab';
 
-// Attempt to import ExecutionResult type for better type safety
 import type { ExecutionResult as ExecutionResultType } from './api/execute/types';
 
-interface Model {
+export interface Model {
   id: string;
   name: string;
 }
@@ -21,7 +20,7 @@ interface Prompt {
   prompt: string;
 }
 
-interface PhasedOutput {
+export interface PhasedOutput {
   taskName: string;
   output: string;
 }
@@ -784,100 +783,27 @@ export default function Home() {
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-inter">
-      {/* Saved Prompts Sidebar */}
       <SavedPrompts prompts={savedPrompts} onSelectPrompt={setInitialInput} onDeletePrompt={handleDeletePrompt} />
 
-      {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto p-6 md:p-8">
         <h1 className="text-4xl font-extrabold mb-10 text-center text-indigo-700 dark:text-indigo-400 drop-shadow-md">
           CrewAI Studio
         </h1>
 
-        {/* Global Input & Model Selection */}
-        <section className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg mb-8 border border-slate-200 dark:border-slate-700">
-          <h2 className="text-2xl font-semibold mb-6 text-slate-700 dark:text-slate-200">
-            Project Setup
-          </h2>
-          <div className="mb-6">
-            <label htmlFor="initialInstruction" className="block text-lg font-medium mb-2 text-slate-700 dark:text-slate-300">
-              Initial User Instruction
-            </label>
-            <div className="relative">
-              <textarea
-                id="initialInstruction"
-                name="initialInstruction"
-                rows={5}
-                className="w-full p-4 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500 text-base resize-y"
-                placeholder="Describe the CrewAI project you want to generate (e.g., 'A crew to write a blog post about AI in healthcare')..."
-                value={initialInput}
-                onChange={(e) => setInitialInput(e.target.value)}
-                disabled={isLlmTimerRunning || isExecutingScript}
-              ></textarea>
-              <div className="absolute top-3 right-3 flex space-x-2">
-                <button
-                  onClick={handleSavePrompt}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 transition duration-150 ease-in-out text-sm font-medium disabled:opacity-50"
-                  disabled={isLlmTimerRunning || isExecutingScript}
-                >
-                  Save
-                </button>
-                <CopyButton textToCopy={initialInput} />
-              </div>
-            </div>
-          </div>
+        <ProjectSetup
+          initialInput={initialInput}
+          setInitialInput={setInitialInput}
+          handleSavePrompt={handleSavePrompt}
+          llmModel={llmModel}
+          setLlmModel={setLlmModel}
+          availableModels={availableModels}
+          modelsLoading={modelsLoading}
+          modelsError={modelsError}
+          isLlmTimerRunning={isLlmTimerRunning}
+          isExecutingScript={isExecutingScript}
+          handleRunAllPhases={handleRunAllPhases}
+        />
 
-          <div className="mb-6">
-            <label htmlFor="llmModelSelect" className="block text-lg font-medium mb-2 text-slate-700 dark:text-slate-300">
-              LLM Model Selection
-            </label>
-            <div className="relative">
-              <select
-                id="llmModelSelect"
-                name="llmModelSelect"
-                className="w-full p-4 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 bg-white hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500 text-base appearance-none"
-                value={llmModel}
-                onChange={(e) => setLlmModel(e.target.value)}
-                disabled={modelsLoading || modelsError !== "" || isLlmTimerRunning || isExecutingScript}
-              >
-                {modelsLoading && <option value="">Loading models...</option>}
-                {modelsError && <option value="">Error loading models</option>}
-                {!modelsLoading && !modelsError && availableModels.length === 0 && <option value="">No models available</option>}
-                {!modelsLoading && !modelsError && availableModels.map(model => (
-                  <option
-                    key={model.id}
-                    value={model.id}
-                    disabled={model.id === 'ollama/not-configured' || model.id === 'ollama/error'}
-                  >
-                    {model.name}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-700 dark:text-slate-300">
-                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-              </div>
-            </div>
-            {modelsError && <p className="text-sm text-red-600 dark:text-red-400 mt-2">{modelsError}</p>}
-          </div>
-
-          <button
-            type="button"
-            className="w-full bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold text-lg px-6 py-3 rounded-xl shadow-lg transition duration-200 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:from-gray-400 disabled:to-gray-600 focus:ring-4 focus:ring-green-300 focus:outline-none dark:focus:ring-green-800 mt-6"
-            onClick={handleRunAllPhases}
-            disabled={modelsLoading || !llmModel || isLlmTimerRunning || isExecutingScript || !initialInput.trim()}
-          >
-            {isLlmTimerRunning ? (
-              <span className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                {isLoadingMultiStepPhase_1 ? 'Running Phase 1...' : isLoadingMultiStepPhase_2 ? 'Running Phase 2...' : isLoadingMultiStepPhase_3 ? 'Running Phase 3...' : 'Generating...'}
-              </span>
-            ) : 'Generate Full Script (All Phases)'}
-          </button>
-        </section>
-
-        {/* LLM Request Timer & Duration */}
         {(isLlmTimerRunning || llmRequestDuration !== null) && (
           <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg mb-8 border border-slate-200 dark:border-slate-700 text-center">
             {isLlmTimerRunning ? (
@@ -894,7 +820,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Tabbed Interface */}
         <div className="mb-8">
           <div className="flex border-b border-slate-200 dark:border-slate-700">
             <button
@@ -914,308 +839,59 @@ export default function Home() {
           </div>
 
           <div className="mt-6">
-            {/* Script Generation Tab Content */}
             {activeTab === 'generation' && (
-              <section className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
-                <h2 className="text-2xl font-semibold mb-6 text-slate-700 dark:text-slate-200">
-                  Script Generation Phases
-                </h2>
-                {/* Removed the "Generate Full Script (All Phases)" button from here */}
-
-                <div className="space-y-8">
-                  {[1, 2, 3].map((phase) => (
-                    <div
-                      key={phase}
-                      className={`p-6 rounded-xl shadow-md border-2 transition-all duration-300 ease-in-out
-                        ${currentActivePhase === phase
-                          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950'
-                          : 'border-slate-200 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                        }`}
-                    >
-                      <h3 className="text-xl font-semibold mb-4 flex items-center text-slate-700 dark:text-slate-200">
-                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full mr-3 font-bold
-                          ${currentActivePhase === phase ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>
-                          {phase}
-                        </span>
-                        Phase {phase}: {phase === 1 ? "Blueprint Definition" : phase === 2 ? "Architecture Elaboration" : "Script Generation"}
-                        {(isLoadingMultiStepPhase_1 && phase === 1) || (isLoadingMultiStepPhase_2 && phase === 2) || (isLoadingMultiStepPhase_3 && phase === 3) ? (
-                          <svg className="animate-spin ml-3 h-5 w-5 text-indigo-500 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                        ) : null}
-                      </h3>
-
-                      {/* Prompt for Phase (now collapsible) */}
-                      <details className="mb-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600 shadow-inner" open={false}>
-                        <summary className="text-md font-medium text-slate-700 dark:text-slate-300 cursor-pointer flex justify-between items-center">
-                          <span>Prompt for Phase {phase}</span>
-                          <CopyButton textToCopy={
-                            phase === 1 ? phase1Prompt :
-                            phase === 2 ? phase2Prompt :
-                            phase3Prompt
-                          } />
-                        </summary>
-                        <textarea
-                          id={`phase${phase}Prompt`}
-                          value={
-                            phase === 1 ? phase1Prompt :
-                            phase === 2 ? phase2Prompt :
-                            phase3Prompt
-                          }
-                          onChange={(e) => {
-                            if (phase === 1) setPhase1Prompt(e.target.value);
-                            else if (phase === 2) setPhase2Prompt(e.target.value);
-                            else setPhase3Prompt(e.target.value);
-                          }}
-                          rows={6}
-                          className="mt-2 w-full p-3 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500 text-sm resize-y"
-                          disabled={isLlmTimerRunning || isExecutingScript}
-                        />
-                      </details>
-
-                      <button
-                        onClick={() => handleMultiStepPhaseExecution(phase)}
-                        disabled={
-                          isLlmTimerRunning || isExecutingScript ||
-                          (phase === 1 && (!initialInput.trim() || !phase1Prompt.trim())) ||
-                          (phase === 2 && (!multiStepPhase1_Output.trim() || !phase2Prompt.trim())) ||
-                          (phase === 3 && (!multiStepPhase2_Output.trim() || !phase3Prompt.trim()))
-                        }
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2.5 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-purple-400 focus:outline-none dark:focus:ring-purple-700 flex items-center justify-center gap-2"
-                      >
-                        {(isLoadingMultiStepPhase_1 && phase === 1) || (isLoadingMultiStepPhase_2 && phase === 2) || (isLoadingMultiStepPhase_3 && phase === 3) ? (
-                          <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                        ) : null}
-                        Run Phase {phase} Only
-                      </button>
-
-                      {multiStepPhase_Timers_Running[phase] && (
-                        <div className="mt-4 p-3 border border-purple-300 dark:border-purple-700 rounded-md bg-purple-50 dark:bg-purple-900/30 shadow-sm text-center">
-                          <p className="text-sm text-purple-700 dark:text-purple-300">
-                            Phase {phase} Timer: <Timer isRunning={multiStepPhase_Timers_Running[phase]} className="inline font-semibold" />
-                          </p>
-                        </div>
-                      )}
-                      {multiStepPhase_Durations[phase] !== null && !multiStepPhase_Timers_Running[phase] && (
-                        <div className="mt-4 p-3 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm text-center">
-                          <p className="text-sm text-slate-600 dark:text-slate-300">
-                            Phase {phase} took: <span className="font-semibold">{multiStepPhase_Durations[phase]?.toFixed(2)} seconds</span>
-                          </p>
-                        </div>
-                      )}
-
-                      <details className="mt-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600 shadow-inner" open={false}>
-                        <summary className="text-md font-medium text-slate-700 dark:text-slate-300 cursor-pointer flex justify-between items-center">
-                          <span>Input for Phase {phase}</span>
-                          <CopyButton textToCopy={
-                            phase === 1 ? multiStepPhase1_Input :
-                            phase === 2 ? multiStepPhase2_Input :
-                            multiStepPhase3_Input
-                          } />
-                        </summary>
-                        <textarea
-                          value={(phase === 1 ? multiStepPhase1_Input : phase === 2 ? multiStepPhase2_Input : multiStepPhase3_Input) || "Input will appear here after running the phase."}
-                          onChange={(e) => {
-                            if (phase === 1) setMultiStepPhase1_Input(e.target.value);
-                            else if (phase === 2) setMultiStepPhase2_Input(e.target.value);
-                            else setMultiStepPhase3_Input(e.target.value);
-                          }}
-                          className="mt-2 w-full p-3 border border-slate-300 rounded-md bg-slate-100 shadow-inner overflow-auto whitespace-pre-wrap min-h-[160px] text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-slate-400 resize-y"
-                        />
-                      </details>
-
-                      <details className="mt-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600 shadow-inner" open={false}>
-                        <summary className="text-md font-medium text-slate-700 dark:text-slate-300 cursor-pointer flex justify-between items-center">
-                          <span>Output of Phase {phase}</span>
-                          <CopyButton textToCopy={
-                            phase === 1 ? multiStepPhase1_Output :
-                            phase === 2 ? multiStepPhase2_Output :
-                            multiStepPhase3_Output
-                          } />
-                        </summary>
-                        <textarea
-                          value={(phase === 1 ? multiStepPhase1_Output : phase === 2 ? multiStepPhase2_Output : multiStepPhase3_Output) || "Output will appear here after running the phase."}
-                          onChange={(e) => {
-                            if (phase === 1) setMultiStepPhase1_Output(e.target.value);
-                            else if (phase === 2) setMultiStepPhase2_Output(e.target.value);
-                            else setMultiStepPhase3_Output(e.target.value);
-                          }}
-                          className="mt-2 w-full p-3 border border-slate-300 rounded-md bg-slate-100 shadow-inner overflow-auto whitespace-pre-wrap min-h-[160px] text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-slate-400 resize-y"
-                        />
-                      </details>
-                    </div>
-                  ))}
-                </div>
-              </section>
+              <GenerationTab
+                currentActivePhase={currentActivePhase}
+                isLoadingMultiStepPhase_1={isLoadingMultiStepPhase_1}
+                isLoadingMultiStepPhase_2={isLoadingMultiStepPhase_2}
+                isLoadingMultiStepPhase_3={isLoadingMultiStepPhase_3}
+                phase1Prompt={phase1Prompt}
+                setPhase1Prompt={setPhase1Prompt}
+                phase2Prompt={phase2Prompt}
+                setPhase2Prompt={setPhase2Prompt}
+                phase3Prompt={phase3Prompt}
+                setPhase3Prompt={setPhase3Prompt}
+                isLlmTimerRunning={isLlmTimerRunning}
+                isExecutingScript={isExecutingScript}
+                handleMultiStepPhaseExecution={handleMultiStepPhaseExecution}
+                initialInput={initialInput}
+                multiStepPhase1_Output={multiStepPhase1_Output}
+                multiStepPhase2_Output={multiStepPhase2_Output}
+                multiStepPhase_Timers_Running={multiStepPhase_Timers_Running}
+                multiStepPhase_Durations={multiStepPhase_Durations}
+                multiStepPhase1_Input={multiStepPhase1_Input}
+                setMultiStepPhase1_Input={setMultiStepPhase1_Input}
+                multiStepPhase2_Input={multiStepPhase2_Input}
+                setMultiStepPhase2_Input={setMultiStepPhase2_Input}
+                multiStepPhase3_Input={multiStepPhase3_Input}
+                setMultiStepPhase3_Input={setMultiStepPhase3_Input}
+                setMultiStepPhase1_Output={setMultiStepPhase1_Output}
+                setMultiStepPhase2_Output={setMultiStepPhase2_Output}
+                multiStepPhase3_Output={multiStepPhase3_Output}
+                setMultiStepPhase3_Output={setMultiStepPhase3_Output}
+              />
             )}
 
-            {/* Script Execution Tab Content */}
             {activeTab === 'execution' && (
-              <section className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
-                <h2 className="text-2xl font-semibold mb-6 text-slate-700 dark:text-slate-200">
-                  Script Execution
-                </h2>
-
-                {/* Moved 'Run This Script' button here */}
-                <button
-                  type="button"
-                  onClick={handleExecuteScript}
-                  disabled={
-                    isExecutingScript ||
-                    !multiStepPhase3_Output.trim() ||
-                    isLlmTimerRunning
-                  }
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg px-6 py-3 rounded-xl shadow-lg transition duration-200 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:bg-gray-400 focus:ring-4 focus:ring-indigo-300 focus:outline-none dark:focus:ring-indigo-800 flex items-center justify-center gap-2 mb-6"
-                >
-                  {isExecutingScript ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Executing Script...
-                    </span>
-                  ) : 'Run This Script (Locally via API)'}
-                </button>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                  {/* Generated Python Script */}
-                  <div>
-                    <details className="border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm mb-4" open>
-                      <summary className="flex justify-between items-center p-4 cursor-pointer bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-t-xl">
-                        <span className="text-lg font-medium text-slate-700 dark:text-slate-300">
-                          Generated Python Script
-                        </span>
-                        <CopyButton textToCopy={multiStepPhase3_Output} />
-                      </summary>
-                      <div className="w-full p-4 bg-slate-900 overflow-auto min-h-[200px] max-h-[500px] rounded-b-xl">
-                        <SyntaxHighlighter
-                          language="python"
-                          style={atomDark}
-                          showLineNumbers={true}
-                          wrapLines={true}
-                          lineProps={{ style: { whiteSpace: 'pre-wrap', wordBreak: 'break-all' } }}
-                          customStyle={{ margin: 0, backgroundColor: 'transparent', height: 'auto', overflow: 'auto' }}
-                          codeTagProps={{ style: { fontFamily: 'inherit' } }}
-                        >
-                          {multiStepPhase3_Output || "# Python script will appear here after Phase 3 generation."}
-                        </SyntaxHighlighter>
-                      </div>
-                    </details>
-                    {/* Original button removed from here */}
-                  </div>
-
-                  {/* Script Execution Output */}
-                  <div>
-                    <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 shadow-sm min-h-[300px] flex flex-col">
-                      <h3 className="text-lg font-semibold mb-4 text-slate-700 dark:text-slate-200">
-                        Execution Output & Logs
-                      </h3>
-
-                      {/* Overall Execution Status */}
-                      {finalExecutionStatus && (
-                        <div className={`mb-4 p-3 rounded-md text-center font-semibold text-lg
-                          ${finalExecutionStatus === 'success' ? 'bg-green-200 text-green-800 dark:bg-green-900/50 dark:text-green-300' : 'bg-red-200 text-red-800 dark:bg-red-900/50 dark:text-red-300'}`}>
-                          Status: {finalExecutionStatus.charAt(0).toUpperCase() + finalExecutionStatus.slice(1)}
-                        </div>
-                      )}
-
-                      {/* Script Execution Timer & Duration */}
-                      {(isExecutingScript || (hasExecutionAttempted && scriptExecutionDuration !== null)) && (
-                        <div className="mb-4 p-3 border border-green-300 dark:border-green-700 rounded-md bg-green-50 dark:bg-green-900/30 shadow-sm text-center">
-                          <p className="text-sm text-green-700 dark:text-green-300">
-                            Execution Timer: <Timer key={scriptTimerKey} isRunning={isExecutingScript} className="inline font-semibold" />
-                          </p>
-                        </div>
-                      )}
-                      {scriptExecutionDuration !== null && !isExecutingScript && (
-                        <div className="mb-4 p-3 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm text-center">
-                          <p className="text-sm text-slate-600 dark:text-slate-300">
-                            Execution took: <span className="font-semibold">{scriptExecutionDuration.toFixed(2)}</span> seconds
-                          </p>
-                        </div >
-                      )}
-
-                      {/* Docker Command */}
-                      {dockerCommandToDisplay && (
-                        <details className="mb-4 p-3 bg-slate-100 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600 shadow-inner" open={false}>
-                          <summary className="text-md font-medium text-slate-700 dark:text-slate-300 cursor-pointer flex justify-between items-center">
-                            <span>Docker Command Used</span>
-                            <CopyButton textToCopy={dockerCommandToDisplay} />
-                          </summary>
-                          <pre className="mt-2 p-2 text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap overflow-auto max-h-[150px]">
-                            {dockerCommandToDisplay}
-                          </pre>
-                        </details>
-                      )}
-
-                      {/* Live Logs */}
-                      <div className="flex-1 flex flex-col mb-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <h4 className="text-md font-semibold text-slate-700 dark:text-slate-300">
-                            {isExecutingScript ? "Execution Logs (Streaming...)" : "Execution Logs:"}
-                          </h4>
-                          <CopyButton textToCopy={scriptLogOutput.join('\n')} />
-                        </div>
-                        {(scriptLogOutput.length > 0 || isExecutingScript) ? (
-                          <pre className="flex-1 p-3 border border-slate-300 rounded-md bg-slate-100 shadow-inner overflow-auto whitespace-pre-wrap text-xs text-slate-600 dark:text-slate-300 dark:bg-slate-900 dark:border-slate-600">
-                            {scriptLogOutput.length > 0 ? scriptLogOutput.join('\n') : "Waiting for script output..."}
-                          </pre>
-                        ) : (
-                          <p className="text-sm text-slate-500 dark:text-slate-400">No logs produced yet.</p>
-                        )}
-                      </div>
-
-                      {/* Phased Outputs */}
-                      {phasedOutputs.length > 0 && (
-                        <div className="mt-4">
-                          <h4 className="text-md font-semibold text-slate-700 dark:text-slate-300 mb-2">Task Outputs:</h4>
-                          <ul className="space-y-3">
-                            {phasedOutputs.map((out, index) => (
-                              <li key={index} className="p-3 border border-slate-200 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm relative">
-                                <div className="flex justify-between items-start">
-                                  <strong className="text-sm text-indigo-600 dark:text-indigo-400 pr-2">{out.taskName}:</strong>
-                                  <div className="absolute top-2 right-2">
-                                    <CopyButton textToCopy={out.output} />
-                                  </div>
-                                </div>
-                                <pre className="mt-1 text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap overflow-auto max-h-[100px]">{out.output}</pre>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {scriptExecutionError && !finalExecutionStatus && (
-                        <div className="mt-4 p-3 border border-red-400 bg-red-100 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-500/50 dark:text-red-400">
-                          <p className="font-semibold">Execution Error:</p>
-                          <p>{scriptExecutionError}</p>
-                        </div>
-                      )}
-
-                      {finalExecutionStatus && finalExecutionResult && (
-                        <details className="mt-4 p-3 bg-slate-100 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600 shadow-inner" open={false}>
-                          <summary className="text-md font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                            View Raw Execution Result JSON
-                          </summary>
-                          <pre className="mt-2 p-2 text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap overflow-auto max-h-[300px]">
-                            {JSON.stringify(finalExecutionResult, null, 2)}
-                          </pre>
-                        </details>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </section>
+              <ExecutionTab
+                isExecutingScript={isExecutingScript}
+                multiStepPhase3_Output={multiStepPhase3_Output}
+                isLlmTimerRunning={isLlmTimerRunning}
+                handleExecuteScript={handleExecuteScript}
+                finalExecutionStatus={finalExecutionStatus}
+                hasExecutionAttempted={hasExecutionAttempted}
+                scriptExecutionDuration={scriptExecutionDuration}
+                scriptTimerKey={scriptTimerKey}
+                dockerCommandToDisplay={dockerCommandToDisplay}
+                scriptLogOutput={scriptLogOutput}
+                phasedOutputs={phasedOutputs}
+                scriptExecutionError={scriptExecutionError}
+                finalExecutionResult={finalExecutionResult}
+              />
             )}
           </div>
         </div>
 
-        {/* Error Display (kept outside tabs for global visibility) */}
         {error && (
           <div className="mt-8 p-4 border border-red-400 bg-red-100 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-500/50 dark:text-red-400 shadow-md">
             <p className="font-bold text-lg mb-2">Error:</p>
