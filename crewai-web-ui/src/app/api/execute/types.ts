@@ -15,9 +15,11 @@ export interface ExecutionResult {
   scriptExecutionDuration?: number; // Added this line
 }
 
+import Docker from 'dockerode';
+
 // Interface for the return type of the modified executePythonScript
 export interface ExecutePythonScriptSetupResult {
-  container?: any; // Using 'any' for Docker.Container to avoid Docker import in types file
+  container?: Docker.Container; // Using 'any' for Docker.Container to avoid Docker import in types file
   stream?: NodeJS.ReadableStream; // Optional because attach might fail or not be reached
   preHostRunResult: StageOutput;
   overallStatus: 'success' | 'failure';

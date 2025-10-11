@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { executePythonScript } from './docker.service';
 import { handleDockerStream } from './stream.service';
-import { StageOutput, ExecutionResult, ExecutePythonScriptSetupResult } from './types';
+import { ExecutionResult } from './types';
 
 export async function POST(request: Request) {
   try {
@@ -69,13 +69,14 @@ export async function POST(request: Request) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as Error;
     // This catches errors in the POST handler's initial setup,
     // or if executePythonScript itself throws before returning (should be caught internally by it)
-    console.error("Critical Error in /api/execute POST handler:", error);
+    console.error("Critical Error in /api/execute POST handler:", err);
     const errorResult: ExecutionResult = {
       overallStatus: 'failure',
-      error: error.message || "An unknown error occurred in the API endpoint."
+      error: err.message || "An unknown error occurred in the API endpoint."
     };
     return NextResponse.json(errorResult, { status: 500 });
   }

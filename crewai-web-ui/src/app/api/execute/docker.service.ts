@@ -1,8 +1,8 @@
 import Docker from 'dockerode';
 import fs from 'fs/promises';
 import path from 'path';
-import os from 'os';
 import { exec } from 'child_process';
+import { parseFileBlocks } from '../generate/script.utils';
 
 import { ExecutePythonScriptSetupResult, StageOutput } from './types';
 
@@ -18,10 +18,16 @@ export async function executePythonScript(scriptContent: string): Promise<Execut
   let topLevelError: string | undefined = undefined;
 
   try {
+    await fs.rm(workspaceDir, { recursive: true, force: true });
     await fs.mkdir(workspaceDir, { recursive: true });
-    const scriptPath = path.join(workspaceDir, 'crewai_generated.py');
-    await fs.writeFile(scriptPath, scriptContent);
-    console.log(`Python script saved to ${scriptPath}`);
+
+    const files = parseFileBlocks(scriptContent);
+    for (const [filePath, fileContent] of Object.entries(files)) {
+      const fullPath = path.join(workspaceDir, filePath);
+      await fs.mkdir(path.dirname(fullPath), { recursive: true });
+      await fs.writeFile(fullPath, fileContent);
+      console.log(`File saved to ${fullPath}`);
+    }
 
     // --- Execute pre_host_run.sh if it exists ---
     const preHostRunScriptPath = path.join(workspaceDir, 'pre_host_run.sh');
@@ -32,8 +38,10 @@ export async function executePythonScript(scriptContent: string): Promise<Execut
       const execResult = await new Promise<{ stdout: string; stderr: string; exitCode: number }>((resolve, reject) => {
         exec(`sh ${preHostRunScriptPath}`, { cwd: workspaceDir }, (error, stdout, stderr) => {
           if (error) {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             error.stdout = stdout;
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             error.stderr = stderr;
             reject(error);
@@ -48,19 +56,20 @@ export async function executePythonScript(scriptContent: string): Promise<Execut
       preHostRunResult.status = 'success';
       console.log(`pre_host_run.sh stdout:\n${execResult.stdout}`);
       if (execResult.stderr) console.warn(`pre_host_run.sh stderr:\n${execResult.stderr}`);
-    } catch (error: any) {
-      if (error.code === 'ENOENT') {
+    } catch (error) {
+      const execError = error as { code?: string; message?: string; stdout?: string; stderr?: string; };
+      if (execError.code === 'ENOENT') {
         preHostRunResult.status = 'skipped';
         console.log(`Host pre-run script (${preHostRunScriptPath}) not found. Skipping.`);
       } else {
         console.error(`Failed to execute pre_host_run.sh:`, error);
         preHostRunResult.status = 'failure';
-        preHostRunResult.error = error.message || 'Unknown error';
-        preHostRunResult.stdout = error.stdout || '';
-        preHostRunResult.stderr = error.stderr || '';
-        preHostRunResult.exitCode = error.code || 1;
+        preHostRunResult.error = execError.message || 'Unknown error';
+        preHostRunResult.stdout = execError.stdout || '';
+        preHostRunResult.stderr = execError.stderr || '';
+        preHostRunResult.exitCode = (execError as { code: number }).code || 1;
         overallStatus = 'failure';
-        topLevelError = `Pre-host run script failed: ${error.message}`;
+        topLevelError = `Pre-host run script failed: ${execError.message}`;
         // Early exit for pre-host run failure
         return { preHostRunResult, overallStatus, error: topLevelError };
       }
@@ -99,10 +108,11 @@ export async function executePythonScript(scriptContent: string): Promise<Execut
           reject(err);
         });
       });
-    } catch (buildError: any) {
-      console.error(`Critical failure to build ${imageName} image:`, buildError);
+    } catch (buildError) {
+      const error = buildError as Error;
+      console.error(`Critical failure to build ${imageName} image:`, error);
       overallStatus = 'failure';
-      topLevelError = `Docker image build failed: ${buildError.message}`;
+      topLevelError = `Docker image build failed: ${error.message}`;
       // Early exit for Docker build failure
     return { preHostRunResult, overallStatus, error: topLevelError, dockerCommand: "" }; // Return empty dockerCommand on failure
     }
@@ -118,15 +128,16 @@ export async function executePythonScript(scriptContent: string): Promise<Execut
   else
     echo "--- /workspace/pre_docker_run.sh not found, skipping. ---";
   fi &&
-  echo "--- Running crewai_generated.py ---" &&
-  python /workspace/crewai_generated.py &&
-  echo "--- crewai_generated.py finished ---"
+  echo "--- Running crewai run ---" &&
+  cd /workspace/crewai_generated &&
+  crewai run &&
+  echo "--- crewai run finished ---"
 `;
     try {
       const container = await docker.createContainer({
         Image: imageName,
         Cmd: ['/bin/sh', '-c', dockerCommand], // dockerCommand is defined above
-        WorkingDir: '/workspace',
+        WorkingDir: '/workspace/crewai_generated',
         HostConfig: {
           Mounts: [{ Type: 'bind', Source: workspaceDir, Target: '/workspace' }],
           AutoRemove: true,
@@ -144,17 +155,19 @@ export async function executePythonScript(scriptContent: string): Promise<Execut
 
       return { container, stream, preHostRunResult, overallStatus, dockerCommand }; // Return dockerCommand
 
-    } catch (dockerErr: any) {
-      console.error("Error setting up or starting Docker container:", dockerErr);
+    } catch (dockerErr) {
+      const error = dockerErr as Error;
+      console.error("Error setting up or starting Docker container:", error);
       overallStatus = 'failure';
-      topLevelError = `Docker container setup/start error: ${dockerErr.message}`;
+      topLevelError = `Docker container setup/start error: ${error.message}`;
       return { preHostRunResult, overallStatus, error: topLevelError, dockerCommand }; // Return dockerCommand even on error
     }
 
-  } catch (topLevelCatchError: any) { // Catch errors from fs operations, etc.
-    console.error("Top-level error in executePythonScript setup:", topLevelCatchError);
+  } catch (topLevelCatchError) { // Catch errors from fs operations, etc.
+    const error = topLevelCatchError as Error;
+    console.error("Top-level error in executePythonScript setup:", error);
     overallStatus = 'failure';
-    topLevelError = `Unhandled setup error: ${topLevelCatchError.message}`;
+    topLevelError = `Unhandled setup error: ${error.message}`;
     // In this case, dockerCommand might not have been defined, so ensure it's part of the return if needed or set to empty
     return { preHostRunResult, overallStatus, error: topLevelError, dockerCommand: "" };
   }

@@ -21,8 +21,8 @@ export async function POST(request: Request) {
     if (!llmModel || !fullPrompt) {
       return NextResponse.json({ error: "Missing required parameters: llmModel and fullPrompt." }, { status: 400 });
     }
-    if (runPhase !== 1 && runPhase !== 2 && runPhase !== 3) {
-      return NextResponse.json({ error: "Invalid 'runPhase'. Must be 1, 2, or 3." }, { status: 400 });
+    if (runPhase < 1 || runPhase > 9) {
+      return NextResponse.json({ error: "Invalid 'runPhase'. Must be between 1 and 9." }, { status: 400 });
     }
 
 
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       // Call interactWithLLM with the fullPrompt received from the client
       // fs and path imports for GoogleGenerativeAI and OpenAI are handled within llm.service.ts
       const { llmResponseText, generatedScript: llmGeneratedScript, duration } = await interactWithLLM(fullPrompt, llmModel, runPhase);
-      let generatedScript = llmGeneratedScript; // Optional, changed to let
+      const generatedScript = llmGeneratedScript; // Optional, changed to let
 
       const inputFilePath = path.join(process.cwd(), 'llm_input_prompt.txt');
       const outputFilePath = path.join(process.cwd(), 'llm_output_prompt.txt');
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       }
 
       // Return structure now includes the fullPrompt that was sent in the request
-      if (runPhase === 1 || runPhase === 2) {
+      if (runPhase >= 1 && runPhase <= 8) {
         return NextResponse.json({ phase: runPhase, output: llmResponseText, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent, duration });
       }
 
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       // as injectOllamaConfig has been removed from script.utils.ts
 
       if (generatedScript !== undefined) {
-        return NextResponse.json({ generatedScript, phase: 3, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent, duration /* phasedOutputs: [] an example if needed */ });
+        return NextResponse.json({ generatedScript, phase: 9, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent, duration /* phasedOutputs: [] an example if needed */ });
       } else {
         // This case should ideally not be reached if llmModel.startsWith('ollama/') and generatedScript was initially undefined,
         // as the injection logic itself checks for generatedScript.

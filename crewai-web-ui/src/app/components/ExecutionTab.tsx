@@ -1,7 +1,5 @@
 "use client";
 
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import CopyButton from './CopyButton';
 import Timer from './Timer';
 import type { ExecutionResult as ExecutionResultType } from '../api/execute/types';
@@ -71,27 +69,14 @@ const ExecutionTab = ({
 
       <div className="grid md:grid-cols-2 gap-6">
         <div>
-          <details className="border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm mb-4" open>
-            <summary className="flex justify-between items-center p-4 cursor-pointer bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-t-xl">
-              <span className="text-lg font-medium text-slate-700 dark:text-slate-300">
-                Generated Python Script
-              </span>
-              <CopyButton textToCopy={multiStepPhase3_Output} />
-            </summary>
-            <div className="w-full p-4 bg-slate-900 overflow-auto min-h-[200px] max-h-[500px] rounded-b-xl">
-              <SyntaxHighlighter
-                language="python"
-                style={atomDark}
-                showLineNumbers={true}
-                wrapLines={true}
-                lineProps={{ style: { whiteSpace: 'pre-wrap', wordBreak: 'break-all' } }}
-                customStyle={{ margin: 0, backgroundColor: 'transparent', height: 'auto', overflow: 'auto' }}
-                codeTagProps={{ style: { fontFamily: 'inherit' } }}
-              >
-                {multiStepPhase3_Output || "# Python script will appear here after Phase 3 generation."}
-              </SyntaxHighlighter>
-            </div>
-          </details>
+          <div className="border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm mb-4 p-4 bg-slate-50 dark:bg-slate-700">
+            <h3 className="text-lg font-medium text-slate-700 dark:text-slate-300">
+              Project Generated
+            </h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+              The CrewAI project has been generated. You can now run it.
+            </p>
+          </div>
         </div>
 
         <div>

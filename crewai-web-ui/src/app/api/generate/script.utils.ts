@@ -2,7 +2,7 @@
 
 export function extractScript(llmResponseText: string): string | undefined {
   let generatedScript: string | undefined = undefined;
-  let scriptToExtract = llmResponseText;
+  const scriptToExtract = llmResponseText;
 
   const pythonCodeBlockRegex = /```python\n([\s\S]*?)\n```/g;
   const pythonMatches = Array.from(scriptToExtract.matchAll(pythonCodeBlockRegex));
@@ -24,4 +24,18 @@ export function extractScript(llmResponseText: string): string | undefined {
     }
   }
   return generatedScript;
+}
+
+export function parseFileBlocks(response: string): { [key: string]: string } {
+    const files: { [key: string]: string } = {};
+    const fileBlockRegex = /\[START_FILE:(.+?)\]\n([\s\S]*?)\[END_FILE:\1\]/g;
+    let match;
+
+    while ((match = fileBlockRegex.exec(response)) !== null) {
+        const filePath = match[1];
+        const fileContent = match[2];
+        files[filePath] = fileContent;
+    }
+
+    return files;
 }

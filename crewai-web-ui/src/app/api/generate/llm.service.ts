@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import OpenAI from 'openai'; // Added for DeepSeek
 import fs from 'fs/promises';
-import { getAllModels, ModelConfig } from '../../../config/models.config';
+import { getAllModels } from '../../../config/models.config';
 import path from 'path';
 import { extractScript } from './script.utils'; // Import the new utility function
 
@@ -55,7 +55,7 @@ export async function interactWithLLM(
       { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
     ];
 
-    const generationConfig: any = { temperature: 0, frequencyPenalty: 0.0, presencePenalty: 0.0 };
+    const generationConfig: Record<string, unknown> = { temperature: 0, frequencyPenalty: 0.0, presencePenalty: 0.0 };
     if (modelConfig?.maxOutputTokens) {
       generationConfig.maxOutputTokens = modelConfig.maxOutputTokens;
     }
@@ -89,7 +89,7 @@ export async function interactWithLLM(
       apiKey: deepSeekApiKey,
     });
 
-    const deepSeekParams: any = {
+    const deepSeekParams: OpenAI.Chat.ChatCompletionCreateParams = {
       model: llmModel.substring('deepseek/'.length),
       messages: [{ role: "user", content: fullPrompt }],
       temperature: 0,
@@ -118,7 +118,7 @@ export async function interactWithLLM(
 
     console.log(`Calling Ollama API for model: ${ollamaModelName} at base URL: ${ollamaApiBaseUrl}`);
 
-    const ollamaOptions: any = { frequency_penalty: 0.0, presence_penalty: 0.0 };
+    const ollamaOptions: Record<string, unknown> = { frequency_penalty: 0.0, presence_penalty: 0.0 };
     if (modelConfig?.maxOutputTokens) {
       ollamaOptions.num_predict = modelConfig.maxOutputTokens;
     }
@@ -164,7 +164,7 @@ export async function interactWithLLM(
           console.error("Ollama API call successful but response content is missing.", ollamaData);
           throw new Error("Ollama API Error: No content in response.");
       }
-    } catch (error: any) { // Changed 'any' to 'any' to avoid TS error if 'dom' lib is not included
+    } catch (error) { // Changed 'any' to 'any' to avoid TS error if 'dom' lib is not included
       if (timeoutId) { // Ensure timeout is cleared if an error occurs before fetch completes
         clearTimeout(timeoutId);
       }
@@ -187,7 +187,7 @@ export async function interactWithLLM(
   }
 
   // Script extraction logic, applicable if not returning early for advanced phases 1 & 2
-  if (runPhase === 3) {
+  if (runPhase === 9) {
     // Use the utility function to extract the script
     generatedScript = extractScript(llmResponseText);
     // The console logs from extractScript will indicate how the script was extracted.
