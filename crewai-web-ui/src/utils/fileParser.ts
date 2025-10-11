@@ -1,34 +1,20 @@
-export const parseFileBlocks = (script: string): Record<string, string> => {
-  const fileBlocks: Record<string, string> = {};
-  const lines = script.split('\n');
-  let currentFilePath: string | null = null;
-  let currentFileContent: string[] = [];
+import type { GeneratedFile } from "@/app/page";
 
-  for (const line of lines) {
-    const startMatch = line.match(/\[START_FILE:(.*?)\]/);
-    if (startMatch) {
-      if (currentFilePath) {
-        fileBlocks[currentFilePath] = currentFileContent.join('\n');
-      }
-      currentFilePath = startMatch[1].trim();
-      currentFileContent = [];
-    } else {
-      const endMatch = line.match(/\[END_FILE:(.*?)\]/);
-      if (endMatch) {
-        if (currentFilePath) {
-          fileBlocks[currentFilePath] = currentFileContent.join('\n');
-          currentFilePath = null;
-          currentFileContent = [];
-        }
-      } else if (currentFilePath) {
-        currentFileContent.push(line);
-      }
-    }
+export const parseFileBlocks = (script: string): GeneratedFile[] => {
+  const files: GeneratedFile[] = [];
+  const fileRegex = /\[START_FILE:([^\]]+)\]\n([\s\S]*?)\[END_FILE:\1\]/g;
+  let match;
+
+  while ((match = fileRegex.exec(script)) !== null) {
+    const fileName = match[1];
+    const fileContent = match[2].trim();
+    files.push({ name: fileName, content: fileContent });
   }
 
-  if (currentFilePath) {
-    fileBlocks[currentFilePath] = currentFileContent.join('\n');
+  // If no file blocks are found, return the entire script as a single file
+  if (files.length === 0 && script.trim().length > 0) {
+    files.push({ name: "main.py", content: script });
   }
 
-  return fileBlocks;
+  return files;
 };

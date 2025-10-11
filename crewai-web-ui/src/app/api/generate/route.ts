@@ -46,7 +46,8 @@ export async function POST(request: Request) {
     const {
       llmModel,
       runPhase,
-      fullPrompt
+      fullPrompt,
+      filePath,
     } = body;
 
     if (!llmModel || !fullPrompt) {
@@ -78,32 +79,25 @@ export async function POST(request: Request) {
         console.error('Failed to read llm_output_prompt.txt:', error);
       }
 
-      if (runPhase >= 1 && runPhase <= 8) {
-        return NextResponse.json({ phase: runPhase, output: llmResponseText, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent, duration });
+      if (filePath && runPhase > 2) {
+        const absolutePath = path.join(GENERATED_DIR, filePath);
+        await ensureDirectoryExists(path.dirname(absolutePath));
+        await fs.writeFile(absolutePath, llmResponseText);
+        console.log(`Successfully wrote file: ${absolutePath}`);
       }
 
       if (runPhase === 9 && generatedScript) {
         const fileBlocks = parseFileBlocks(generatedScript);
 
-        await cleanDirectory(GENERATED_DIR);
-        await ensureDirectoryExists(GENERATED_DIR);
-
-        for (const [filePath, content] of Object.entries(fileBlocks)) {
-          const absolutePath = path.join(GENERATED_DIR, filePath);
+        for (const file of fileBlocks) {
+          const absolutePath = path.join(GENERATED_DIR, file.name);
           await ensureDirectoryExists(path.dirname(absolutePath));
-          await fs.writeFile(absolutePath, content);
+          await fs.writeFile(absolutePath, file.content);
           console.log(`Successfully wrote file: ${absolutePath}`);
         }
-
-        return NextResponse.json({ generatedScript, phase: 9, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent, duration });
       }
 
-      if (generatedScript !== undefined) {
-        return NextResponse.json({ generatedScript, phase: 9, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent, duration });
-      } else {
-        console.error(`Error: generatedScript is undefined for runPhase='${runPhase}'. This should not happen if a script was expected.`);
-        return NextResponse.json({ error: "Failed to process LLM output for script generation.", llmInputPromptContent, llmOutputPromptContent }, { status: 500 });
-      }
+      return NextResponse.json({ phase: runPhase, output: llmResponseText, generatedScript, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent, duration });
 
     } catch (apiError) {
       console.error(`Error interacting with LLM for model ${llmModel}:`, apiError);

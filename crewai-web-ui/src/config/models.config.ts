@@ -65,6 +65,6 @@ export async function getOllamaModels(): Promise<ModelConfig[]> {
 }
 
 export async function getAllModels(): Promise<ModelConfig[]> {
-  const ollamaModels = await getOllamaModels();
-  return [...staticModels, ...ollamaModels];
+  // const ollamaModels = await getOllamaModels();
+  return [...staticModels];
 }

@@ -1,17 +1,18 @@
 "use client";
-
+import { useState, useMemo } from 'react';
 import CopyButton from './CopyButton';
 import Timer from './Timer';
 import type { ExecutionResult as ExecutionResultType } from '../api/execute/types';
+import type { GeneratedFile } from '../page';
 
 interface PhasedOutput {
-    taskName: string;
-    output: string;
-  }
+  taskName: string;
+  output: string;
+}
 
 interface ExecutionTabProps {
   isExecutingScript: boolean;
-  multiStepPhase9_Output: string;
+  generatedFiles: GeneratedFile[];
   isLlmTimerRunning: boolean;
   handleExecuteScript: () => void;
   finalExecutionStatus: string | null;
@@ -25,9 +26,71 @@ interface ExecutionTabProps {
   finalExecutionResult: ExecutionResultType | null;
 }
 
+interface FileTreeNode {
+  name: string;
+  type: 'file' | 'folder';
+  path: string;
+  children?: FileTreeNode[];
+  content?: string;
+}
+
+const buildFileTree = (files: GeneratedFile[]): FileTreeNode[] => {
+  const root: FileTreeNode = { name: 'root', type: 'folder', path: '', children: [] };
+
+  files.forEach(file => {
+    const parts = file.name.split('/');
+    let currentNode = root;
+
+    parts.forEach((part, index) => {
+      const isFile = index === parts.length - 1;
+      let childNode = currentNode.children?.find(child => child.name === part);
+
+      if (!childNode) {
+        childNode = {
+          name: part,
+          type: isFile ? 'file' : 'folder',
+          path: file.name,
+          children: isFile ? undefined : [],
+          content: isFile ? file.content : undefined,
+        };
+        currentNode.children?.push(childNode);
+      }
+      currentNode = childNode;
+    });
+  });
+
+  return root.children || [];
+};
+
+
+const FileTree = ({ tree, activeFile, setActiveFile }: { tree: FileTreeNode[], activeFile: string | null, setActiveFile: (path: string) => void }) => {
+  const renderNode = (node: FileTreeNode, level: number) => (
+    <div key={node.path} style={{ paddingLeft: `${level * 20}px` }}>
+      <button
+        onClick={() => node.type === 'file' && setActiveFile(node.path)}
+        className={`w-full text-left px-2 py-1 rounded-md transition-colors ${
+          activeFile === node.path
+            ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
+            : 'hover:bg-slate-200 dark:hover:bg-slate-700'
+        }`}
+      >
+        {node.type === 'folder' ? '📁' : '📄'} {node.name}
+      </button>
+      {node.children && node.children.map(child => renderNode(child, level + 1))}
+    </div>
+  );
+
+  return (
+    <div>
+      {tree.map(node => renderNode(node, 0))}
+    </div>
+  )
+};
+
+
 const ExecutionTab = ({
   isExecutingScript,
-  multiStepPhase9_Output,
+  generatedFiles,
   isLlmTimerRunning,
   handleExecuteScript,
   finalExecutionStatus,
@@ -40,6 +103,11 @@ const ExecutionTab = ({
   scriptExecutionError,
   finalExecutionResult,
 }: ExecutionTabProps) => {
+  const [activeFile, setActiveFile] = useState<string | null>(generatedFiles.length > 0 ? generatedFiles[0].name : null);
+  const fileTree = useMemo(() => buildFileTree(generatedFiles), [generatedFiles]);
+  const scriptIsEmpty = generatedFiles.length === 0 || generatedFiles.every(f => f.content.trim() === '');
+  const activeFileContent = generatedFiles.find(f => f.name === activeFile)?.content;
+
   return (
     <section className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
       <h2 className="text-2xl font-semibold mb-6 text-slate-700 dark:text-slate-200">
@@ -51,7 +119,7 @@ const ExecutionTab = ({
         onClick={handleExecuteScript}
         disabled={
           isExecutingScript ||
-          !multiStepPhase9_Output.trim() ||
+          scriptIsEmpty ||
           isLlmTimerRunning
         }
         className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg px-6 py-3 rounded-xl shadow-lg transition duration-200 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:bg-gray-400 focus:ring-4 focus:ring-indigo-300 focus:outline-none dark:focus:ring-indigo-800 flex items-center justify-center gap-2 mb-6"
@@ -68,14 +136,24 @@ const ExecutionTab = ({
       </button>
 
       <div className="grid md:grid-cols-2 gap-6">
-        <div>
-          <div className="border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm mb-4 p-4 bg-slate-50 dark:bg-slate-700">
-            <h3 className="text-lg font-medium text-slate-700 dark:text-slate-300">
-              Project Generated
-            </h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-              The CrewAI project has been generated. You can now run it.
-            </p>
+        <div className="border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm p-4 bg-slate-50 dark:bg-slate-700">
+          <h3 className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-3">
+            Generated Project Files
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border-r border-slate-200 dark:border-slate-600 pr-2">
+              <FileTree tree={fileTree} activeFile={activeFile} setActiveFile={setActiveFile} />
+            </div>
+            <div className="relative bg-slate-100 dark:bg-slate-900 rounded-md p-2 min-h-[200px]">
+              <pre className="text-xs text-slate-700 dark:text-slate-200 whitespace-pre-wrap overflow-auto h-full max-h-[400px]">
+                {activeFileContent || 'Select a file to view its content.'}
+              </pre>
+              {activeFileContent && (
+                <div className="absolute top-2 right-2">
+                  <CopyButton textToCopy={activeFileContent} />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
