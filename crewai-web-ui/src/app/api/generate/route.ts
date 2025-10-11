@@ -48,6 +48,7 @@ export async function POST(request: Request) {
       runPhase,
       fullPrompt,
       filePath,
+      outputType,
     } = body;
 
     if (!llmModel || !fullPrompt) {
@@ -79,16 +80,20 @@ export async function POST(request: Request) {
         console.error('Failed to read llm_output_prompt.txt:', error);
       }
 
-      if (filePath && runPhase > 2) {
+      if (runPhase === 1) {
+        await cleanDirectory(GENERATED_DIR);
+        await ensureDirectoryExists(GENERATED_DIR);
+        const readmePath = path.join(GENERATED_DIR, 'README.md');
+        await fs.writeFile(readmePath, `# CrewAI Project: ${fullPrompt}`);
+      }
+
+      if (filePath && outputType === 'file') {
         const absolutePath = path.join(GENERATED_DIR, filePath);
         await ensureDirectoryExists(path.dirname(absolutePath));
         await fs.writeFile(absolutePath, llmResponseText);
         console.log(`Successfully wrote file: ${absolutePath}`);
-      }
-
-      if (runPhase === 9 && generatedScript) {
-        const fileBlocks = parseFileBlocks(generatedScript);
-
+      } else if (outputType === 'directory') {
+        const fileBlocks = parseFileBlocks(llmResponseText);
         for (const file of fileBlocks) {
           const absolutePath = path.join(GENERATED_DIR, file.name);
           await ensureDirectoryExists(path.dirname(absolutePath));

@@ -36,8 +36,8 @@ def run_verification():
 
         # Check if the generated files are displayed
         expect(page.get_by_text("Generated Project Files")).to_be_visible()
-        expect(page.get_by_role("button", name="main.py")).to_be_visible()
-        expect(page.get_by_role("button", name="README.md")).to_be_visible()
+        expect(page.locator('button:has-text("main.py")').first).to_be_visible()
+        expect(page.locator('button:has-text("README.md")').first).to_be_visible()
 
         # Take a screenshot
         page.screenshot(path="jules-scratch/verification/verification.png")

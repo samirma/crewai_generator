@@ -43,19 +43,20 @@ export interface PhaseState {
   duration: number | null;
   isTimerRunning: boolean;
   filePath?: string;
+  outputType?: 'file' | 'directory';
 }
 
 
 const initialPhases: PhaseState[] = [
   { id: 1, title: "Blueprint Definition", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
   { id: 2, title: "Architecture Elaboration", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 3, title: "User Preference Generation", filePath: "knowledge/user_preference.txt", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 4, title: "PyProject Generation", filePath: "pyproject.toml", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 5, title: "Agents.yaml Generation", filePath: "src/crewai_generated/config/agents.yaml", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 6, title: "Tasks.yaml Generation", filePath: "src/crewai_generated/config/tasks.yaml", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 7, title: "Crew.py Generation", filePath: "src/crewai_generated/crew.py", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 8, title: "Main.py Generation", filePath: "src/crewai_generated/main.py", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 9, title: "Tools Generation", filePath: "src/crewai_generated/tools", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 3, title: "User Preference Generation", filePath: "knowledge/user_preference.txt", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 4, title: "PyProject Generation", filePath: "pyproject.toml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 5, title: "Agents.yaml Generation", filePath: "src/crewai_generated/config/agents.yaml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 6, title: "Tasks.yaml Generation", filePath: "src/crewai_generated/config/tasks.yaml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 7, title: "Crew.py Generation", filePath: "src/crewai_generated/crew.py", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 8, title: "Main.py Generation", filePath: "src/crewai_generated/main.py", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 9, title: "Tools Generation", filePath: "src/crewai_generated/tools", outputType: 'directory', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
 ];
 
 // Helper function to set a cookie
@@ -384,7 +385,7 @@ export default function Home() {
       )
     );
 
-    await generateApi({ llmModel, mode: 'advanced', fullPrompt: fullPromptValue, runPhase: phaseId, filePath: currentPhaseState.filePath });
+    await generateApi({ llmModel, mode: 'advanced', fullPrompt: fullPromptValue, runPhase: phaseId, filePath: currentPhaseState.filePath, outputType: currentPhaseState.outputType });
   };
 
   const handleRunAllPhases = async () => {
@@ -422,7 +423,7 @@ export default function Home() {
       );
       setPhases(currentPhases);
 
-      await generateApi({ llmModel, mode: 'advanced', fullPrompt: fullPromptValue, runPhase: phase.id, filePath: currentPhaseState.filePath });
+      await generateApi({ llmModel, mode: 'advanced', fullPrompt: fullPromptValue, runPhase: phase.id, filePath: currentPhaseState.filePath, outputType: currentPhaseState.outputType });
     }
   };
 

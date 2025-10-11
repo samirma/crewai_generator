@@ -1,9 +1,8 @@
 "use client";
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import CopyButton from './CopyButton';
 import Timer from './Timer';
 import type { ExecutionResult as ExecutionResultType } from '../api/execute/types';
-import type { GeneratedFile } from '../page';
 
 interface PhasedOutput {
   taskName: string;
@@ -12,7 +11,6 @@ interface PhasedOutput {
 
 interface ExecutionTabProps {
   isExecutingScript: boolean;
-  generatedFiles: GeneratedFile[];
   isLlmTimerRunning: boolean;
   handleExecuteScript: () => void;
   finalExecutionStatus: string | null;
@@ -31,37 +29,7 @@ interface FileTreeNode {
   type: 'file' | 'folder';
   path: string;
   children?: FileTreeNode[];
-  content?: string;
 }
-
-const buildFileTree = (files: GeneratedFile[]): FileTreeNode[] => {
-  const root: FileTreeNode = { name: 'root', type: 'folder', path: '', children: [] };
-
-  files.forEach(file => {
-    const parts = file.name.split('/');
-    let currentNode = root;
-
-    parts.forEach((part, index) => {
-      const isFile = index === parts.length - 1;
-      let childNode = currentNode.children?.find(child => child.name === part);
-
-      if (!childNode) {
-        childNode = {
-          name: part,
-          type: isFile ? 'file' : 'folder',
-          path: file.name,
-          children: isFile ? undefined : [],
-          content: isFile ? file.content : undefined,
-        };
-        currentNode.children?.push(childNode);
-      }
-      currentNode = childNode;
-    });
-  });
-
-  return root.children || [];
-};
-
 
 const FileTree = ({ tree, activeFile, setActiveFile }: { tree: FileTreeNode[], activeFile: string | null, setActiveFile: (path: string) => void }) => {
   const renderNode = (node: FileTreeNode, level: number) => (
@@ -80,17 +48,30 @@ const FileTree = ({ tree, activeFile, setActiveFile }: { tree: FileTreeNode[], a
     </div>
   );
 
+  const uniqueTree = useMemo(() => {
+    const seen = new Set();
+    const filterDuplicates = (nodes: FileTreeNode[]): FileTreeNode[] => {
+      return nodes.filter(node => {
+        const duplicate = seen.has(node.path);
+        seen.add(node.path);
+        if (node.children) {
+          node.children = filterDuplicates(node.children);
+        }
+        return !duplicate;
+      });
+    };
+    return filterDuplicates(tree);
+  }, [tree]);
+
   return (
     <div>
-      {tree.map(node => renderNode(node, 0))}
+      {uniqueTree.map(node => renderNode(node, 0))}
     </div>
   )
 };
 
-
 const ExecutionTab = ({
   isExecutingScript,
-  generatedFiles,
   isLlmTimerRunning,
   handleExecuteScript,
   finalExecutionStatus,
@@ -103,10 +84,69 @@ const ExecutionTab = ({
   scriptExecutionError,
   finalExecutionResult,
 }: ExecutionTabProps) => {
-  const [activeFile, setActiveFile] = useState<string | null>(generatedFiles.length > 0 ? generatedFiles[0].name : null);
-  const fileTree = useMemo(() => buildFileTree(generatedFiles), [generatedFiles]);
-  const scriptIsEmpty = generatedFiles.length === 0 || generatedFiles.every(f => f.content.trim() === '');
-  const activeFileContent = generatedFiles.find(f => f.name === activeFile)?.content;
+  const [fileTree, setFileTree] = useState<FileTreeNode[]>([]);
+  const [activeFile, setActiveFile] = useState<string | null>(null);
+  const [activeFileContent, setActiveFileContent] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProjectStructure = async () => {
+      try {
+        const response = await fetch('/api/project-structure');
+        if (!response.ok) {
+          throw new Error('Failed to fetch project structure');
+        }
+        const tree = await response.json();
+        setFileTree(tree);
+        if (tree.length > 0) {
+          const firstFile = findFirstFile(tree);
+          if (firstFile) {
+            setActiveFile(firstFile.path);
+          }
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchProjectStructure();
+  }, []);
+
+  useEffect(() => {
+    const fetchFileContent = async () => {
+      if (activeFile) {
+        try {
+          const response = await fetch(`/api/project-structure?file=${encodeURIComponent(activeFile)}`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch file content');
+          }
+          const content = await response.text();
+          setActiveFileContent(content);
+        } catch (error) {
+          console.error(error);
+          setActiveFileContent('Error loading file content.');
+        }
+      }
+    };
+
+    fetchFileContent();
+  }, [activeFile]);
+
+  const findFirstFile = (nodes: FileTreeNode[]): FileTreeNode | null => {
+    for (const node of nodes) {
+      if (node.type === 'file') {
+        return node;
+      }
+      if (node.children) {
+        const firstFile = findFirstFile(node.children);
+        if (firstFile) {
+          return firstFile;
+        }
+      }
+    }
+    return null;
+  };
+
+  const scriptIsEmpty = fileTree.length === 0;
 
   return (
     <section className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
