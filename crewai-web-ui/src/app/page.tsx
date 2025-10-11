@@ -1214,6 +1214,117 @@ export default function Home() {
     }
   };
 
+  const phaseData = [
+    {
+      phase: 1,
+      title: "Blueprint Definition",
+      isLoading: isLoadingMultiStepPhase_1,
+      prompt: phase1Prompt,
+      setPrompt: setPhase1Prompt,
+      isRunDisabled: isLlmTimerRunning || isExecutingScript || !initialInput.trim() || !phase1Prompt.trim(),
+      input: multiStepPhase1_Input,
+      setInput: setMultiStepPhase1_Input,
+      output: multiStepPhase1_Output,
+      setOutput: setMultiStepPhase1_Output,
+    },
+    {
+      phase: 2,
+      title: "Architecture Elaboration",
+      isLoading: isLoadingMultiStepPhase_2,
+      prompt: phase2Prompt,
+      setPrompt: setPhase2Prompt,
+      isRunDisabled: isLlmTimerRunning || isExecutingScript || !multiStepPhase1_Output.trim() || !phase2Prompt.trim(),
+      input: multiStepPhase2_Input,
+      setInput: setMultiStepPhase2_Input,
+      output: multiStepPhase2_Output,
+      setOutput: setMultiStepPhase2_Output,
+    },
+    {
+      phase: 3,
+      title: "User Preference Generation",
+      isLoading: isLoadingMultiStepPhase_3,
+      prompt: phase3Prompt,
+      setPrompt: setPhase3Prompt,
+      isRunDisabled: isLlmTimerRunning || isExecutingScript || !multiStepPhase2_Output.trim() || !phase3Prompt.trim(),
+      input: multiStepPhase3_Input,
+      setInput: setMultiStepPhase3_Input,
+      output: multiStepPhase3_Output,
+      setOutput: setMultiStepPhase3_Output,
+    },
+    {
+      phase: 4,
+      title: "PyProject Generation",
+      isLoading: isLoadingMultiStepPhase_4,
+      prompt: phase4Prompt,
+      setPrompt: setPhase4Prompt,
+      isRunDisabled: isLlmTimerRunning || isExecutingScript || !multiStepPhase3_Output.trim() || !phase4Prompt.trim(),
+      input: multiStepPhase4_Input,
+      setInput: setMultiStepPhase4_Input,
+      output: multiStepPhase4_Output,
+      setOutput: setMultiStepPhase4_Output,
+    },
+    {
+      phase: 5,
+      title: "Agents.yaml Generation",
+      isLoading: isLoadingMultiStepPhase_5,
+      prompt: phase5Prompt,
+      setPrompt: setPhase5Prompt,
+      isRunDisabled: isLlmTimerRunning || isExecutingScript || !multiStepPhase4_Output.trim() || !phase5Prompt.trim(),
+      input: multiStepPhase5_Input,
+      setInput: setMultiStepPhase5_Input,
+      output: multiStepPhase5_Output,
+      setOutput: setMultiStepPhase5_Output,
+    },
+    {
+      phase: 6,
+      title: "Tasks.yaml Generation",
+      isLoading: isLoadingMultiStepPhase_6,
+      prompt: phase6Prompt,
+      setPrompt: setPhase6Prompt,
+      isRunDisabled: isLlmTimerRunning || isExecutingScript || !multiStepPhase5_Output.trim() || !phase6Prompt.trim(),
+      input: multiStepPhase6_Input,
+      setInput: setMultiStepPhase6_Input,
+      output: multiStepPhase6_Output,
+      setOutput: setMultiStepPhase6_Output,
+    },
+    {
+      phase: 7,
+      title: "Crew.py Generation",
+      isLoading: isLoadingMultiStepPhase_7,
+      prompt: phase7Prompt,
+      setPrompt: setPhase7Prompt,
+      isRunDisabled: isLlmTimerRunning || isExecutingScript || !multiStepPhase6_Output.trim() || !phase7Prompt.trim(),
+      input: multiStepPhase7_Input,
+      setInput: setMultiStepPhase7_Input,
+      output: multiStepPhase7_Output,
+      setOutput: setMultiStepPhase7_Output,
+    },
+    {
+      phase: 8,
+      title: "Main.py Generation",
+      isLoading: isLoadingMultiStepPhase_8,
+      prompt: phase8Prompt,
+      setPrompt: setPhase8Prompt,
+      isRunDisabled: isLlmTimerRunning || isExecutingScript || !multiStepPhase7_Output.trim() || !phase8Prompt.trim(),
+      input: multiStepPhase8_Input,
+      setInput: setMultiStepPhase8_Input,
+      output: multiStepPhase8_Output,
+      setOutput: setMultiStepPhase8_Output,
+    },
+    {
+      phase: 9,
+      title: "Tools Generation",
+      isLoading: isLoadingMultiStepPhase_9,
+      prompt: phase9Prompt,
+      setPrompt: setPhase9Prompt,
+      isRunDisabled: isLlmTimerRunning || isExecutingScript || !multiStepPhase8_Output.trim() || !phase9Prompt.trim(),
+      input: multiStepPhase9_Input,
+      setInput: setMultiStepPhase9_Input,
+      output: multiStepPhase9_Output,
+      setOutput: setMultiStepPhase9_Output,
+    }
+  ];
+
   return (
     <div className="flex flex-col md:flex-row h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-inter">
       <SavedPrompts prompts={savedPrompts} onSelectPrompt={setInitialInput} onDeletePrompt={handleDeletePrompt} />
@@ -1275,75 +1386,12 @@ export default function Home() {
             {activeTab === 'generation' && (
               <GenerationTab
                 currentActivePhase={currentActivePhase}
-                isLoadingMultiStepPhase_1={isLoadingMultiStepPhase_1}
-                isLoadingMultiStepPhase_2={isLoadingMultiStepPhase_2}
-                isLoadingMultiStepPhase_3={isLoadingMultiStepPhase_3}
-                isLoadingMultiStepPhase_4={isLoadingMultiStepPhase_4}
-                isLoadingMultiStepPhase_5={isLoadingMultiStepPhase_5}
-                isLoadingMultiStepPhase_6={isLoadingMultiStepPhase_6}
-                isLoadingMultiStepPhase_7={isLoadingMultiStepPhase_7}
-                isLoadingMultiStepPhase_8={isLoadingMultiStepPhase_8}
-                isLoadingMultiStepPhase_9={isLoadingMultiStepPhase_9}
-                phase1Prompt={phase1Prompt}
-                setPhase1Prompt={setPhase1Prompt}
-                phase2Prompt={phase2Prompt}
-                setPhase2Prompt={setPhase2Prompt}
-                phase3Prompt={phase3Prompt}
-                setPhase3Prompt={setPhase3Prompt}
-                phase4Prompt={phase4Prompt}
-                setPhase4Prompt={setPhase4Prompt}
-                phase5Prompt={phase5Prompt}
-                setPhase5Prompt={setPhase5Prompt}
-                phase6Prompt={phase6Prompt}
-                setPhase6Prompt={setPhase6Prompt}
-                phase7Prompt={phase7Prompt}
-                setPhase7Prompt={setPhase7Prompt}
-                phase8Prompt={phase8Prompt}
-                setPhase8Prompt={setPhase8Prompt}
-                phase9Prompt={phase9Prompt}
-                setPhase9Prompt={setPhase9Prompt}
                 isLlmTimerRunning={isLlmTimerRunning}
                 isExecutingScript={isExecutingScript}
                 handleMultiStepPhaseExecution={handleMultiStepPhaseExecution}
-                initialInput={initialInput}
-                multiStepPhase1_Output={multiStepPhase1_Output}
-                multiStepPhase2_Output={multiStepPhase2_Output}
-                multiStepPhase3_Output={multiStepPhase3_Output}
-                multiStepPhase4_Output={multiStepPhase4_Output}
-                multiStepPhase5_Output={multiStepPhase5_Output}
-                multiStepPhase6_Output={multiStepPhase6_Output}
-                multiStepPhase7_Output={multiStepPhase7_Output}
-                multiStepPhase8_Output={multiStepPhase8_Output}
-                multiStepPhase9_Output={multiStepPhase9_Output}
                 multiStepPhase_Timers_Running={multiStepPhase_Timers_Running}
                 multiStepPhase_Durations={multiStepPhase_Durations}
-                multiStepPhase1_Input={multiStepPhase1_Input}
-                setMultiStepPhase1_Input={setMultiStepPhase1_Input}
-                multiStepPhase2_Input={multiStepPhase2_Input}
-                setMultiStepPhase2_Input={setMultiStepPhase2_Input}
-                multiStepPhase3_Input={multiStepPhase3_Input}
-                setMultiStepPhase3_Input={setMultiStepPhase3_Input}
-                multiStepPhase4_Input={multiStepPhase4_Input}
-                setMultiStepPhase4_Input={setMultiStepPhase4_Input}
-                multiStepPhase5_Input={multiStepPhase5_Input}
-                setMultiStepPhase5_Input={setMultiStepPhase5_Input}
-                multiStepPhase6_Input={multiStepPhase6_Input}
-                setMultiStepPhase6_Input={setMultiStepPhase6_Input}
-                multiStepPhase7_Input={multiStepPhase7_Input}
-                setMultiStepPhase7_Input={setMultiStepPhase7_Input}
-                multiStepPhase8_Input={multiStepPhase8_Input}
-                setMultiStepPhase8_Input={setMultiStepPhase8_Input}
-                multiStepPhase9_Input={multiStepPhase9_Input}
-                setMultiStepPhase9_Input={setMultiStepPhase9_Input}
-                setMultiStepPhase1_Output={setMultiStepPhase1_Output}
-                setMultiStepPhase2_Output={setMultiStepPhase2_Output}
-                setMultiStepPhase3_Output={setMultiStepPhase3_Output}
-                setMultiStepPhase4_Output={setMultiStepPhase4_Output}
-                setMultiStepPhase5_Output={setMultiStepPhase5_Output}
-                setMultiStepPhase6_Output={setMultiStepPhase6_Output}
-                setMultiStepPhase7_Output={setMultiStepPhase7_Output}
-                setMultiStepPhase8_Output={setMultiStepPhase8_Output}
-                setMultiStepPhase9_Output={setMultiStepPhase9_Output}
+                phaseData={phaseData}
               />
             )}
 
