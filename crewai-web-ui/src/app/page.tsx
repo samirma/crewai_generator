@@ -82,6 +82,18 @@ function getCookie(name: string): string | null {
   return null;
 }
 
+const promptFileNames = [
+  "phase1_blueprint_prompt.md",
+  "phase2_architecture_prompt.md",
+  "phase3_user_preference_prompt.md",
+  "phase3_pyproject_prompt.md",
+  "phase3_agents_prompt.md",
+  "phase3_tasks_prompt.md",
+  "phase3_crew_prompt.md",
+  "phase3_main_prompt.md",
+  "phase3_tools_prompt.md",
+];
+
 export default function Home() {
   const { generate: generateApi, isLoading: isLlmLoading } = useGenerationApi({
     onSuccess: (data) => {

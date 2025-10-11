@@ -3,7 +3,7 @@
 import PhaseComponent from '@/app/components/PhaseComponent';
 
 interface PhaseData {
-  phase: number;
+  id: number;
   title: string;
   isLoading: boolean;
   prompt: string;
@@ -42,7 +42,8 @@ const GenerationTab = ({
       <div className="space-y-8">
         {phaseData.map((data) => (
           <PhaseComponent
-            phase={data.phase}
+            key={data.id}
+            phase={data.id}
             title={data.title}
             currentActivePhase={currentActivePhase}
             isLoading={data.isLoading}
@@ -50,10 +51,10 @@ const GenerationTab = ({
             setPrompt={data.setPrompt}
             isLlmTimerRunning={isLlmTimerRunning}
             isExecutingScript={isExecutingScript}
-            onRunPhase={() => handleMultiStepPhaseExecution(data.phase)}
+            onRunPhase={() => handleMultiStepPhaseExecution(data.id)}
             isRunDisabled={data.isRunDisabled}
-            timerRunning={multiStepPhase_Timers_Running[data.phase]}
-            duration={multiStepPhase_Durations[data.phase]}
+            timerRunning={multiStepPhase_Timers_Running[data.id]}
+            duration={multiStepPhase_Durations[data.id]}
             input={data.input}
             setInput={data.setInput}
             output={data.output}
