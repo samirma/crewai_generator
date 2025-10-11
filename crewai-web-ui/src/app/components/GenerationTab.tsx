@@ -42,7 +42,6 @@ const GenerationTab = ({
       <div className="space-y-8">
         {phaseData.map((data) => (
           <PhaseComponent
-            key={data.phase}
             phase={data.phase}
             title={data.title}
             currentActivePhase={currentActivePhase}

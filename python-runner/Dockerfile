@@ -71,6 +71,8 @@ RUN python -m pip install --upgrade pip && \
 
 RUN pip install --upgrade chromadb crewai
 
+RUN crewai create crew crewai_generated  --skip_provider
+RUN chmod -R 777 crewai_generated/
 
 # The container is now configured to use the venv's python by default.
 # The CMD below is just an example. The command you provide in `docker run` will
