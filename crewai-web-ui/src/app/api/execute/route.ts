@@ -3,23 +3,11 @@ import { executePythonScript } from './docker.service';
 import { handleDockerStream } from './stream.service';
 import { ExecutionResult } from './types';
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
-    const body = await request.json();
-    const scriptContent = body.script;
-
-    if (!scriptContent || typeof scriptContent !== 'string') {
-      const errorResult: ExecutionResult = { // Still use ExecutionResult for final API response
-        preHostRun: { stdout: '', stderr: '', status: 'skipped', error: "scriptContent is required"},
-        overallStatus: 'failure',
-        error: "scriptContent is required in the request body and must be a string."
-      };
-      return NextResponse.json(errorResult, { status: 400 });
-    }
-
     console.log("Received script for execution. Setting up Docker container and stream...");
     const scriptStartTime = Date.now(); // Record start time before execution setup
-    const setupResult = await executePythonScript(scriptContent);
+    const setupResult = await executePythonScript();
 
     // If setup failed (e.g., pre-host, docker build, container creation failed)
     if (setupResult.overallStatus === 'failure' || !setupResult.container || !setupResult.stream) {

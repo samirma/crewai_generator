@@ -11,7 +11,7 @@ interface PhasedOutput {
 
 interface ExecutionTabProps {
   isExecutingScript: boolean;
-  multiStepPhase3_Output: string;
+  multiStepPhase9_Output: string;
   isLlmTimerRunning: boolean;
   handleExecuteScript: () => void;
   finalExecutionStatus: string | null;
@@ -27,7 +27,7 @@ interface ExecutionTabProps {
 
 const ExecutionTab = ({
   isExecutingScript,
-  multiStepPhase3_Output,
+  multiStepPhase9_Output,
   isLlmTimerRunning,
   handleExecuteScript,
   finalExecutionStatus,
@@ -51,7 +51,7 @@ const ExecutionTab = ({
         onClick={handleExecuteScript}
         disabled={
           isExecutingScript ||
-          !multiStepPhase3_Output.trim() ||
+          !multiStepPhase9_Output.trim() ||
           isLlmTimerRunning
         }
         className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg px-6 py-3 rounded-xl shadow-lg transition duration-200 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:bg-gray-400 focus:ring-4 focus:ring-indigo-300 focus:outline-none dark:focus:ring-indigo-800 flex items-center justify-center gap-2 mb-6"

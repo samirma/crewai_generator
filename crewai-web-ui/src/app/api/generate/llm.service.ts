@@ -3,7 +3,6 @@ import OpenAI from 'openai'; // Added for DeepSeek
 import fs from 'fs/promises';
 import { getAllModels } from '../../../config/models.config';
 import path from 'path';
-import { extractScript } from './script.utils'; // Import the new utility function
 
 // Helper function to interact with LLMs
 // No changes to interactWithLLM itself in this step, but it will receive fullPrompt directly.
@@ -189,7 +188,7 @@ export async function interactWithLLM(
   // Script extraction logic, applicable if not returning early for advanced phases 1 & 2
   if (runPhase === 9) {
     // Use the utility function to extract the script
-    generatedScript = extractScript(llmResponseText);
+    generatedScript = llmResponseText;
     // The console logs from extractScript will indicate how the script was extracted.
     // If it was the mock response for unhandled model, generatedScript will be that mock script via extractScript.
   }

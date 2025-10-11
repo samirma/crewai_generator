@@ -2,12 +2,10 @@ import Docker from 'dockerode';
 import fs from 'fs/promises';
 import path from 'path';
 import { exec } from 'child_process';
-import { parseFileBlocks } from '../generate/script.utils';
-
 import { ExecutePythonScriptSetupResult, StageOutput } from './types';
 
 // Helper function to execute Python script in Docker
-export async function executePythonScript(scriptContent: string): Promise<ExecutePythonScriptSetupResult> { // Changed return type
+export async function executePythonScript(): Promise<ExecutePythonScriptSetupResult> { // Changed return type
   const docker = new Docker(); // Assumes Docker is accessible (e.g., /var/run/docker.sock)
   const projectRoot = path.resolve(process.cwd(), '..');
   const workspaceDir = path.join(projectRoot, 'workspace');
@@ -18,16 +16,6 @@ export async function executePythonScript(scriptContent: string): Promise<Execut
   let topLevelError: string | undefined = undefined;
 
   try {
-    await fs.rm(workspaceDir, { recursive: true, force: true });
-    await fs.mkdir(workspaceDir, { recursive: true });
-
-    const files = parseFileBlocks(scriptContent);
-    for (const [filePath, fileContent] of Object.entries(files)) {
-      const fullPath = path.join(workspaceDir, filePath);
-      await fs.mkdir(path.dirname(fullPath), { recursive: true });
-      await fs.writeFile(fullPath, fileContent);
-      console.log(`File saved to ${fullPath}`);
-    }
 
     // --- Execute pre_host_run.sh if it exists ---
     const preHostRunScriptPath = path.join(workspaceDir, 'pre_host_run.sh');

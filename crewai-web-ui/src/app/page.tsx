@@ -89,6 +89,12 @@ export default function Home() {
   const [defaultPhase1PromptText, setDefaultPhase1PromptText] = useState<string>("");
   const [defaultPhase2PromptText, setDefaultPhase2PromptText] = useState<string>("");
   const [defaultPhase3PromptText, setDefaultPhase3PromptText] = useState<string>("");
+  const [defaultPhase4PromptText, setDefaultPhase4PromptText] = useState<string>("");
+  const [defaultPhase5PromptText, setDefaultPhase5PromptText] = useState<string>("");
+  const [defaultPhase6PromptText, setDefaultPhase6PromptText] = useState<string>("");
+  const [defaultPhase7PromptText, setDefaultPhase7PromptText] = useState<string>("");
+  const [defaultPhase8PromptText, setDefaultPhase8PromptText] = useState<string>("");
+  const [defaultPhase9PromptText, setDefaultPhase9PromptText] = useState<string>("");
 
   // State for detailed execution status
   const [finalExecutionStatus, setFinalExecutionStatus] = useState<string | null>(null);
@@ -341,8 +347,6 @@ export default function Home() {
     setPhasedOutputs([]);
     setScriptExecutionError("");
     setModelsError("");
-    setActualLlmInputPrompt("");
-    setActualLlmOutputPrompt("");
     setLlmRequestDuration(null);
     setScriptExecutionDuration(null);
     setFinalExecutionStatus(null);
@@ -392,8 +396,6 @@ export default function Home() {
 
     setError("");
     setScriptExecutionError("");
-    setActualLlmInputPrompt("");
-    setActualLlmOutputPrompt("");
     setFinalExecutionStatus(null);
     setFinalExecutionResult(null);
     setDockerCommandToDisplay("");
@@ -570,6 +572,72 @@ export default function Home() {
         }
         fullPromptValue = multiStepPhase8_Output + "\n\n" + phase9Prompt;
         setMultiStepPhase9_Input(fullPromptValue);
+      } else if (phase === 4) {
+        if (!multiStepPhase3_Output.trim()) {
+          setError("Phase 3 output is missing. Cannot run Phase 4.");
+          throw new Error("Missing Phase 3 output for Phase 4.");
+        }
+        if (!phase4Prompt.trim()) {
+          setError("Phase 4 prompt cannot be empty.");
+          throw new Error("Prompt validation failed for Phase 4.");
+        }
+        fullPromptValue = multiStepPhase3_Output + "\n\n" + phase4Prompt;
+        setMultiStepPhase4_Input(fullPromptValue);
+      } else if (phase === 5) {
+        if (!multiStepPhase4_Output.trim()) {
+          setError("Phase 4 output is missing. Cannot run Phase 5.");
+          throw new Error("Missing Phase 4 output for Phase 5.");
+        }
+        if (!phase5Prompt.trim()) {
+          setError("Phase 5 prompt cannot be empty.");
+          throw new Error("Prompt validation failed for Phase 5.");
+        }
+        fullPromptValue = multiStepPhase4_Output + "\n\n" + phase5Prompt;
+        setMultiStepPhase5_Input(fullPromptValue);
+      } else if (phase === 6) {
+        if (!multiStepPhase5_Output.trim()) {
+          setError("Phase 5 output is missing. Cannot run Phase 6.");
+          throw new Error("Missing Phase 5 output for Phase 6.");
+        }
+        if (!phase6Prompt.trim()) {
+          setError("Phase 6 prompt cannot be empty.");
+          throw new Error("Prompt validation failed for Phase 6.");
+        }
+        fullPromptValue = multiStepPhase5_Output + "\n\n" + phase6Prompt;
+        setMultiStepPhase6_Input(fullPromptValue);
+      } else if (phase === 7) {
+        if (!multiStepPhase6_Output.trim()) {
+          setError("Phase 6 output is missing. Cannot run Phase 7.");
+          throw new Error("Missing Phase 6 output for Phase 7.");
+        }
+        if (!phase7Prompt.trim()) {
+          setError("Phase 7 prompt cannot be empty.");
+          throw new Error("Prompt validation failed for Phase 7.");
+        }
+        fullPromptValue = multiStepPhase6_Output + "\n\n" + phase7Prompt;
+        setMultiStepPhase7_Input(fullPromptValue);
+      } else if (phase === 8) {
+        if (!multiStepPhase7_Output.trim()) {
+          setError("Phase 7 output is missing. Cannot run Phase 8.");
+          throw new Error("Missing Phase 7 output for Phase 8.");
+        }
+        if (!phase8Prompt.trim()) {
+          setError("Phase 8 prompt cannot be empty.");
+          throw new Error("Prompt validation failed for Phase 8.");
+        }
+        fullPromptValue = multiStepPhase7_Output + "\n\n" + phase8Prompt;
+        setMultiStepPhase8_Input(fullPromptValue);
+      } else if (phase === 9) {
+        if (!multiStepPhase8_Output.trim()) {
+          setError("Phase 8 output is missing. Cannot run Phase 9.");
+          throw new Error("Missing Phase 8 output for Phase 9.");
+        }
+        if (!phase9Prompt.trim()) {
+          setError("Phase 9 prompt cannot be empty.");
+          throw new Error("Prompt validation failed for Phase 9.");
+        }
+        fullPromptValue = multiStepPhase8_Output + "\n\n" + phase9Prompt;
+        setMultiStepPhase9_Input(fullPromptValue);
       } else {
         setError("Invalid phase number provided.");
         throw new Error("Invalid phase number.");
@@ -664,7 +732,6 @@ export default function Home() {
 
     const phase1PromptValue = buildPrompt(initialInput, defaultPhase1PromptText, null, null);
     setMultiStepPhase1_Input(phase1PromptValue);
-    setActualLlmInputPrompt(phase1PromptValue);
 
     await executeGenerateRequest(
       '/api/generate',
@@ -672,7 +739,6 @@ export default function Home() {
       async (phase1Data) => {
         const phase1DataOutput = phase1Data.output;
         setMultiStepPhase_Durations(prev => ({ ...prev, 1: phase1Data.duration !== undefined ? phase1Data.duration : null }));
-        setActualLlmOutputPrompt(phase1Data.llmOutputPromptContent || "");
         setMultiStepPhase1_Output(phase1DataOutput || "");
 
         setIsLoadingMultiStepPhase_1(false);
@@ -688,7 +754,6 @@ export default function Home() {
 
           const phase2PromptValue = (phase1DataOutput || "") + "\n\n" + defaultPhase2PromptText;
           setMultiStepPhase2_Input(phase2PromptValue);
-          setActualLlmInputPrompt(phase2PromptValue);
 
           await executeGenerateRequest(
             '/api/generate',
@@ -696,7 +761,6 @@ export default function Home() {
             async (phase2Data) => {
               const phase2DataOutput = phase2Data.output;
               setMultiStepPhase_Durations(prev => ({ ...prev, 2: phase2Data.duration !== undefined ? phase2Data.duration : null }));
-              setActualLlmOutputPrompt(phase2Data.llmOutputPromptContent || "");
               setMultiStepPhase2_Output(phase2DataOutput || "");
 
               setIsLoadingMultiStepPhase_2(false);
@@ -712,18 +776,176 @@ export default function Home() {
 
                 const phase3PromptValue = (phase2DataOutput || "") + "\n\n" + defaultPhase3PromptText;
                 setMultiStepPhase3_Input(phase3PromptValue);
-                setActualLlmInputPrompt(phase3PromptValue);
 
                 await executeGenerateRequest(
                   '/api/generate',
                   { llmModel, mode: 'advanced', fullPrompt: phase3PromptValue, runPhase: 3 },
-                  (phase3Data) => {
+                  async (phase3Data) => {
                     const phase3DataOutput = phase3Data.output;
                     setMultiStepPhase_Durations(prev => ({ ...prev, 3: phase3Data.duration !== undefined ? phase3Data.duration : null }));
-                    setActualLlmOutputPrompt(phase3Data.llmOutputPromptContent || "");
                     setMultiStepPhase3_Output(phase3DataOutput || "");
 
-                    if (!phase3DataOutput || phase3DataOutput.trim() === "") {
+                    if (phase3DataOutput && phase3DataOutput.trim() !== "") {
+                      // --- Phase 4 ---
+                      setCurrentActivePhase(4);
+                      setIsLoadingMultiStepPhase_4(true);
+                      setMultiStepPhase_Timers_Running(prev => ({ ...prev, 4: true }));
+                      const phase4PromptValue = (phase3DataOutput || "") + "\n\n" + defaultPhase4PromptText;
+                      setMultiStepPhase4_Input(phase4PromptValue);
+
+                      await executeGenerateRequest(
+                        '/api/generate',
+                        { llmModel, mode: 'advanced', fullPrompt: phase4PromptValue, runPhase: 4 },
+                        async (phase4Data) => {
+                          const phase4DataOutput = phase4Data.output;
+                          setMultiStepPhase_Durations(prev => ({ ...prev, 4: phase4Data.duration !== undefined ? phase4Data.duration : null }));
+                          setMultiStepPhase4_Output(phase4DataOutput || "");
+
+                          if (phase4DataOutput && phase4DataOutput.trim() !== "") {
+                            // --- Phase 5 ---
+                            setCurrentActivePhase(5);
+                            setIsLoadingMultiStepPhase_5(true);
+                            setMultiStepPhase_Timers_Running(prev => ({ ...prev, 5: true }));
+                            const phase5PromptValue = (phase4DataOutput || "") + "\n\n" + defaultPhase5PromptText;
+                            setMultiStepPhase5_Input(phase5PromptValue);
+
+                            await executeGenerateRequest(
+                              '/api/generate',
+                              { llmModel, mode: 'advanced', fullPrompt: phase5PromptValue, runPhase: 5 },
+                              async (phase5Data) => {
+                                const phase5DataOutput = phase5Data.output;
+                                setMultiStepPhase_Durations(prev => ({ ...prev, 5: phase5Data.duration !== undefined ? phase5Data.duration : null }));
+                                setMultiStepPhase5_Output(phase5DataOutput || "");
+
+                                if (phase5DataOutput && phase5DataOutput.trim() !== "") {
+                                  // --- Phase 6 ---
+                                  setCurrentActivePhase(6);
+                                  setIsLoadingMultiStepPhase_6(true);
+                                  setMultiStepPhase_Timers_Running(prev => ({ ...prev, 6: true }));
+                                  const phase6PromptValue = (phase5DataOutput || "") + "\n\n" + defaultPhase6PromptText;
+                                  setMultiStepPhase6_Input(phase6PromptValue);
+
+                                  await executeGenerateRequest(
+                                    '/api/generate',
+                                    { llmModel, mode: 'advanced', fullPrompt: phase6PromptValue, runPhase: 6 },
+                                    async (phase6Data) => {
+                                      const phase6DataOutput = phase6Data.output;
+                                      setMultiStepPhase_Durations(prev => ({ ...prev, 6: phase6Data.duration !== undefined ? phase6Data.duration : null }));
+                                      setMultiStepPhase6_Output(phase6DataOutput || "");
+
+                                      if (phase6DataOutput && phase6DataOutput.trim() !== "") {
+                                        // --- Phase 7 ---
+                                        setCurrentActivePhase(7);
+                                        setIsLoadingMultiStepPhase_7(true);
+                                        setMultiStepPhase_Timers_Running(prev => ({ ...prev, 7: true }));
+                                        const phase7PromptValue = (phase6DataOutput || "") + "\n\n" + defaultPhase7PromptText;
+                                        setMultiStepPhase7_Input(phase7PromptValue);
+
+                                        await executeGenerateRequest(
+                                          '/api/generate',
+                                          { llmModel, mode: 'advanced', fullPrompt: phase7PromptValue, runPhase: 7 },
+                                          async (phase7Data) => {
+                                            const phase7DataOutput = phase7Data.output;
+                                            setMultiStepPhase_Durations(prev => ({ ...prev, 7: phase7Data.duration !== undefined ? phase7Data.duration : null }));
+                                            setMultiStepPhase7_Output(phase7DataOutput || "");
+
+                                            if (phase7DataOutput && phase7DataOutput.trim() !== "") {
+                                              // --- Phase 8 ---
+                                              setCurrentActivePhase(8);
+                                              setIsLoadingMultiStepPhase_8(true);
+                                              setMultiStepPhase_Timers_Running(prev => ({ ...prev, 8: true }));
+                                              const phase8PromptValue = (phase7DataOutput || "") + "\n\n" + defaultPhase8PromptText;
+                                              setMultiStepPhase8_Input(phase8PromptValue);
+
+                                              await executeGenerateRequest(
+                                                '/api/generate',
+                                                { llmModel, mode: 'advanced', fullPrompt: phase8PromptValue, runPhase: 8 },
+                                                async (phase8Data) => {
+                                                  const phase8DataOutput = phase8Data.output;
+                                                  setMultiStepPhase_Durations(prev => ({ ...prev, 8: phase8Data.duration !== undefined ? phase8Data.duration : null }));
+                                                  setMultiStepPhase8_Output(phase8DataOutput || "");
+
+                                                  if (phase8DataOutput && phase8DataOutput.trim() !== "") {
+                                                    // --- Phase 9 ---
+                                                    setCurrentActivePhase(9);
+                                                    setIsLoadingMultiStepPhase_9(true);
+                                                    setMultiStepPhase_Timers_Running(prev => ({ ...prev, 9: true }));
+                                                    const phase9PromptValue = (phase8DataOutput || "") + "\n\n" + defaultPhase9PromptText;
+                                                    setMultiStepPhase9_Input(phase9PromptValue);
+
+                                                    await executeGenerateRequest(
+                                                      '/api/generate',
+                                                      { llmModel, mode: 'advanced', fullPrompt: phase9PromptValue, runPhase: 9 },
+                                                      (phase9Data) => {
+                                                        setMultiStepPhase_Durations(prev => ({ ...prev, 9: phase9Data.duration !== undefined ? phase9Data.duration : null }));
+                                                        setMultiStepPhase9_Output(phase9Data.generatedScript || "");
+                                                        if (phase9Data.phasedOutputs) {
+                                                          setPhasedOutputs(phase9Data.phasedOutputs);
+                                                        }
+                                                      },
+                                                      (errorMessage) => setError(`Phase 9 failed: ${errorMessage}`),
+                                                      () => {
+                                                        setIsLoadingMultiStepPhase_9(false);
+                                                        setMultiStepPhase_Timers_Running(prev => ({ ...prev, 9: false }));
+                                                        setCurrentActivePhase(null);
+                                                      }
+                                                    );
+                                                  } else {
+                                                    setError("Phase 8 failed to produce an output.");
+                                                  }
+                                                },
+                                                (errorMessage) => setError(`Phase 8 failed: ${errorMessage}`),
+                                                () => {
+                                                  setIsLoadingMultiStepPhase_8(false);
+                                                  setMultiStepPhase_Timers_Running(prev => ({ ...prev, 8: false }));
+                                                  setCurrentActivePhase(null);
+                                                }
+                                              );
+                                            } else {
+                                              setError("Phase 7 failed to produce an output.");
+                                            }
+                                          },
+                                          (errorMessage) => setError(`Phase 7 failed: ${errorMessage}`),
+                                          () => {
+                                            setIsLoadingMultiStepPhase_7(false);
+                                            setMultiStepPhase_Timers_Running(prev => ({ ...prev, 7: false }));
+                                            setCurrentActivePhase(null);
+                                          }
+                                        );
+                                      } else {
+                                        setError("Phase 6 failed to produce an output.");
+                                      }
+                                    },
+                                    (errorMessage) => setError(`Phase 6 failed: ${errorMessage}`),
+                                    () => {
+                                      setIsLoadingMultiStepPhase_6(false);
+                                      setMultiStepPhase_Timers_Running(prev => ({ ...prev, 6: false }));
+                                      setCurrentActivePhase(null);
+                                    }
+                                  );
+                                } else {
+                                  setError("Phase 5 failed to produce an output.");
+                                }
+                              },
+                              (errorMessage) => setError(`Phase 5 failed: ${errorMessage}`),
+                              () => {
+                                setIsLoadingMultiStepPhase_5(false);
+                                setMultiStepPhase_Timers_Running(prev => ({ ...prev, 5: false }));
+                                setCurrentActivePhase(null);
+                              }
+                            );
+                          } else {
+                            setError("Phase 4 failed to produce an output.");
+                          }
+                        },
+                        (errorMessage) => setError(`Phase 4 failed: ${errorMessage}`),
+                        () => {
+                          setIsLoadingMultiStepPhase_4(false);
+                          setMultiStepPhase_Timers_Running(prev => ({ ...prev, 4: false }));
+                          setCurrentActivePhase(null);
+                        }
+                      );
+                    } else {
                       setError("Phase 3 failed to produce an output. Please check the logs or try again.");
                     }
                   },
@@ -775,12 +997,6 @@ export default function Home() {
 
   const handleExecuteScript = async () => {
     setHasExecutionAttempted(true);
-    const scriptToExecute = multiStepPhase9_Output;
-
-    if (!scriptToExecute) {
-      setScriptExecutionError("No script to execute.");
-      return;
-    }
     setIsExecutingScript(true);
     setScriptTimerKey(prevKey => prevKey + 1);
     setScriptExecutionError("");
@@ -798,7 +1014,6 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ script: scriptToExecute }),
       });
 
       if (!response.ok) {
@@ -960,7 +1175,7 @@ export default function Home() {
   const executeGenerateRequest = async (
     url: string,
     payload: object,
-    onSuccess: (data: Record<string, any>) => void,
+    onSuccess: (data: Record<string, unknown>) => void,
     onError: (errorMessage: string) => void,
     onFinally?: () => void
   ) => {
@@ -1135,7 +1350,7 @@ export default function Home() {
             {activeTab === 'execution' && (
               <ExecutionTab
                 isExecutingScript={isExecutingScript}
-                multiStepPhase3_Output={multiStepPhase9_Output}
+                multiStepPhase9_Output={multiStepPhase9_Output}
                 isLlmTimerRunning={isLlmTimerRunning}
                 handleExecuteScript={handleExecuteScript}
                 finalExecutionStatus={finalExecutionStatus}
