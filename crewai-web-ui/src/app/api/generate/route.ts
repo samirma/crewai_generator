@@ -80,13 +80,6 @@ export async function POST(request: Request) {
         console.error('Failed to read llm_output_prompt.txt:', error);
       }
 
-      if (runPhase === 1) {
-        await cleanDirectory(GENERATED_DIR);
-        await ensureDirectoryExists(GENERATED_DIR);
-        const readmePath = path.join(GENERATED_DIR, 'README.md');
-        await fs.writeFile(readmePath, `# CrewAI Project: ${fullPrompt}`);
-      }
-
       if (filePath && outputType === 'file') {
         const absolutePath = path.join(GENERATED_DIR, filePath);
         await ensureDirectoryExists(path.dirname(absolutePath));
