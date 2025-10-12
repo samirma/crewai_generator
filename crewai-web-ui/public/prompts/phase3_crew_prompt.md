@@ -103,6 +103,14 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerA
 
   * Set the class variables: `agents_config = 'config/agents.yaml'` and `tasks_config = 'config/tasks.yaml'`.
 
+  * The class should have the following vai:
+
+
+```python
+    agents: List[BaseAgent]
+    tasks: List[Task]
+```
+
   * **`@agent` Methods:**
 
       * For each agent in `agent_cadre`, create a method decorated with `@agent`.
@@ -122,9 +130,11 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerA
       * The `tools` parameter follows the same unpacking rule as the `@agent` methods.
 
   * **`@crew` Method:**
-
-      * Create a method decorated with `@crew` that returns the final `Crew` instance.
-      * Set `process` based on `workflow_process.selected_process`.
-      * Set `manager_llm` if hierarchical.
-      * Set `memory` and `embedder` based on `crew_memory.activation` and the created `embedder_config` (if applicable).
-      * Set `verbose=True`.
+  * Create the `Crew` instance based on the properties in the input JSON.
+  * `agents`: self.agents, # Automatically created by the @agent decorator
+  * `tasks`: self.tasks, # Automatically created by the @task decorator
+  * `process`: Set based on `workflow_process.selected_process`.
+  * `manager_llm`: If `process` is hierarchical, assign the correct pre-instantiated LLM object.
+  * `memory`: Set based on `crew_memory.activation`.
+  * `embedder`: If `crew_memory.activation` is `True`, assign the pre-defined `embedder_config` variable to this parameter.
+  * Set `verbose=True`.
