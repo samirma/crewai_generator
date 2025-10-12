@@ -118,6 +118,7 @@ export async function executePythonScript(): Promise<ExecutePythonScriptSetupRes
   fi &&
   echo "--- Running crewai run ---" &&
   cd /workspace/crewai_generated &&
+  cp /workspace/.env /workspace/crewai_generated/ &&
   crewai run &&
   echo "--- crewai run finished ---"
 `;

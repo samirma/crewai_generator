@@ -4,27 +4,22 @@ This block generates the main Python file that defines all programmatic componen
 
 #### **Environment Setup (Order is CRITICAL):**
 
+**Core Imports:**
+
+  * After the final code is done you should reevaluate the imports and add the ones tha might be missing with the goal to have a working code.
+
+
 ```python
 import os
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv()) # MUST BE CALLED EARLY
-```
-
-**Core Imports:**
-
-  * Based on the input JSON, import all necessary libraries.
-  * For all tools specified in `tool_repository`, import the class specified in `constructor_args.class_name` directly from `crewai_tools`.
-  * Import `MCPServerAdapter` from `crewai_tools` and `StdioServerParameters` from `mcp` if any tool uses the `MCPServerAdapter` class.
-  * Import `BaseModel`, `Field`, and `RootModel` from `pydantic`.
-  * Import `List` and `Optional` from `typing`.
-  * Uncomment `from crewai.tools import BaseTool` if `custom_tool_definitions` exists and is not empty in the JSON.
-
-
-```python
 from crewai import Agent, Task, Crew, Process
 from crewai import LLM # For LLM section
 from pydantic import BaseModel, Field, RootModel
 from typing import List, Optional
+
+from crewai.project import CrewBase, agent, crew, task
+from crewai.agents.agent_builder.base_agent import BaseAgent
 
 # Example for import for tools from crewai_tools
 from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerAdapter
@@ -32,12 +27,6 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerA
 # from mcp import StdioServerParameters # UNCOMMENT if MCP tools are defined
 # from crewai.tools import BaseTool # UNCOMMENT if custom tools are defined
 ```
-
-#### **Core Imports & Pydantic Definitions:**
-
-  * Import `StdioServerParameters` from `mcp` if any tool uses the `MCPServerAdapter` class.
-  * Import necessary classes from `crewai_tools` and `crewai.project` (`CrewBase`, `agent`, `task`, `crew`).
-  * Generate **all Pydantic Models** from `pydantic_model_definitions`.
 
 #### **API Key Access:**
 
@@ -55,7 +44,43 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerA
 
 #### **Reusable RAG and Embedder Configuration (if applicable):**
 
-  * If `crew_memory.activation` is `true` or embedding is supported, create `embedder_config` and `rag_config` as per original prompt logic.
+
+  * **If `crew_memory.activation` is `true` or any tool in the `tool_repository` list in the JSON has `design_metadata.is_custom_embedding_supported` set to `true`:**
+    1.  **Create `embedder_config`:**
+          * Create a Python dictionary variable named `embedder_config`.
+          * Populate it using the `provider` and `config` from the `crew_memory.embedder_config` object in the JSON.
+          * **CRITICAL:** In the `config` sub-dictionary, replace the `base_url_env_var` key with a `base_url` key. Set its value to an f-string that constructs the URL using the OLLAMA\_HOST variable (e.g., `f"http://{OLLAMA_HOST}"`).
+    2.  **Create `rag_config`:**
+          * Create a Python dictionary variable named `rag_config`.
+          * This dictionary MUST have two keys: `llm` and `embedder`.
+          * The `llm` value must be a fixed dictionary for a local provider: `{ "provider": "ollama", "config": { "model": "llama3:instruct", "temperature": 0.0 } }`.
+          * The `embedder` value must be the `embedder_config` variable created in the previous step.
+
+#### **Pydantic Model Definitions:**
+
+  * Iterate through the `pydantic_model_definitions` list in the JSON.
+  * For each model definition object:
+      * **If `is_root_model` is `true`:**
+          * Get the `python_type` from the first (and only) entry in `model_fields`.
+          * Generate a class that inherits from `RootModel[<python_type>]`.
+          * The class name MUST be the `model_id`.
+          * The class body should just be `pass`.
+          * Example: `class MyRootModel(RootModel[List[str]]): pass`
+      * **If `is_root_model` is `false`:**
+          * Generate a Python class that inherits from `BaseModel`.
+          * The class name MUST be the `model_id`.
+          * The class docstring MUST be the `model_description`.
+          * Iterate through the `model_fields` list. For each field, generate a class attribute:
+              * The attribute name is `name`.
+              * The type hint is `python_type`.
+              * The value MUST be an instance of `Field`. The `description` parameter for `Field` MUST be set to the field's `description` string. **DO NOT include any other keyword arguments like `required` in the `Field` constructor.**
+          * Example:
+            ```python
+            class ProfileAnalysisResult(BaseModel):
+                """A structured analysis of a professional profile."""
+                summary: str = Field(description="A concise summary of the profile.")
+                skills: List[str] = Field(description="A list of identified technical and soft skills.")
+            ```
 
 **Tool Instantiation:**
 
@@ -74,7 +99,7 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerA
 
 #### **CrewBase Definition (Orchestration):**
 
-  * Generate a Python @CrewBase class named **`CrewaiGenerated`** that inherits from `CrewBase`.
+  * Generate a Python class named **`CrewaiGenerated`**  annoted with `@CrewBase`.
 
   * Set the class variables: `agents_config = 'config/agents.yaml'` and `tasks_config = 'config/tasks.yaml'`.
 
