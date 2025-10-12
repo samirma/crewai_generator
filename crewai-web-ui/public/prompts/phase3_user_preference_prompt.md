@@ -17,5 +17,5 @@ Use the JSON object provided as the single source of truth. Your task is to gene
 **Expected `knowledge/user_preference.txt` Output:**
 
 ```
-The user prefers concise and to-the-point answers.
+
 ```

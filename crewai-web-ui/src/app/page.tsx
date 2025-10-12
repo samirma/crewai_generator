@@ -44,19 +44,20 @@ export interface PhaseState {
   isTimerRunning: boolean;
   filePath?: string;
   outputType?: 'file' | 'directory';
+  promptFileName?: string;
 }
 
 
 const initialPhases: PhaseState[] = [
-  { id: 1, title: "Blueprint Definition", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 2, title: "Architecture Elaboration", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 3, title: "User Preference Generation", filePath: "knowledge/user_preference.txt", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 4, title: "PyProject Generation", filePath: "pyproject.toml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 5, title: "Agents.yaml Generation", filePath: "src/crewai_generated/config/agents.yaml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 6, title: "Tasks.yaml Generation", filePath: "src/crewai_generated/config/tasks.yaml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 7, title: "Crew.py Generation", filePath: "src/crewai_generated/crew.py", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 8, title: "Main.py Generation", filePath: "src/crewai_generated/main.py", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 9, title: "Tools Generation", filePath: "src/crewai_generated/tools", outputType: 'directory', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 1, title: "Blueprint Definition", promptFileName: "phase1_blueprint_prompt.md", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 2, title: "Architecture Elaboration", promptFileName: "phase2_architecture_prompt.md", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+//  { id: 3, title: "User Preference Generation", promptFileName: "phase3_user_preference_prompt.md", filePath: "knowledge/user_preference.txt", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 4, title: "Agents.yaml Generation", promptFileName: "phase3_agents_prompt.md", filePath: "src/crewai_generated/config/agents.yaml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 5, title: "Tasks.yaml Generation", promptFileName: "phase3_tasks_prompt.md", filePath: "src/crewai_generated/config/tasks.yaml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 6, title: "Crew.py Generation", promptFileName: "phase3_crew_prompt.md", filePath: "src/crewai_generated/crew.py", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 7, title: "Main.py Generation", promptFileName: "phase3_main_prompt.md", filePath: "src/crewai_generated/main.py", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 8, title: "Tools Generation", promptFileName: "phase3_tools_prompt.md", filePath: "src/crewai_generated/tools", outputType: 'directory', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 9, title: "PyProject Generation", promptFileName: "phase3_pyproject_prompt.md", filePath: "pyproject.toml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
 ];
 
 // Helper function to set a cookie
@@ -81,18 +82,6 @@ function getCookie(name: string): string | null {
   }
   return null;
 }
-
-const promptFileNames = [
-  "phase1_blueprint_prompt.md",
-  "phase2_architecture_prompt.md",
-  "phase3_user_preference_prompt.md",
-  "phase3_pyproject_prompt.md",
-  "phase3_agents_prompt.md",
-  "phase3_tasks_prompt.md",
-  "phase3_crew_prompt.md",
-  "phase3_main_prompt.md",
-  "phase3_tools_prompt.md",
-];
 
 export default function Home() {
   const { generate: generateApi, isLoading: isLlmLoading } = useGenerationApi({
@@ -291,11 +280,11 @@ export default function Home() {
     const fetchInitialPrompts = async () => {
       try {
         const responses = await Promise.all(
-          promptFileNames.map(fileName => fetch(`/prompts/${fileName}`))
+          initialPhases.map(phase => phase.promptFileName ? fetch(`/prompts/${phase.promptFileName}`) : Promise.resolve(new Response("")))
         );
 
         for (const response of responses) {
-          if (!response.ok) {
+          if (!response.ok && response.url) {
             console.error(`Failed to fetch a default prompt: ${response.status} ${response.url}`);
             setError("Failed to load one or more default prompts. Please check the console.");
             return;
@@ -389,7 +378,19 @@ export default function Home() {
         const phase2State = currentPhases.find(p => p.id === 2);
 
         let fullPromptValue = "";
-        if (phaseId === 1) {
+        const pyProjectPhase = currentPhases.find(p => p.title === "PyProject Generation");
+
+        if (pyProjectPhase && phaseId === pyProjectPhase.id) {
+            const crewPyPhase = currentPhases.find(p => p.title === "Crew.py Generation");
+            const mainPyPhase = currentPhases.find(p => p.title === "Main.py Generation");
+            const toolsPhase = currentPhases.find(p => p.title === "Tools Generation");
+            const pythonCode = [
+                `File: ${crewPyPhase?.filePath}\n${crewPyPhase?.output}`,
+                `File: ${mainPyPhase?.filePath}\n${mainPyPhase?.output}`,
+                `File: ${toolsPhase?.filePath}\n${toolsPhase?.output}`,
+            ].filter(Boolean).join('\n\n---\n\n');
+            fullPromptValue = `${pythonCode}\n\n${currentPhaseState.prompt}`;
+        } else if (phaseId === 1) {
             fullPromptValue = buildPrompt(initialInput, currentPhaseState.prompt, null, null);
         } else if (phaseId > 2 && phase2State) {
             fullPromptValue = `${phase2State.output}\n\n${currentPhaseState.prompt}`;
@@ -481,7 +482,19 @@ export default function Home() {
         const phase2State = currentPhases.find(p => p.id === 2);
 
         let fullPromptValue = "";
-        if (phase.id === 1) {
+        const pyProjectPhase = currentPhases.find(p => p.title === "PyProject Generation");
+
+        if (pyProjectPhase && phase.id === pyProjectPhase.id) {
+            const crewPyPhase = currentPhases.find(p => p.title === "Crew.py Generation");
+            const mainPyPhase = currentPhases.find(p => p.title === "Main.py Generation");
+            const toolsPhase = currentPhases.find(p => p.title === "Tools Generation");
+            const pythonCode = [
+                `File: ${crewPyPhase?.filePath}\n${crewPyPhase?.output}`,
+                `File: ${mainPyPhase?.filePath}\n${mainPyPhase?.output}`,
+                `File: ${toolsPhase?.filePath}\n${toolsPhase?.output}`,
+            ].filter(p => p && p.includes("\n")).join('\n\n---\n\n'); // Filter for existence and content
+            fullPromptValue = `${pythonCode}\n\n${currentPhaseState.prompt}`;
+        } else if (phase.id === 1) {
             fullPromptValue = buildPrompt(initialInput, currentPhaseState.prompt, null, null);
         } else if (phase.id > 2 && phase2State) {
             fullPromptValue = `${phase2State.output}\n\n${currentPhaseState.prompt}`;
@@ -801,7 +814,6 @@ export default function Home() {
             {activeTab === 'execution' && (
               <ExecutionTab
                 isExecutingScript={isExecutingScript}
-                generatedFiles={generatedFiles}
                 isLlmTimerRunning={isLlmLoading}
                 handleExecuteScript={handleExecuteScript}
                 finalExecutionStatus={finalExecutionStatus}
@@ -862,3 +874,4 @@ const parsePhasedOutputsFromStdout = (stdout: string): PhasedOutput[] => {
   }
   return outputs;
 };
+

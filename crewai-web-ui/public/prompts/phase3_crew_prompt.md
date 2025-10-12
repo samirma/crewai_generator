@@ -85,7 +85,7 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerA
 **Tool Instantiation:**
 
   * Iterate through the `tool_repository` list in the JSON.
-  * For each object, instantiate the tool:
+  * For each object, instantiate the tool that the `is_custom_tool` is false :
       * The Python variable name for the tool instance MUST be the `tool_id` from the `constructor_args` object.
       * **CRITICAL**: Before each tool instantiation line, insert the `tool_selection_justification` from the `design_metadata` object as a Python comment (`#`).
       * The class to instantiate is specified in `class_name` within `constructor_args`.

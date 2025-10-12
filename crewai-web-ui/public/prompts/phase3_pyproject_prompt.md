@@ -1,20 +1,38 @@
-**`pyproject.toml` Generation Logic:**
+pyproject.toml Generation Logic:
 
-Use the JSON object provided as the single source of truth. Your task is to generate the content for the `pyproject.toml` file.
+You will be provided with one or more Python code files. Your task is to analyze these files and generate the content for a single pyproject.toml file that defines the project's dependencies.
 
-*   **Objective:** Create a `pyproject.toml` file that defines the project's dependencies.
-*   **Content:**
-    *   Define the `[tool.poetry]` section with basic project information like `name`, `version`, `description`, and `authors`.
-    *   Define the `[tool.poetry.dependencies]` section.
-        *   Include `python = ">=3.10,<4.0"`.
-        *   Include `crewai = "latest"`.
-        *   Include `crewai-tools = "latest"`.
-        *   Include any other dependencies required by the generated code, such as `python-dotenv`.
-    *   Define the `[build-system]` section.
-*   **Formatting:**
-    *   The output should be a single, valid TOML file.
+Objective: Analyze the provided Python code to identify all imported libraries and create a pyproject.toml file with the correct dependencies.
 
-**Example `pyproject.toml` Output:**
+Input: One or more blocks of Python code, each prefixed with its file path.
+
+Analysis:
+
+Scan all import and from ... import ... statements in the Python code.
+
+Identify the base package for each import (e.g., from crewai_tools import SerperDevTool means the dependency is crewai-tools).
+
+Standard Python libraries (e.g., os, sys, json, datetime) should be ignored.
+
+Content Generation:
+
+The generated file MUST be a valid pyproject.toml.
+
+It must include the [project] section with standard metadata.
+
+The dependencies array inside [project] must include:
+
+"crewai[tools]>=0.203.0,<1.0.0" (always include this)
+
+Any other libraries you identified from the import statements. For example, if you see from dotenv import load_dotenv, you must add "python-dotenv". If you see a tool that requires a specific package (like duckduckgo-search for DuckDuckGoSearchRun), you must add it.
+
+Formatting:
+
+The entire output must be a single, valid TOML file content inside a markdown block. Do not include any other text before or after.
+
+Example pyproject.toml Output:
+
+
 
 ```toml
 [project]
@@ -25,7 +43,8 @@ authors = [{ name = "Your Name", email = "you@example.com" }]
 requires-python = ">=3.10,<3.14"
 dependencies = [
     "crewai[tools]>=0.203.0,<1.0.0",
-    "ollama"
+    "ollama",
+    // dependencies from python code here
 ]
 
 [project.scripts]
