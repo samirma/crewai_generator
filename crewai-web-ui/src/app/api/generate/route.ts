@@ -90,7 +90,9 @@ export async function POST(request: Request) {
       if (filePath && outputType === 'file') {
         const absolutePath = path.join(GENERATED_DIR, filePath);
         await ensureDirectoryExists(path.dirname(absolutePath));
-        await fs.writeFile(absolutePath, llmResponseText);
+        const fileBlocks = parseFileBlocks(llmResponseText);
+        const contentToWrite = fileBlocks.length > 0 ? fileBlocks[0].content : llmResponseText;
+        await fs.writeFile(absolutePath, contentToWrite);
         console.log(`Successfully wrote file: ${absolutePath}`);
       } else if (outputType === 'directory') {
         const fileBlocks = parseFileBlocks(llmResponseText);

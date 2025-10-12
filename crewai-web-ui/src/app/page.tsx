@@ -424,14 +424,23 @@ export default function Home() {
                     )
                 );
 
-                // Enable the next phase if there is one
-                const nextPhase = phases.find(p => p.id === phaseId + 1);
-                if (nextPhase) {
+                // If phase 2 is completed, enable all subsequent phases
+                if (phaseId === 2) {
                     setPhases(prev =>
                         prev.map(p =>
-                            p.id === phaseId + 1 ? { ...p, isRunDisabled: false } : p
+                            p.id > 2 ? { ...p, isRunDisabled: false } : p
                         )
                     );
+                } else {
+                    // Enable the next phase if there is one
+                    const nextPhase = phases.find(p => p.id === phaseId + 1);
+                    if (nextPhase) {
+                        setPhases(prev =>
+                            prev.map(p =>
+                                p.id === phaseId + 1 ? { ...p, isRunDisabled: false } : p
+                            )
+                        );
+                    }
                 }
 
             } catch (error) {
