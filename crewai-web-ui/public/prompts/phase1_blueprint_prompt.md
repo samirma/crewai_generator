@@ -1,4 +1,4 @@
-
+ 
 ### 1. Objective/Purpose
 Clearly state the primary goal or desired outcome of executing this instruction. This should be a concise, high-level summary of the project's "why."
 
@@ -28,4 +28,4 @@ For **each step** in the numbered list, you must include the following sub-secti
 *   **Success Criteria for this step:** Define a measurable, verifiable condition that proves this individual step was completed successfully (e.g., "The output file `summary.md` exists and is not empty," "The in-memory dictionary is not None and contains the key 'skills'").
 
 
-* **Output Format:** It should be document, identified as 'Project Blueprint' within `{{{ }}}` delimiter
+* **Output Format:** The output should be within `{{{ }}}` delimiter

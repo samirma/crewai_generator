@@ -38,11 +38,13 @@ export const useGenerationApi = ({
       if (onSuccess) {
         onSuccess(result);
       }
+      return result; // Return the result
     } catch (err: any) {
       setError(err.message);
       if (onError) {
         onError(err.message);
       }
+      throw err; // Re-throw the error to be caught by the caller
     } finally {
       setIsGenerating(false);
       if (onFinally) {
