@@ -52,6 +52,7 @@ const FileTree = ({ tree, activeFile, setActiveFile }: { tree: FileTreeNode[], a
     const seen = new Set();
     const filterDuplicates = (nodes: FileTreeNode[]): FileTreeNode[] => {
       return nodes.filter(node => {
+        if (node.name === '.venv' || node.name === '__pycache__') return false;
         const duplicate = seen.has(node.path);
         seen.add(node.path);
         if (node.children) {

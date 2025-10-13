@@ -6,19 +6,6 @@
 * **Final Output Format:** Your entire response must be a single, comprehensive JSON object. Do not include any other text before or after the JSON.
 
 
-### **Design Section Order**
-
-To improve the robustness and logical flow of the design, the JSON object's keys MUST be in the following order:
-
-1.  `workflow_process`
-2.  `crew_memory`
-3.  `llm_registry`
-4.  `agent_cadre`
-5.  `tool_repository`
-6.  `custom_tool_definitions`
-7.  `pydantic_model_definitions`
-8.  `task_roster`
-
 ### **Canonical Tool Library for Evaluation**
 
 To ensure a realistic and grounded design, all tool selections must be made **exclusively** from the following canonical list of available tools. The `tool_selection_justification` field within the `tool_repository` must reference this list for its evaluation.
@@ -159,37 +146,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         *   `yaml_id` (String): Unique yaml_id to be used to indendify this agent.
     *   `constructor_args` (Object): Contains only the parameters for the CrewAI `Agent` class constructor.
         *   `llm_id` (String): The identifier of the LLM to be used by this agent, referencing an entry in the `llm_registry`.
-        *   `tools` (Array of Strings, Optional): List of `tool_id`s from the `tool_repository` that this agent is equipped with. **For MCP Servers, the agent gains access to all tools provided by the server. You must reference the `tool_id` of the adapter itself (e.g., "web_scout_adapter").**
         *   `allow_delegation` (Boolean): `True` or `False`.
-
-*   `tool_repository` (Array of Objects): Each object defines a unique tool to be instantiated, separating design rationale from instantiation parameters.
-    *   `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
-        *   `required_functionality` (String): A clear, one-sentence description of the specific action the tool must perform.
-        *   `crewai_tool_evaluation` (Array of Objects): An evaluation of relevant crewai tools.
-            *   `tool_selection_justification` (String): Review the **Canonical Tool Library** provided above (including both `crewai_tools` and `MCP Servers`) to identify the most suitable tool. Your analysis MUST explain why your chosen tool is optimal and why other relevant tools are not sufficient. Justify why a standard tool or an MCP server is the better choice for the task.
-            *   `is_valid_availiable_tool` (Boolean): `True` or `False`.
-            *   `tool_name` (String): The exact, importable CrewAI tool class. **Crucially, this name must match the latest library version.** For MCP Servers, this will be `MCPServerAdapter`.
-        *   `is_custom_tool` (Boolean): `True` if no available tool is sufficient, derived from the analysis.
-        *   `is_custom_embedding_supported` (Boolean): `True` if this selected tool supports embedding, e.g (PDFSearchTool, TXTSearchTool and RagTool, etc)
-        *   `tool_llm_specification` (Object, Optional): **Required if `is_custom_embedding_supported` is `True` and `crew_memory.activation` is `True`.**
-            *   `llm_id` (String): The identifier for the tool's internal LLM, chosen from the `llm_registry`.
-            *   `rationale` (String): Justification for this LLM choice for the tool's internal processing (e.g., summarization).
-    *   `constructor_args` (Object): Contains only the parameters for the tool's class constructor.
-        *   `tool_id` (String): A unique identifier for this specific tool instance (e.g., "web_search_tool", "web_scout_adapter"). This acts as the primary identifier for the tool.
-        *   `class_name` (String): The exact Python class name to instantiate. **This must be a verbatim, up-to-date class name from the `crewai_tools` library.**
-        *   `initialization_params` (Object, Optional): Constructor parameters for the tool.
-            **CRITICAL RULE for MCP Servers:** If using an MCP Server, the `class_name` MUST be `MCPServerAdapter`. The `initialization_params` object MUST contain a single key: `serverparams`. This `serverparams` object must contain two keys: `command` (String) and `args` (Array of Strings), which define how to run the MCP server process.
-            **CRITICAL RULE for Embedding-Supported Tools:** If `design_metadata.is_custom_embedding_supported` is `true` and `crew_memory.activation` is `true`, the `initialization_params` object should be left empty (`{}`). The script generation phase will automatically use the global `rag_config`. For all other tools, specify parameters as needed.
-
-*   `custom_tool_definitions` (Array of Objects):
-    *   `class_definition_args` (Object):
-        *   `name_attribute` (String)
-        *   `description_attribute` (String)
-        *   `run_method_parameters` (Array of Objects): Defines the parameters for the `_run` method.
-            *   `name` (String): The parameter's name (e.g., "url").
-            *   `python_type` (String): The parameter's Python type hint (e.g., "str").
-            *   `description` (String): A description for the argument.
-        *   `run_method_logic` (String)
 
 *   `pydantic_model_definitions` (Array of Objects): Defines the Pydantic models for structured task outputs.
     *   `model_id` (String): A unique identifier for the model, which will become the Python class name (e.g., "ProfileAnalysisResult").
@@ -205,13 +162,42 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 *   `task_roster` (Array of Objects): **This is the most critical section of the design.** Considering `selected_process` of `workflow_process`. Each task definition must be treated as a direct, precise set of instructions for a new team member who needs explicit guidance. Each object represents a task, separating design rationale from instantiation parameters.
     *   `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
         *   `task_identifier` (String): A unique name for the task, used for context linking.
-        *   **`blueprint_reference` (String): The `step_id` from the Phase 1 Blueprint's 'Logical Steps' that this task implements. This is mandatory for traceability.**
-        *   **`blueprint_step_action` (String): A direct copy of the 'Action' from the corresponding blueprint step.**
-        *   **`blueprint_step_success_criteria` (String): A direct copy of the 'Success Criteria for this step' from the corresponding blueprint step.**
-        *   **`blueprint_step_error_handling` (String): A direct copy of the 'Error Handling & Edge Cases' from the corresponding blueprint step.**
         *   `quality_gate` (String): A high-level, human-readable statement of the success criteria for this task. This should answer the question: "How do we know this task was completed successfully and correctly?" It acts as a final check on the `expected_output`, ensuring it aligns with the overall goals of the project.
-        *   `tool_rationale` (String, Optional): Justification for why the assigned agent needs specific tools to complete this task.
         *   `output_rationale` (String, Optional): Justification for using a for the output.
+        * `tools` (Object): A comprehensive registry for all tools used by this task, including canonical, custom, and the necessary mapping/justification metadata.
+          *   `canonical_tool_library` (Array of Objects, Optional): Defines instances of tools selected exclusively from the provided 'Canonical Tool Library'. CRITICAL RULE: This array must ONLY contain entries for pre-existing, canonical tools. If your evaluation (crewai_tool_evaluation) concludes that a custom tool is required (is_custom_tool is set to True), you must NOT create an entry for it in this array. Instead, the complete definition for that new tool must be placed in the custom_tools array.
+            *   `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
+                *   `required_functionality` (String): A clear, one-sentence description of the specific action the tool must perform.
+                *   `crewai_tool_evaluation` (Array of Objects): An evaluation of relevant crewai tools.
+                    *   `tool_selection_justification` (String): Review the **Canonical Tool Library** provided above (including both `crewai_tools` and `MCP Servers`) to identify the most suitable tool. Your analysis MUST explain why your chosen tool is optimal and why other relevant tools are not sufficient. Justify why a standard tool or an MCP server is the better choice for the task.
+                    *   `is_valid_availiable_tool` (Boolean): `True` or `False`.
+                    *   `tool_name` (String): The exact, importable CrewAI tool class. **Crucially, this name must match the latest library version.** For MCP Servers, this will be `MCPServerAdapter`.
+                *   `is_custom_tool` (Boolean): `True` if no available tool is sufficient, derived from the analysis.
+                *   `is_custom_embedding_supported` (Boolean): `True` if this selected tool supports embedding, e.g (PDFSearchTool, TXTSearchTool and RagTool, etc)
+                *   `tool_llm_specification` (Object, Optional): **Required if `is_custom_embedding_supported` is `True` and `crew_memory.activation` is `True`.**
+                    *   `llm_id` (String): The identifier for the tool's internal LLM, chosen from the `llm_registry`.
+                    *   `rationale` (String): Justification for this LLM choice for the tool's internal processing (e.g., summarization).
+            *   `constructor_args` (Object): Contains only the parameters for the tool's class constructor.
+                *   `tool_id` (String): A unique identifier for this specific tool instance (e.g., "web_search_tool", "web_scout_adapter"). This acts as the primary identifier for the tool.
+                *   `class_name` (String): The exact Python class name to instantiate. **This must be a verbatim, up-to-date class name from the `crewai_tools` library.**
+                *   `initialization_params` (Object, Optional): Constructor parameters for the tool.
+                    **CRITICAL RULE for MCP Servers:** If using an MCP Server, the `class_name` MUST be `MCPServerAdapter`. The `initialization_params` object MUST contain a single key: `serverparams`. This `serverparams` object must contain two keys: `command` (String) and `args` (Array of Strings), which define how to run the MCP server process.
+                    **CRITICAL RULE for Embedding-Supported Tools:** If `design_metadata.is_custom_embedding_supported` is `true` and `crew_memory.activation` is `true`, the `initialization_params` object should be left empty (`{}`). The script generation phase will automatically use the global `rag_config`. For all other tools, specify parameters as needed.
+        
+          *   `custom_tools` (Array of Objects): A list of custom tool definitions, used only when `is_custom_tool` is `True` for an instance in `tool_instances`.
+                * `tool_id` (String): A unique, snake\_case identifier for the custom tool (must match a `tool_id` in `tool_instances`).
+                * `description` (String): A brief description of the tool's function.
+                * `class_definition` (Object): Defines the necessary arguments for generating the custom tool's class structure.
+                    * `class_name` (String): The Python class name.
+                    * `name_attribute` (String): The value for the tool's `name` attribute.
+                    * `description_attribute` (String): The value for the tool's `description` attribute.
+                    * `run_method_parameters` (Array of Objects): Defines the parameters for the tool's `_run` method.
+                        * `name` (String): The parameter's name (e.g., "url").
+                        * `python_type` (String): The parameter's Python type hint (e.g., "str").
+                        * `description` (String): A description for the argument.
+                    * `run_method_logic` (String): The pseudocode or description of the logic inside the `_run` method.
+
+
     *   `yaml_definition` (Object): Contains only the parameters for config/tasks.yaml file.
         *   `description` (String): **CRITICAL RULE:** This must be a highly specific, action-oriented prompt written **directly to the agent**. This is not a comment; it is the core instruction. It must be a synthesis of the `blueprint_step_action`, incorporating guidance on how to handle potential issues from `blueprint_step_error_handling`. It must use active verbs and break down the process into clear, logical steps. It should explicitly state *how* the agent should use its tools and the context it receives. **Crucially, if the task's ultimate goal is to create a file, the final step in the description MUST be an unambiguous command to use the file-writing tool to save the generated content to a specific file path.** For example: "...Finally, you MUST use the `file_writer_tool` to save this content to `{output_path}`."
         *   `expected_output` (String): **CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed.
