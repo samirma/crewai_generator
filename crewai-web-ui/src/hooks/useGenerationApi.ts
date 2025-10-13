@@ -1,19 +1,11 @@
 import { useState } from 'react';
 
-interface UseGenerationApiProps {
-  onSuccess?: (data: any) => void;
-  onError?: (error: string) => void;
-  onFinally?: () => void;
-}
-
-export const useGenerationApi = ({
-  onSuccess,
-  onError,
-  onFinally,
-}: UseGenerationApiProps) => {
+// The hook is simplified to only manage the loading and error state of the API call.
+// It no longer takes callbacks, making its behavior more predictable.
+// The component calling this hook will be responsible for handling the returned data or errors.
+export const useGenerationApi = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<any>(null);
 
   const generate = async (payload: any) => {
     setIsGenerating(true);
@@ -34,24 +26,14 @@ export const useGenerationApi = ({
       }
 
       const result = await response.json();
-      setData(result);
-      if (onSuccess) {
-        onSuccess(result);
-      }
-      return result; // Return the result
+      return result; // Return the result directly
     } catch (err: any) {
       setError(err.message);
-      if (onError) {
-        onError(err.message);
-      }
-      throw err; // Re-throw the error to be caught by the caller
+      throw err; // Re-throw the error to be caught by the calling component
     } finally {
       setIsGenerating(false);
-      if (onFinally) {
-        onFinally();
-      }
     }
   };
 
-  return { generate, isLoading: isGenerating, error, data };
+  return { generate, isLoading: isGenerating, error };
 };

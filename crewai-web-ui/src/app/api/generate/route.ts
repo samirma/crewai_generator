@@ -17,27 +17,6 @@ async function ensureDirectoryExists(dir: string) {
   }
 }
 
-async function cleanDirectory(dir: string) {
-  try {
-    const files = await fs.readdir(dir);
-    for (const file of files) {
-      const filePath = path.join(dir, file);
-      const stat = await fs.lstat(filePath);
-      if (stat.isDirectory()) {
-        await cleanDirectory(filePath);
-        await fs.rmdir(filePath);
-      } else {
-        await fs.unlink(filePath);
-      }
-    }
-  } catch (error) {
-    if (error.code !== 'ENOENT') {
-      console.error(`Error cleaning directory ${dir}:`, error);
-      throw error;
-    }
-  }
-}
-
 export async function POST(request: Request) {
   let llmInputPromptContent = "";
   let llmOutputPromptContent = "";

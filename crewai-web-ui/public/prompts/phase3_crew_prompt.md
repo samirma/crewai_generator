@@ -7,7 +7,7 @@ This block generates the main Python file that defines all programmatic componen
 **Core Imports:**
 
   * After the final code is done you should reevaluate the imports and add the ones tha might be missing with the goal to have a working code.
-
+  * For all tools specified in `tool_repository`, import the class specified in `constructor_args.class_name` directly from `crewai_tools`.
 
 ```python
 import os
