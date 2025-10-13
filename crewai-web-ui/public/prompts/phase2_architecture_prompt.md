@@ -12,35 +12,35 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 
 #### `crewai_tools`
 
-*   `ScrapeWebsiteTool` (supports_embedding: `False`)
-*   `WebsiteSearchTool` (supports_embedding: `True`)
-*   `BrowserbaseTool` (supports_embedding: `False`)
-*   `CodeDocsSearchTool` (supports_embedding: `True`)
-*   `PDFSearchTool` (supports_embedding: `True`)
-*   `FileReadTool` (supports_embedding: `False`)
-*   `FileWriterTool` (supports_embedding: `False`)
-*   `DirectoryReadTool` (supports_embedding: `False`)
-*   `CSVSearchTool` (supports_embedding: `True`)
-*   `DOCXSearchTool` (supports_embedding: `True`)
-*   `MDXSearchTool` (supports_embedding: `True`)
-*   `RagTool` (supports_embedding: `True`)
-*   `TXTSearchTool` (supports_embedding: `True`)
-*   `XMLSearchTool` (supports_embedding: `True`)
+* `ScrapeWebsiteTool` (supports_embedding: `False`, **tool_id: `website_scraper`**)
+* `WebsiteSearchTool` (supports_embedding: `True`, **tool_id: `website_searcher`**)
+* `BrowserbaseTool` (supports_embedding: `False`, **tool_id: `browserbase_tool`**)
+* `CodeDocsSearchTool` (supports_embedding: `True`, **tool_id: `code_docs_searcher`**)
+* `PDFSearchTool` (supports_embedding: `True`, **tool_id: `pdf_searcher`**)
+* `FileReadTool` (supports_embedding: `False`, **tool_id: `file_reader`**)
+* `FileWriterTool` (supports_embedding: `False`, **tool_id: `file_writer`**)
+* `DirectoryReadTool` (supports_embedding: `False`, **tool_id: `directory_reader`**)
+* `CSVSearchTool` (supports_embedding: `True`, **tool_id: `csv_searcher`**)
+* `DOCXSearchTool` (supports_embedding: `True`, **tool_id: `docx_searcher`**)
+* `MDXSearchTool` (supports_embedding: `True`, **tool_id: `mdx_searcher`**)
+* `RagTool` (supports_embedding: `True`, **tool_id: `rag_tool`**)
+* `TXTSearchTool` (supports_embedding: `True`, **tool_id: `txt_searcher`**)
+* `XMLSearchTool` (supports_embedding: `True`, **tool_id: `xml_searcher`**)
 
-#### MCP Servers
+#### MCP Servers (Accessed via `MCPServerAdapter`)
 
-*   **`mcp-local-seaxng`**:
-    *   `serverparams`: `{ "command": "python", "args": ["/workspace/mcp/mcp_searxng.py"] }`
-    *   **Description**: This tool performs a web search based on a text query and an optional pageno for pagination. It returns a JSON formatted list of search results, with each result containing its url, title, and a only a snippet of the content. A scrape tool is required to get more information from each result.
-*   **`time-stdio`**:
-    *   `serverparams`: `{   "command": "uvx",  "args": ["mcp-server-time"]    }`
-    *   **Description**: The Time MCP Server integrates with LLMs to provide accurate time information and timezone conversion capabilities. This server uses IANA timezone names and can automatically detect your system's timezone, allowing AI models to work with real-time temporal data.
-*   **`excel-stdio`**:
-    *   `serverparams`: `{ "command": "uvx", "args": ["excel-mcp-server", "stdio"] }`
-    *   **Description**: This MCP server is designed to handle Excel files, allowing for reading and writing operations directly from standard input/output. It supports various Excel file formats and can be used to manipulate spreadsheet data programmatically.
-*   **`mcp-pandoc`**:
-    *   `serverparams`: `{ "command": "python", "args": ["/workspace/mcp/mcp_pandadoc_converter.py"] }`
-    *   **Description**: Converts a document from one format to another using Pandoc by taking a source `input_path` and a destination `output_path`, returning a string message indicating the result. The desired output format is automatically inferred from the output file's extension. Supported input formats include biblatex, bibtex, commonmark, creole, csljson, csv, docbook, docx, dokuwiki, endnotexml, epub, fb2, gfm, haddock, html, ipynb, jats, jira, json, latex, markdown, markdown_mmd, markdown_phpextra, markdown_strict, mediawiki, man, muse, native, odt, opml, org, ris, rst, rtf, t2t, textile, tikiwiki, tsv, twiki, and vimwiki. Supported output formats include asciidoc, beamer, commonmark, context, csljson, docbook, docx, dokuwiki, dzslides, epub, fb2, gfm, haddock, html, icml, ipynb, jats, jira, json, latex, man, markdown, markdown_mmd, markdown_phpextra, markdown_strict, mediawiki, ms, muse, native, odt, opml, opendocument, org, pdf, plain, pptx, revealjs, rst, rtf, s5, slidy, slideous, tei, texinfo, textile, xwiki, and zimwiki.
+* **`mcp-local-seaxng`**: (**tool_id: `mcp_searxng_adapter`**)
+    * `serverparams`: `{ "command": "python", "args": ["/workspace/mcp/mcp_searxng.py"] }`
+    * **Description**: This tool performs a web search based on a text query and an optional pageno for pagination. It returns a JSON formatted list of search results, with each result containing its url, title, and a only a snippet of the content. A scrape tool is required to get more information from each result.
+* **`time-stdio`**: (**tool_id: `mcp_time_adapter`**)
+    * `serverparams`: `{   "command": "uvx",  "args": ["mcp-server-time"]    }`
+    * **Description**: The Time MCP Server integrates with LLMs to provide accurate time information and timezone conversion capabilities. This server uses IANA timezone names and can automatically detect your system's timezone, allowing AI models to work with real-time temporal data.
+* **`excel-stdio`**: (**tool_id: `mcp_excel_adapter`**)
+    * `serverparams`: `{ "command": "uvx", "args": ["excel-mcp-server", "stdio"] }`
+    * **Description**: This MCP server is designed to handle Excel files, allowing for reading and writing operations directly from standard input/output. It supports various Excel file formats and can be used to manipulate spreadsheet data programmatically.
+* **`mcp-pandoc`**: (**tool_id: `mcp_pandoc_adapter`**)
+    * `serverparams`: `{ "command": "python", "args": ["/workspace/mcp/mcp_pandadoc_converter.py"] }`
+    * **Description**: Converts a document from one format to another using Pandoc by taking a source `input_path` and a destination `output_path`, returning a string message indicating the result. The desired output format is automatically inferred from the output file's extension. Supported input formats include biblatex, bibtex, commonmark, creole, csljson, csv, docbook, docx, dokuwiki, endnotexml, epub, fb2, gfm, haddock, html, ipynb, jats, jira, json, latex, markdown, markdown_mmd, markdown_phpextra, markdown_strict, mediawiki, man, muse, native, odt, opml, org, ris, rst, rtf, t2t, textile, tikiwiki, tsv, twiki, and vimwiki. Supported output formats include asciidoc, beamer, commonmark, context, csljson, docbook, docx, dokuwiki, dzslides, epub, fb2, gfm, haddock, html, icml, ipynb, jats, jira, json, latex, man, markdown, markdown_mmd, markdown_phpextra, markdown_strict, mediawiki, ms, muse, native, odt, opml, opendocument, org, pdf, plain, pptx, revealjs, rst, rtf, s5, slidy, slideous, tei, texinfo, textile, xwiki, and zimwiki.
 
 ---
 
@@ -164,40 +164,36 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
         *   `task_identifier` (String): A unique name for the task, used for context linking.
         *   `quality_gate` (String): A high-level, human-readable statement of the success criteria for this task. This should answer the question: "How do we know this task was completed successfully and correctly?" It acts as a final check on the `expected_output`, ensuring it aligns with the overall goals of the project.
         *   `output_rationale` (String, Optional): Justification for using a for the output.
-        * `tools` (Object): A comprehensive registry for all tools used by this task, including canonical, custom, and the necessary mapping/justification metadata.
-          *   `canonical_tool_library` (Array of Objects, Optional): Defines instances of tools selected exclusively from the provided 'Canonical Tool Library'. CRITICAL RULE: This array must ONLY contain entries for pre-existing, canonical tools. If your evaluation (crewai_tool_evaluation) concludes that a custom tool is required (is_custom_tool is set to True), you must NOT create an entry for it in this array. Instead, the complete definition for that new tool must be placed in the custom_tools array.
-            *   `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
-                *   `required_functionality` (String): A clear, one-sentence description of the specific action the tool must perform.
-                *   `crewai_tool_evaluation` (Array of Objects): An evaluation of relevant crewai tools.
-                    *   `tool_selection_justification` (String): Review the **Canonical Tool Library** provided above (including both `crewai_tools` and `MCP Servers`) to identify the most suitable tool. Your analysis MUST explain why your chosen tool is optimal and why other relevant tools are not sufficient. Justify why a standard tool or an MCP server is the better choice for the task.
-                    *   `is_valid_availiable_tool` (Boolean): `True` or `False`.
-                    *   `tool_name` (String): The exact, importable CrewAI tool class. **Crucially, this name must match the latest library version.** For MCP Servers, this will be `MCPServerAdapter`.
-                *   `is_custom_tool` (Boolean): `True` if no available tool is sufficient, derived from the analysis.
-                *   `is_custom_embedding_supported` (Boolean): `True` if this selected tool supports embedding, e.g (PDFSearchTool, TXTSearchTool and RagTool, etc)
-                *   `tool_llm_specification` (Object, Optional): **Required if `is_custom_embedding_supported` is `True` and `crew_memory.activation` is `True`.**
-                    *   `llm_id` (String): The identifier for the tool's internal LLM, chosen from the `llm_registry`.
-                    *   `rationale` (String): Justification for this LLM choice for the tool's internal processing (e.g., summarization).
-            *   `constructor_args` (Object): Contains only the parameters for the tool's class constructor.
-                *   `tool_id` (String): A unique identifier for this specific tool instance (e.g., "web_search_tool", "web_scout_adapter"). This acts as the primary identifier for the tool.
-                *   `class_name` (String): The exact Python class name to instantiate. **This must be a verbatim, up-to-date class name from the `crewai_tools` library.**
-                *   `initialization_params` (Object, Optional): Constructor parameters for the tool.
-                    **CRITICAL RULE for MCP Servers:** If using an MCP Server, the `class_name` MUST be `MCPServerAdapter`. The `initialization_params` object MUST contain a single key: `serverparams`. This `serverparams` object must contain two keys: `command` (String) and `args` (Array of Strings), which define how to run the MCP server process.
-                    **CRITICAL RULE for Embedding-Supported Tools:** If `design_metadata.is_custom_embedding_supported` is `true` and `crew_memory.activation` is `true`, the `initialization_params` object should be left empty (`{}`). The script generation phase will automatically use the global `rag_config`. For all other tools, specify parameters as needed.
-        
-          *   `custom_tools` (Array of Objects): A list of custom tool definitions, used only when `is_custom_tool` is `True` for an instance in `tool_instances`.
-                * `tool_id` (String): A unique, snake\_case identifier for the custom tool (must match a `tool_id` in `tool_instances`).
-                * `description` (String): A brief description of the tool's function.
-                * `class_definition` (Object): Defines the necessary arguments for generating the custom tool's class structure.
-                    * `class_name` (String): The Python class name.
-                    * `name_attribute` (String): The value for the tool's `name` attribute.
-                    * `description_attribute` (String): The value for the tool's `description` attribute.
-                    * `run_method_parameters` (Array of Objects): Defines the parameters for the tool's `_run` method.
-                        * `name` (String): The parameter's name (e.g., "url").
-                        * `python_type` (String): The parameter's Python type hint (e.g., "str").
-                        * `description` (String): A description for the argument.
-                    * `run_method_logic` (String): The pseudocode or description of the logic inside the `_run` method.
-
-
+        *   `tools` (Array of Objects, Optional): Defines instances of tools selected exclusively from the provided 'Canonical Tool Library'. CRITICAL RULE: This array must ONLY contain entries for pre-existing, canonical tools. If your evaluation (crewai_tool_evaluation) concludes that a custom tool is required (is_custom_tool is set to True), you must NOT create an entry for it in this array. Instead, the complete definition for that new tool must be placed in the custom_tools array.
+          *   `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
+              *   `required_functionality` (String): A clear, one-sentence description of the specific action the tool must perform.
+              *   `crewai_tool_evaluation` (Array of Objects): An evaluation of relevant crewai tools.
+                  *   `tool_selection_justification` (String): Review the **Canonical Tool Library** provided above (including both `crewai_tools` and `MCP Servers`) to identify the most suitable tool. Your analysis MUST explain why your chosen tool is optimal and why other relevant tools are not sufficient. Justify why a standard tool or an MCP server is the better choice for the task.
+                  *   `is_valid_availiable_tool` (Boolean): `True` or `False`.
+                  *   `tool_name` (String): The exact, importable CrewAI tool class. **Crucially, this name must match the latest library version.** For MCP Servers, this will be `MCPServerAdapter`.
+              *   `is_custom_tool` (Boolean): `True` if no available tool is sufficient, derived from the analysis.
+              *   `is_custom_embedding_supported` (Boolean): `True` if this selected tool supports embedding, e.g (PDFSearchTool, TXTSearchTool and RagTool, etc)
+              *   `tool_llm_specification` (Object, Optional): **Required if `is_custom_embedding_supported` is `True` and `crew_memory.activation` is `True`.**
+                  *   `llm_id` (String): The identifier for the tool's internal LLM, chosen from the `llm_registry`.
+                  *   `rationale` (String): Justification for this LLM choice for the tool's internal processing (e.g., summarization).
+          *   `canonical_tool` (Object): Contains only the parameters for the tool's class constructor only if `is_custom_tool` is `False`.
+              *   `tool_id` (String): A unique identifier for this specific tool instance (e.g., "web_search_tool", "web_scout_adapter"). This acts as the primary identifier for the tool.
+              *   `class_name` (String): The exact Python class name to instantiate. **This must be a verbatim, up-to-date class name from the `crewai_tools` library.**
+              *   `initialization_params` (Object, Optional): Constructor parameters for the tool.
+                  **CRITICAL RULE for MCP Servers:** If using an MCP Server, the `class_name` MUST be `MCPServerAdapter`. The `initialization_params` object MUST contain a single key: `serverparams`. This `serverparams` object must contain two keys: `command` (String) and `args` (Array of Strings), which define how to run the MCP server process.
+                  **CRITICAL RULE for Embedding-Supported Tools:** If `design_metadata.is_custom_embedding_supported` is `true` and `crew_memory.activation` is `true`, the `initialization_params` object should be left empty (`{}`). The script generation phase will automatically use the global `rag_config`. For all other tools, specify parameters as needed.
+        *   `custom_tool` (Array of Objects): A list of custom tool definitions, used only when `is_custom_tool` is `True`.
+              * `tool_id` (String): A unique, snake\_case identifier for the custom tool (must match a `tool_id` in `tool_instances`).
+              * `description` (String): A brief description of the tool's function.
+              * `class_definition` (Object): Defines the necessary arguments for generating the custom tool's class structure.
+                  * `class_name` (String): The Python class name.
+                  * `name_attribute` (String): The value for the tool's `name` attribute.
+                  * `description_attribute` (String): The value for the tool's `description` attribute.
+                  * `run_method_parameters` (Array of Objects): Defines the parameters for the tool's `_run` method.
+                      * `name` (String): The parameter's name (e.g., "url").
+                      * `python_type` (String): The parameter's Python type hint (e.g., "str").
+                      * `description` (String): A description for the argument.
+                  * `run_method_logic` (String): The pseudocode or description of the logic inside the `_run` method.
     *   `yaml_definition` (Object): Contains only the parameters for config/tasks.yaml file.
         *   `description` (String): **CRITICAL RULE:** This must be a highly specific, action-oriented prompt written **directly to the agent**. This is not a comment; it is the core instruction. It must be a synthesis of the `blueprint_step_action`, incorporating guidance on how to handle potential issues from `blueprint_step_error_handling`. It must use active verbs and break down the process into clear, logical steps. It should explicitly state *how* the agent should use its tools and the context it receives. **Crucially, if the task's ultimate goal is to create a file, the final step in the description MUST be an unambiguous command to use the file-writing tool to save the generated content to a specific file path.** For example: "...Finally, you MUST use the `file_writer_tool` to save this content to `{output_path}`."
         *   `expected_output` (String): **CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed.
