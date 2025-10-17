@@ -3,7 +3,7 @@
 Use the JSON object provided as the single source of truth. Your task is to generate the content for any custom tool files.
 
 *   **Objective:** Iterate through task_roster[*].design_metadata.tools[*].custom_tool.
-*   **File Naming:** File Naming: Derived from custom_tool.class_definition.class_name, converted to snake_case..
+*   **File Naming:** File Naming: Derived from custom_tool.class_definition.class_name, converted to snake_case.
 *   **File Content:**
     *   Each file should contain the Python code for the custom tool, as defined in the `code` property of the custom tool definition.
     *   The code should be a valid Python script, defining a class that inherits from `BaseTool`.

@@ -1,13 +1,13 @@
+
 ### 3. `crew.py` Generation Logic (Orchestration)
 
-This block generates the main Python file that defines all programmatic components and assembles the CrewBase class.
+Use the JSON object provided as the single source of truth. Your task is to generate the content the main Python file that defines all programmatic components and assembles the CrewBase class corresposndent to `crew.py` of the recommended project structure of CrewAi lib  https://docs.crewai.com/en/quickstart.
 
 #### **Environment Setup (Order is CRITICAL):**
 
 **Core Imports:**
 
   * After the final code is done you should reevaluate the imports and add the ones tha might be missing with the goal to have a working code.
-  * For all tools specified in `tool_repository`, import the class specified in `constructor_args.class_name` directly from `crewai_tools`.
 
 ```python
 import os
@@ -25,8 +25,12 @@ from crewai.agents.agent_builder.base_agent import BaseAgent
 from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerAdapter
 
 # from mcp import StdioServerParameters # UNCOMMENT if MCP tools are defined
-# from crewai.tools import BaseTool # UNCOMMENT if custom tools are defined
 ```
+
+# Import custom tools from classes in the tools directory
+For each  `custom_tool` in `tools` in `task_roster` of json you should import its class using this pattern: from .tools."tool_id" import "class_definition"."class_name"
+
+
 
 #### **API Key Access:**
 
@@ -82,20 +86,6 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerA
                 skills: List[str] = Field(description="A list of identified technical and soft skills.")
             ```
 
-**Tool Instantiation:**
-
-  * Iterate through the `tool_repository` list in the JSON.
-  * For each object, instantiate the tool that the `is_custom_tool` is false :
-      * The Python variable name for the tool instance MUST be the `tool_id` from the `constructor_args` object.
-      * **CRITICAL**: Before each tool instantiation line, insert the `tool_selection_justification` from the `design_metadata` object as a Python comment (`#`).
-      * The class to instantiate is specified in `class_name` within `constructor_args`.
-      * **If `design_metadata.is_custom_embedding_supported` is `true`:**
-          * Instantiate the tool by passing the pre-defined `rag_config` variable to its `config` parameter (e.g., `tool_instance = PDFSearchTool(config=rag_config)`).
-      * **If `class_name` is `MCPServerAdapter`:**
-          * First, instantiate `StdioServerParameters`. The variable name should be `<tool_id>_params`. The `command` and `args` are taken from `constructor_args.initialization_params.serverparams`.
-          * Then, instantiate `MCPServerAdapter`, passing the `_params` variable to its constructor without any keyword arguments. The variable name for the adapter MUST be the `tool_id`.
-      * **For all other tools:**
-          * If `initialization_params` exists and is non-empty, pass its contents as keyword arguments to the class constructor.
 
 #### **CrewBase Definition (Orchestration):**
 
@@ -110,6 +100,19 @@ from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerA
     agents: List[BaseAgent]
     tasks: List[Task]
 ```
+
+**Tool Instantiation exclusive for canonical_tool:**
+
+  *  **Objective:** Iterate through task_roster[*].design_metadata.tools[*].canonical_tool and generate Python code to instantiate each tool:
+      * The Python variable name for the tool instance MUST be the `tool_id` from the `constructor_args` object.
+      * The class to instantiate is specified in `class_name` within `constructor_args`.
+      * **If `design_metadata.is_custom_embedding_supported` is `true`:**
+          * Instantiate the tool by passing the pre-defined `rag_config` variable to its `config` parameter (e.g., `tool_instance = PDFSearchTool(config=rag_config)`).
+      * **If `class_name` is `MCPServerAdapter`:**
+          * First, instantiate `StdioServerParameters`. The variable name should be `<tool_id>_params`. The `command` and `args` are taken from `constructor_args.initialization_params.serverparams`.
+          * Then, instantiate `MCPServerAdapter`, passing the `_params` variable to its constructor without any keyword arguments. The variable name for the adapter MUST be the `tool_id`.
+      * **For all other tools:**
+          * If `initialization_params` exists and is non-empty, pass its contents as keyword arguments to the class constructor.
 
   * **`@agent` Methods:**
 
