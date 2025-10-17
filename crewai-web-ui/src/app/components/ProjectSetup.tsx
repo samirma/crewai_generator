@@ -17,6 +17,8 @@ interface ProjectSetupProps {
   isExecutingScript: boolean;
   handleRunAllPhases: () => void;
   isRunAllLoading: boolean;
+  runScriptAfterGeneration: boolean;
+  setRunScriptAfterGeneration: (value: boolean) => void;
 }
 
 const ProjectSetup = ({
@@ -32,6 +34,8 @@ const ProjectSetup = ({
   isExecutingScript,
   handleRunAllPhases,
   isRunAllLoading,
+  runScriptAfterGeneration,
+  setRunScriptAfterGeneration,
 }: ProjectSetupProps) => {
   return (
     <section className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg mb-8 border border-slate-200 dark:border-slate-700">
@@ -115,6 +119,18 @@ const ProjectSetup = ({
           </span>
         ) : 'Generate Full Script (All Phases)'}
       </button>
+      <div className="mt-4 flex items-center justify-center">
+        <input
+          id="run-script-after-generation"
+          type="checkbox"
+          checked={runScriptAfterGeneration}
+          onChange={(e) => setRunScriptAfterGeneration(e.target.checked)}
+          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+        />
+        <label htmlFor="run-script-after-generation" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
+          Run script after generation
+        </label>
+      </div>
     </section>
   );
 };

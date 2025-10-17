@@ -21,11 +21,13 @@ from typing import List, Optional
 from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
 
-# Example for import for tools from crewai_tools
-from crewai_tools import SerperDevTool, FileWriterTool, FileReadTool, MCPServerAdapter
 
-# from mcp import StdioServerParameters # UNCOMMENT if MCP tools are defined
+from mcp import StdioServerParameters 
 ```
+
+# Example for import for tools from crewai_tools
+For each task_roster[*].design_metadata.tools[*].canonical_tool.class_name you should import the class propely  
+from crewai_tools import <all task_roster[*].design_metadata.tools[*].canonical_tool.class_name>
 
 # Import custom tools from classes in the tools directory
 For each  `custom_tool` in `tools` in `task_roster` of json you should import its class using this pattern: from .tools."tool_id" import "class_definition"."class_name"

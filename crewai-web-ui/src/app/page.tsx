@@ -122,6 +122,7 @@ export default function Home() {
   // State for managing active tab
   const [activeTab, setActiveTab] = useState<'generation' | 'execution'>('generation');
   const [isRunAllLoading, setIsRunAllLoading] = useState<boolean>(false);
+  const [runScriptAfterGeneration, setRunScriptAfterGeneration] = useState<boolean>(false);
 
 
 
@@ -237,10 +238,12 @@ export default function Home() {
         console.error("Error fetching models:", err);
         if (err instanceof Error) {
           setModelsError(err.message);
-        } else {
+        }
+        else {
           setModelsError("An unknown error occurred while fetching models.");
         }
-      } finally {
+      }
+      finally {
         setModelsLoading(false);
       }
     };
@@ -397,7 +400,8 @@ export default function Home() {
         playErrorSound();
         if (error instanceof Error) {
             setError(error.message);
-        } else {
+        }
+        else {
             setError("An unknown error occurred during phase execution.");
         }
         setPhases(currentPhases =>
@@ -405,7 +409,8 @@ export default function Home() {
                 p.id === phaseId ? { ...p, isLoading: false, isTimerRunning: false } : p
             )
         );
-    } finally {
+    }
+    finally {
         setCurrentActivePhase(null);
     }
   };
@@ -423,6 +428,7 @@ export default function Home() {
     setIsRunAllLoading(true);
 
     let currentPhasesState = [...phases];
+    let errorOccurred = false;
 
     for (const phase of phases) {
         setCurrentActivePhase(phase.id);
@@ -478,11 +484,13 @@ export default function Home() {
             currentPhasesState = newPhasesWithOutput;
 
         } catch (error) {
+            errorOccurred = true;
             playErrorSound();
             console.error(`Error in phase ${phase.id}:`, error);
             if (error instanceof Error) {
                 setError(`Error during phase ${phase.id}: ${error.message}`);
-            } else {
+            }
+            else {
                 setError(`An unknown error occurred during phase ${phase.id}.`);
             }
             const newPhasesWithError = currentPhasesState.map(p =>
@@ -495,6 +503,10 @@ export default function Home() {
 
     setIsRunAllLoading(false);
     setCurrentActivePhase(null);
+
+    if (!errorOccurred && runScriptAfterGeneration) {
+      handleExecuteScript();
+    }
   };
 
   const handleExecuteScript = async () => {
@@ -586,7 +598,8 @@ export default function Home() {
 
               if (finalResult.scriptExecutionDuration !== undefined) {
                 setScriptExecutionDuration(finalResult.scriptExecutionDuration);
-              } else {
+              }
+              else {
                 setScriptExecutionDuration(null);
               }
 
@@ -601,7 +614,8 @@ export default function Home() {
                 if (finalResult.mainScript && finalResult.mainScript.stderr) errorMsg += ` Stderr: ${finalResult.mainScript.stderr}`;
                 setScriptExecutionError(errorMsg);
                 playErrorSound();
-              } else if (finalResult.overallStatus === 'success') {
+              }
+              else if (finalResult.overallStatus === 'success') {
                 playSuccessSound();
               }
             } catch (e) {
@@ -633,7 +647,8 @@ export default function Home() {
 
               if (finalResult.scriptExecutionDuration !== undefined) {
                 setScriptExecutionDuration(finalResult.scriptExecutionDuration);
-              } else {
+              }
+              else {
                 setScriptExecutionDuration(null);
               }
 
@@ -648,7 +663,8 @@ export default function Home() {
                 if (finalResult.mainScript && finalResult.mainScript.stderr) errorMsg += ` Stderr: ${finalResult.mainScript.stderr}`;
                 setScriptExecutionError(errorMsg);
                 playErrorSound();
-              } else if (finalResult.overallStatus === 'success') {
+              }
+              else if (finalResult.overallStatus === 'success') {
                 playSuccessSound();
               }
             } catch (e) {
@@ -665,11 +681,13 @@ export default function Home() {
       console.error("Error executing script:", err);
       if (err instanceof Error) {
         setScriptExecutionError(err.message);
-      } else {
+      }
+      else {
         setScriptExecutionError("An unknown error occurred while executing the script.");
       }
       playErrorSound();
-    } finally {
+    }
+    finally {
       setIsExecutingScript(false);
     }
   };
@@ -729,6 +747,8 @@ export default function Home() {
           isExecutingScript={isExecutingScript}
           handleRunAllPhases={handleRunAllPhases}
           isRunAllLoading={isRunAllLoading}
+          runScriptAfterGeneration={runScriptAfterGeneration}
+          setRunScriptAfterGeneration={setRunScriptAfterGeneration}
         />
 
         {(isLlmLoading || llmRequestDuration !== null) && (
