@@ -21,6 +21,7 @@ from typing import List, Optional
 from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
 
+from crewai_tools import MCPServerAdapter
 
 from mcp import StdioServerParameters 
 ```
