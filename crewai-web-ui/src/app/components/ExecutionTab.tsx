@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo } from 'react';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import CopyButton from './CopyButton';
 import Timer from './Timer';
 import type { ExecutionResult as ExecutionResultType } from '../api/execute/types';
@@ -181,11 +182,12 @@ const ExecutionTab = ({
           <h3 className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-3">
             Generated Project Files
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border-r border-slate-200 dark:border-slate-600 pr-2">
+          <PanelGroup direction="horizontal" className="flex flex-col md:flex-row gap-4">
+            <Panel defaultSize={30} className="border-r border-slate-200 dark:border-slate-600 pr-2">
               <FileTree tree={fileTree} activeFile={activeFile} setActiveFile={setActiveFile} />
-            </div>
-            <div className="relative bg-slate-100 dark:bg-slate-900 rounded-md p-2 min-h-[200px]">
+            </Panel>
+            <PanelResizeHandle className="w-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors" />
+            <Panel defaultSize={70} className="relative bg-slate-100 dark:bg-slate-900 rounded-md p-2 min-h-[200px]">
               <pre className="text-xs text-slate-700 dark:text-slate-200 whitespace-pre-wrap overflow-auto h-full max-h-[400px]">
                 {activeFileContent || 'Select a file to view its content.'}
               </pre>
@@ -194,8 +196,8 @@ const ExecutionTab = ({
                   <CopyButton textToCopy={activeFileContent} />
                 </div>
               )}
-            </div>
-          </div>
+            </Panel>
+          </PanelGroup>
         </div>
 
         <div>

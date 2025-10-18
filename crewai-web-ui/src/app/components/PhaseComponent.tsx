@@ -1,8 +1,10 @@
 "use client";
 
-import { ChangeEvent } from 'react';
+import { ChangeEvent, useState } from 'react';
 import CopyButton from '@/app/components/CopyButton';
 import Timer from '@/app/components/Timer';
+
+type Tab = 'prompt' | 'input' | 'output';
 
 interface PhaseComponentProps {
   phase: number;
@@ -41,6 +43,7 @@ const PhaseComponent = ({
   output,
   setOutput,
 }: PhaseComponentProps) => {
+  const [activeTab, setActiveTab] = useState<Tab>('prompt');
   return (
     <div
       className={`p-6 rounded-xl shadow-md border-2 transition-all duration-300 ease-in-out
@@ -63,25 +66,60 @@ const PhaseComponent = ({
         )}
       </h3>
 
-      <details className="mb-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600 shadow-inner" open={false}>
-        <summary className="text-md font-medium text-slate-700 dark:text-slate-300 cursor-pointer flex justify-between items-center">
-          <span>Prompt for Phase {phase}</span>
-          <CopyButton textToCopy={prompt} />
-        </summary>
-        <textarea
-          id={`phase${phase}Prompt`}
-          value={prompt}
-          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
-          rows={6}
-          className="mt-2 w-full p-3 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500 text-sm resize-y"
-          disabled={isLlmTimerRunning || isExecutingScript}
-        />
-      </details>
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex space-x-2 p-1 bg-slate-200 dark:bg-slate-700 rounded-lg">
+          {(['prompt', 'input', 'output'] as Tab[]).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors
+                ${activeTab === tab
+                  ? 'bg-white text-indigo-600 shadow dark:bg-slate-800 dark:text-indigo-400'
+                  : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-600'
+                }`}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </div>
+        <CopyButton textToCopy={
+          activeTab === 'prompt' ? prompt :
+          activeTab === 'input' ? input :
+          output
+        } />
+      </div>
+
+      <div className="bg-slate-50 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600 shadow-inner p-4">
+        {activeTab === 'prompt' && (
+          <textarea
+            id={`phase${phase}Prompt`}
+            value={prompt}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
+            rows={8}
+            className="w-full p-3 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500 text-sm resize-y"
+            disabled={isLlmTimerRunning || isExecutingScript}
+          />
+        )}
+        {activeTab === 'input' && (
+          <textarea
+            value={input || "Input will appear here after running the phase."}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
+            className="w-full p-3 border border-slate-300 rounded-md bg-slate-100 shadow-inner overflow-auto whitespace-pre-wrap min-h-[200px] text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-slate-400 resize-y"
+          />
+        )}
+        {activeTab === 'output' && (
+          <textarea
+            value={output || "Output will appear here after running the phase."}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setOutput(e.target.value)}
+            className="w-full p-3 border border-slate-300 rounded-md bg-slate-100 shadow-inner overflow-auto whitespace-pre-wrap min-h-[200px] text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-slate-400 resize-y"
+          />
+        )}
+      </div>
 
       <button
         onClick={onRunPhase}
         disabled={isRunDisabled}
-        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2.5 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-purple-400 focus:outline-none dark:focus:ring-purple-700 flex items-center justify-center gap-2"
+        className="w-full mt-4 bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2.5 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-purple-400 focus:outline-none dark:focus:ring-purple-700 flex items-center justify-center gap-2"
       >
         {isLoading && (
           <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -106,30 +144,6 @@ const PhaseComponent = ({
           </p>
         </div>
       )}
-
-      <details className="mt-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600 shadow-inner" open={false}>
-        <summary className="text-md font-medium text-slate-700 dark:text-slate-300 cursor-pointer flex justify-between items-center">
-          <span>Input for Phase {phase}</span>
-          <CopyButton textToCopy={input} />
-        </summary>
-        <textarea
-          value={input || "Input will appear here after running the phase."}
-          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
-          className="mt-2 w-full p-3 border border-slate-300 rounded-md bg-slate-100 shadow-inner overflow-auto whitespace-pre-wrap min-h-[160px] text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-slate-400 resize-y"
-        />
-      </details>
-
-      <details className="mt-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600 shadow-inner" open={false}>
-        <summary className="text-md font-medium text-slate-700 dark:text-slate-300 cursor-pointer flex justify-between items-center">
-          <span>Output of Phase {phase}</span>
-          <CopyButton textToCopy={output} />
-        </summary>
-        <textarea
-          value={output || "Output will appear here after running the."}
-          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setOutput(e.target.value)}
-          className="mt-2 w-full p-3 border border-slate-300 rounded-md bg-slate-100 shadow-inner overflow-auto whitespace-pre-wrap min-h-[160px] text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-slate-400 resize-y"
-        />
-      </details>
     </div>
   );
 };
