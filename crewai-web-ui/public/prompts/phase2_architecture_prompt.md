@@ -34,7 +34,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
     * **Description**: This tool performs a web search based on a text query and an optional pageno for pagination. It returns a JSON formatted list of search results, with each result containing its url, title, and a only a snippet of the content. A scrape tool is required to get more information from each result.
 * **`time-stdio`**: (**tool_id: `mcp_time_adapter`**)
     * `serverparams`: `{   "command": "uvx",  "args": ["mcp-server-time"]    }`
-    * **Description**: The Time MCP Server integrates with LLMs to provide accurate time information and timezone conversion capabilities. This server uses IANA timezone names and can automatically detect your system's timezone, allowing AI models to work with real-time temporal data.
+    * **Description**: The Time MCP Server integrates with LLMs to provide accurate time information and timezone conversion capabilities. This server uses IANA timezone names and can automatically detect your system's timezone, allowing AI models to work with real-time temporal data and have date-time awareness for all tasks that require it.
 * **`excel-stdio`**: (**tool_id: `mcp_excel_adapter`**)
     * `serverparams`: `{ "command": "uvx", "args": ["excel-mcp-server", "stdio"] }`
     * **Description**: This MCP server is designed to handle Excel files, allowing for reading and writing operations directly from standard input/output. It supports various Excel file formats and can be used to manipulate spreadsheet data programmatically.
@@ -106,20 +106,6 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
   },
   {
     "design_metadata": {
-      "llm_id": "qwen-3-235b-a22b-thinking-2507",
-      "reasoner": true,
-      "multimodal_support": false,
-      "rationale": "An advanced reasoning model designed for complex, multi-step tasks such as logical reasoning, mathematics, and coding. It can complete intricate reasoning processes very quickly, making it suitable for agents requiring deep analysis and problem-solving capabilities."
-    },
-    "constructor_args": {
-      "model": "cerebras/qwen-3-235b-a22b-thinking-2507",
-      "timeout": 600,
-      "api_key": "CEREBRAS_API_KEY",
-      "base_url": "https://api.cerebras.ai/v1"
-    }
-  },
-  {
-    "design_metadata": {
       "llm_id": "deepseek_chat_worker",
       "reasoner": false,
       "multimodal_support": false,
@@ -151,9 +137,9 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 *   `pydantic_model_definitions` (Array of Objects): Defines the Pydantic models for structured task outputs.
     *   `model_id` (String): A unique identifier for the model, which will become the Python class name (e.g., "ProfileAnalysisResult").
     *   `model_description` (String): A docstring for the Pydantic model class, explaining its purpose.
-    *   `is_root_model` (Boolean): **Set to `true` if the model should wrap a single type (like `List[str]`). Set to `false` for a standard model with multiple named fields.**
+    *   `is_root_model` (Boolean): **Set to `true` if the model should wrap a single type (like `List[]`). Set to `false` for a standard model with multiple named fields.**
     *   `model_fields` (Array of Objects): A list of fields for the model.
-        *   **If `is_root_model` is `true`:** This array MUST contain exactly one object. The `name` can be a placeholder like `"root"`, and the `python_type` defines the type the `RootModel` will wrap (e.g., `List[str]`).
+        *   **If `is_root_model` is `true`:** This array MUST contain exactly one object. The `name` can be a placeholder like `"root"`, and the `python_type` defines the type the `RootModel` will wrap (e.g., `List[]`).
         *   **If `is_root_model` is `false`:** This array contains all the named fields for a standard `BaseModel`.
         *   `name` (String): The name of the attribute (e.g., "summary", "skills_list"). **Must NOT be `__root__`**.
         *   `python_type` (String): The Python type hint for the field (e.g., "str", "List[str]", "Optional[int]").
