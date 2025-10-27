@@ -63,31 +63,18 @@ For each  `custom_tool` in `tools` in `task_roster` of json you should import it
           * The `llm` value must be a fixed dictionary for a local provider: `{ "provider": "ollama", "config": { "model": "llama3:instruct", "temperature": 0.0 } }`.
           * The `embedder` value must be the `embedder_config` variable created in the previous step.
 
-#### **Pydantic Model Definitions:**
+**Tool Instantiation exclusive for canonical_tool:**
 
-  * Iterate through the `pydantic_model_definitions` list in the JSON.
-  * For each model definition object:
-      * **If `is_root_model` is `true`:**
-          * Get the `python_type` from the first (and only) entry in `model_fields`.
-          * Generate a class that inherits from `RootModel[<python_type>]`.
-          * The class name MUST be the `model_id`.
-          * The class body should just be `pass`.
-          * Example: `class MyRootModel(RootModel[List[str]]): pass`
-      * **If `is_root_model` is `false`:**
-          * Generate a Python class that inherits from `BaseModel`.
-          * The class name MUST be the `model_id`.
-          * The class docstring MUST be the `model_description`.
-          * Iterate through the `model_fields` list. For each field, generate a class attribute:
-              * The attribute name is `name`.
-              * The type hint is `python_type`.
-              * The value MUST be an instance of `Field`. The `description` parameter for `Field` MUST be set to the field's `description` string. **DO NOT include any other keyword arguments like `required` in the `Field` constructor.**
-          * Example:
-            ```python
-            class ProfileAnalysisResult(BaseModel):
-                """A structured analysis of a professional profile."""
-                summary: str = Field(description="A concise summary of the profile.")
-                skills: List[str] = Field(description="A list of identified technical and soft skills.")
-            ```
+  *  **Objective:** Iterate through task_roster[*].design_metadata.tools[*].canonical_tool and generate Python code to instantiate each tool:
+      * The Python variable name for the tool instance MUST be the `tool_id` from the `constructor_args` object.
+      * The class to instantiate is specified in `class_name` within `constructor_args`.
+      * **If `design_metadata.is_custom_embedding_supported` is `true`:**
+          * Instantiate the tool by passing the pre-defined `rag_config` variable to its `config` parameter (e.g., `tool_instance = PDFSearchTool(config=rag_config)`).
+      * **If `class_name` is `MCPServerAdapter`:**
+          * First, instantiate `StdioServerParameters`. The variable name should be `<tool_id>_params`. The `command` and `args` are taken from `constructor_args.initialization_params.serverparams`.
+          * Then, instantiate `MCPServerAdapter`, passing the `_params` variable to its constructor without any keyword arguments. The variable name for the adapter MUST be the `tool_id`.
+      * **For all other tools:**
+          * If `initialization_params` exists and is non-empty, pass its contents as keyword arguments to the class constructor.
 
 
 #### **CrewBase Definition (Orchestration):**
@@ -104,26 +91,13 @@ For each  `custom_tool` in `tools` in `task_roster` of json you should import it
     tasks: List[Task]
 ```
 
-**Tool Instantiation exclusive for canonical_tool:**
-
-  *  **Objective:** Iterate through task_roster[*].design_metadata.tools[*].canonical_tool and generate Python code to instantiate each tool:
-      * The Python variable name for the tool instance MUST be the `tool_id` from the `constructor_args` object.
-      * The class to instantiate is specified in `class_name` within `constructor_args`.
-      * **If `design_metadata.is_custom_embedding_supported` is `true`:**
-          * Instantiate the tool by passing the pre-defined `rag_config` variable to its `config` parameter (e.g., `tool_instance = PDFSearchTool(config=rag_config)`).
-      * **If `class_name` is `MCPServerAdapter`:**
-          * First, instantiate `StdioServerParameters`. The variable name should be `<tool_id>_params`. The `command` and `args` are taken from `constructor_args.initialization_params.serverparams`.
-          * Then, instantiate `MCPServerAdapter`, passing the `_params` variable to its constructor without any keyword arguments. The variable name for the adapter MUST be the `tool_id`.
-      * **For all other tools:**
-          * If `initialization_params` exists and is non-empty, pass its contents as keyword arguments to the class constructor.
-
   * **`@agent` Methods:**
 
       * For each agent in `agent_cadre`, create a method decorated with `@agent`.
       * The method name MUST be the agent's `yaml_definition.yaml_id`.
       * The method returns an `Agent` instance, loading its config from YAML: `config=self.agents_config['<yaml_id>']`.
       * Assign the correct pre-instantiated LLM variable to the `llm` parameter.
-      * Assign the tool list to the `tools` parameter. For standard tools, use the tool instance variable. For MCP tools, **you MUST unpack the adapter's `.tools` property** (e.g., `tools=[*search_adapter.tools]`).
+
 
   * **`@task` Methods:**
 
@@ -132,9 +106,8 @@ For each  `custom_tool` in `tools` in `task_roster` of json you should import it
       * The method returns a `Task` instance, loading its config from YAML: `config=self.tasks_config['<yaml_id>']`.
       * The `agent` parameter is assigned the result of the corresponding `@agent` method call (e.g., `agent=self.search_orchestrator_agent()`).
       * The `context` parameter is a list of calls to prerequisite `@task` methods (e.g., `context=[self.task_one(), self.task_two()]`).
-      * The `output_json` parameter is assigned the Pydantic Class object if defined.
-      * The `tools` parameter follows the same unpacking rule as the `@agent` methods.
-
+      * Assign the tool list to the `tools` parameter. For standard tools, use the tool instance variable. For MCP tools, **you MUST unpack the adapter's `.tools` property** (e.g., `tools=[*search_adapter.tools]`).
+      
   * **`@crew` Method:**
   * Create the `Crew` instance based on the properties in the input JSON.
   * `agents`: self.agents, # Automatically created by the @agent decorator

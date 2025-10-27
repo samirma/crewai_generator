@@ -22,8 +22,6 @@ It must include the [project] section with standard metadata.
 
 The dependencies array inside [project] must include:
 
-"crewai[tools]>=0.203.0,<1.0.0" (always include this)
-
 Any other libraries you identified from the import statements. For example, if you see from dotenv import load_dotenv, you must add "python-dotenv". If you see a tool that requires a specific package (like duckduckgo-search for DuckDuckGoSearchRun), you must add it.
 
 Formatting:
@@ -40,14 +38,14 @@ name = "crewai_generated"
 version = "0.1.0"
 description = "crewai_generated using crewAI"
 authors = [{ name = "Your Name", email = "you@example.com" }]
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.12"
 dependencies = [
-    "crewai[tools]>=0.203.0,<1.0.0",
+    "crewai>=1.2.0",
     "crewai-tools[mcp]",
     "fastmcp",
     "zeroconf",
     "ollama",
-    // dependencies from python code here
+    // dependencies from python code here, after evaluate them. For each depedency add include a justification comment explaining which python code this new depedency should contemplate.
 ]
 
 [project.scripts]

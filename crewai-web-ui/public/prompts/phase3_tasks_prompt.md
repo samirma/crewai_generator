@@ -10,7 +10,7 @@ Use the JSON object provided as the single source of truth. Your task is to gene
         *   `expected_output`
     *   The `agent` key must be included, with its value taken from `constructor_args.agent_id`.
 *   **Conditional Keys:**
-    *   `context`: This key should only be included if the `constructor_args.context_task_ids` array is present and not empty. The value should be a YAML list of the task IDs from that array.
+    *   `context`: This key should only be included if the `constructor_args.context_task_ids` array is present and not empty. The value should be the `yaml_definition.yaml_id` of the task "task_identifier" in the list.
 *   **Formatting:**
     *   Ensure the output is a single, valid YAML file content.
     *   Use proper YAML syntax, especially for multi-line strings (`description` and `expected_output`).
