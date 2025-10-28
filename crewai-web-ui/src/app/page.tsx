@@ -50,15 +50,32 @@ export interface PhaseState {
 
 const initialPhases: PhaseState[] = [
   { id: 1, title: "Blueprint Definition", promptFileName: "phase1_blueprint_prompt.md", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 2, title: "Architecture Elaboration", promptFileName: "phase2_architecture_prompt.md", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-//  { id: 3, title: "User Preference Generation", promptFileName: "phase3_user_preference_prompt.md", filePath: "knowledge/user_preference.txt", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 4, title: "Agents.yaml Generation", promptFileName: "phase3_agents_prompt.md", filePath: "src/crewai_generated/config/agents.yaml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 5, title: "Tasks.yaml Generation", promptFileName: "phase3_tasks_prompt.md", filePath: "src/crewai_generated/config/tasks.yaml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 6, title: "Crew.py Generation", promptFileName: "phase3_crew_prompt.md", filePath: "src/crewai_generated/crew.py", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 7, title: "Main.py Generation", promptFileName: "phase3_main_prompt.md", filePath: "src/crewai_generated/main.py", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 8, title: "Tools Generation", promptFileName: "phase3_tools_prompt.md", filePath: "src/crewai_generated/tools", outputType: 'directory', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 9, title: "PyProject Generation", promptFileName: "phase3_pyproject_prompt.md", filePath: "pyproject.toml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 2, title: "High-Level Architecture", promptFileName: "phase2.1_high_level_architecture_prompt.md", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 3, title: "Detailed Agent and Task Definition", promptFileName: "phase2.2_detailed_agent_and_task_prompt.md", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 4, title: "Tool Selection", promptFileName: "phase2.3_tool_selection_prompt.md", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 5, title: "Custom Tool Generation", promptFileName: "phase2.4_custom_tool_generation_prompt.md", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 6, title: "Agents.yaml Generation", promptFileName: "phase3_agents_prompt.md", filePath: "src/crewai_generated/config/agents.yaml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 7, title: "Tasks.yaml Generation", promptFileName: "phase3_tasks_prompt.md", filePath: "src/crewai_generated/config/tasks.yaml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 8, title: "Crew.py Generation", promptFileName: "phase3_crew_prompt.md", filePath: "src/crewai_generated/crew.py", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 9, title: "Main.py Generation", promptFileName: "phase3_main_prompt.md", filePath: "src/crewai_generated/main.py", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 10, title: "Tools Generation", promptFileName: "phase3_tools_prompt.md", filePath: "src/crewai_generated/tools", outputType: 'directory', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
+  { id: 11, title: "PyProject Generation", promptFileName: "phase3_pyproject_prompt.md", filePath: "pyproject.toml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
 ];
+
+
+
+const phaseDependencies: { [key: number]: number[] } = {
+  2: [1],
+  3: [2],
+  4: [3],
+  5: [4],
+  6: [2, 3, 4, 5],
+  7: [2, 3, 4, 5],
+  8: [2, 3, 4, 5],
+  9: [2, 3, 4, 5],
+  10: [2, 3, 4, 5],
+  11: [8, 9, 10],
+};
 
 // Helper function to set a cookie
 function setCookie(name: string, value: string, days: number) {
@@ -234,7 +251,8 @@ export default function Home() {
         } else {
           setLlmModel(""); // No models available at all
         }
-      } catch (err) {
+      }
+      catch (err) {
         console.error("Error fetching models:", err);
         if (err instanceof Error) {
           setModelsError(err.message);
@@ -324,6 +342,32 @@ export default function Home() {
   };
 
 
+// Helper function to clean JSON string from markdown
+const cleanJsonString = (jsonString: string): string => {
+  const match = jsonString.match(/```json\n([\s\S]*?)\n```/);
+  if (match && match[1]) {
+    return match[1];
+  }
+  return jsonString;
+};
+
+// Helper function to merge JSON outputs from multiple phases
+const mergeOutputs = (outputs: string[]): string => {
+  const merged = outputs.reduce((acc, output) => {
+    try {
+      const cleanedOutput = cleanJsonString(output);
+      const parsed = JSON.parse(cleanedOutput);
+      return { ...acc, ...parsed };
+    } catch (e) {
+      console.error("Failed to parse phase output:", e);
+      return acc;
+    }
+  }, {});
+  return JSON.stringify(merged, null, 2);
+};
+
+
+  
   const handlePhaseExecution = async (phaseId: number) => {
     setCookie('initialInstruction', initialInput, 30);
     setCookie('llmModelSelection', llmModel, 30);
@@ -339,25 +383,34 @@ export default function Home() {
     // Calculate the full prompt based on the current state of phases
     const currentPhaseState = phases.find(p => p.id === phaseId)!;
     const prevPhaseState = phaseId > 1 ? phases.find(p => p.id === phaseId - 1) : null;
-    const phase2State = phases.find(p => p.id === 2);
     
     let fullPromptValue = "";
-    const pyProjectPhase = phases.find(p => p.title === "PyProject Generation");
+    const dependencies = phaseDependencies[phaseId];
 
-    if (pyProjectPhase && phaseId === pyProjectPhase.id) {
-        const crewPyPhase = phases.find(p => p.title === "Crew.py Generation");
-        const mainPyPhase = phases.find(p => p.title === "Main.py Generation");
-        const toolsPhase = phases.find(p => p.title === "Tools Generation");
-        const pythonCode = [
-            `File: ${crewPyPhase?.filePath}\n${crewPyPhase?.output}`,
-            `File: ${mainPyPhase?.filePath}\n${mainPyPhase?.output}`,
-            `File: ${toolsPhase?.filePath}\n${toolsPhase?.output}`,
-        ].filter(p => p && p.includes("\n")).join('\n\n---\n\n');
-        fullPromptValue = `${pythonCode}\n\n${currentPhaseState.prompt}`;
+    if (dependencies) {
+        const dependentOutputs = dependencies.map(depId => {
+            const phase = phases.find(p => p.id === depId);
+            return phase ? phase.output : "";
+        });
+
+        if (phaseId >= 6 && phaseId <= 10) {
+            const mergedOutput = mergeOutputs(dependentOutputs);
+            fullPromptValue = `${mergedOutput}\n\n${currentPhaseState.prompt}`;
+        } else if (phaseId === 11) {
+            const crewPyPhase = phases.find(p => p.id === 8);
+            const mainPyPhase = phases.find(p => p.id === 9);
+            const toolsPhase = phases.find(p => p.id === 10);
+            const pythonCode = [
+                `File: ${crewPyPhase?.filePath}\n${crewPyPhase?.output}`,
+                `File: ${mainPyPhase?.filePath}\n${mainPyPhase?.output}`,
+                `File: ${toolsPhase?.filePath}\n${toolsPhase?.output}`,
+            ].filter(p => p && p.includes("\n")).join('\n\n---\n\n');
+            fullPromptValue = `${pythonCode}\n\n${currentPhaseState.prompt}`;
+        } else {
+            fullPromptValue = `${dependentOutputs[0]}\n\n${currentPhaseState.prompt}`;
+        }
     } else if (phaseId === 1) {
         fullPromptValue = buildPrompt(initialInput, currentPhaseState.prompt, null, null);
-    } else if (phaseId > 2 && phase2State) {
-        fullPromptValue = `${phase2State.output}\n\n${currentPhaseState.prompt}`;
     } else if (prevPhaseState) {
         fullPromptValue = `${prevPhaseState.output}\n\n${currentPhaseState.prompt}`;
     }
@@ -435,25 +488,34 @@ export default function Home() {
 
         const currentPhaseForPrompt = currentPhasesState.find(p => p.id === phase.id)!;
         const prevPhaseForPrompt = phase.id > 1 ? currentPhasesState.find(p => p.id === phase.id - 1) : null;
-        const phase2ForPrompt = currentPhasesState.find(p => p.id === 2);
 
         let fullPromptValue = "";
-        const pyProjectPhase = currentPhasesState.find(p => p.title === "PyProject Generation");
+        const dependencies = phaseDependencies[phase.id];
 
-        if (pyProjectPhase && phase.id === pyProjectPhase.id) {
-            const crewPyPhase = currentPhasesState.find(p => p.title === "Crew.py Generation");
-            const mainPyPhase = currentPhasesState.find(p => p.title === "Main.py Generation");
-            const toolsPhase = currentPhasesState.find(p => p.title === "Tools Generation");
-            const pythonCode = [
-                `File: ${crewPyPhase?.filePath}\n${crewPyPhase?.output}`,
-                `File: ${mainPyPhase?.filePath}\n${mainPyPhase?.output}`,
-                `File: ${toolsPhase?.filePath}\n${toolsPhase?.output}`,
-            ].filter(p => p && p.includes("\n")).join('\n\n---\n\n');
-            fullPromptValue = `${pythonCode}\n\n${currentPhaseForPrompt.prompt}`;
+        if (dependencies) {
+            const dependentOutputs = dependencies.map(depId => {
+                const depPhase = currentPhasesState.find(p => p.id === depId);
+                return depPhase ? depPhase.output : "";
+            });
+
+            if (phase.id >= 6 && phase.id <= 10) {
+                const mergedOutput = mergeOutputs(dependentOutputs);
+                fullPromptValue = `${mergedOutput}\n\n${currentPhaseForPrompt.prompt}`;
+            } else if (phase.id === 11) {
+                const crewPyPhase = currentPhasesState.find(p => p.id === 8);
+                const mainPyPhase = currentPhasesState.find(p => p.id === 9);
+                const toolsPhase = currentPhasesState.find(p => p.id === 10);
+                const pythonCode = [
+                    `File: ${crewPyPhase?.filePath}\n${crewPyPhase?.output}`,
+                    `File: ${mainPyPhase?.filePath}\n${mainPyPhase?.output}`,
+                    `File: ${toolsPhase?.filePath}\n${toolsPhase?.output}`,
+                ].filter(p => p && p.includes("\n")).join('\n\n---\n\n');
+                fullPromptValue = `${pythonCode}\n\n${currentPhaseForPrompt.prompt}`;
+            } else {
+                fullPromptValue = `${dependentOutputs[0]}\n\n${currentPhaseForPrompt.prompt}`;
+            }
         } else if (phase.id === 1) {
             fullPromptValue = buildPrompt(initialInput, currentPhaseForPrompt.prompt, null, null);
-        } else if (phase.id > 2 && phase2ForPrompt) {
-            fullPromptValue = `${phase2ForPrompt.output}\n\n${currentPhaseForPrompt.prompt}`;
         } else if (prevPhaseForPrompt) {
             fullPromptValue = `${prevPhaseForPrompt.output}\n\n${currentPhaseForPrompt.prompt}`;
         }
@@ -508,6 +570,7 @@ export default function Home() {
       handleExecuteScript();
     }
   };
+
 
   const handleExecuteScript = async () => {
     setHasExecutionAttempted(true);

@@ -33,8 +33,8 @@ export async function POST(request: Request) {
     if (!llmModel || !fullPrompt) {
       return NextResponse.json({ error: "Missing required parameters: llmModel and fullPrompt." }, { status: 400 });
     }
-    if (runPhase < 1 || runPhase > 9) {
-      return NextResponse.json({ error: "Invalid 'runPhase'. Must be between 1 and 9." }, { status: 400 });
+    if (runPhase < 1 || runPhase > 11) {
+      return NextResponse.json({ error: "Invalid 'runPhase'. Must be between 1 and 11." }, { status: 400 });
     }
 
     console.log(`Received request: llmModel='${llmModel}', fullPrompt length: ${fullPrompt.length}`);
