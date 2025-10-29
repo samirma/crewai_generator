@@ -45,7 +45,7 @@ export async function executePythonScript(): Promise<ExecutePythonScriptSetupRes
       console.log(`pre_host_run.sh stdout:\n${execResult.stdout}`);
       if (execResult.stderr) console.warn(`pre_host_run.sh stderr:\n${execResult.stderr}`);
     } catch (error) {
-      const execError = error as { code?: string; message?: string; stdout?: string; stderr?: string; };
+      const execError = error as (Error & { code?: string | number; stdout?: string; stderr?: string; });
       if (execError.code === 'ENOENT') {
         preHostRunResult.status = 'skipped';
         console.log(`Host pre-run script (${preHostRunScriptPath}) not found. Skipping.`);
@@ -55,7 +55,7 @@ export async function executePythonScript(): Promise<ExecutePythonScriptSetupRes
         preHostRunResult.error = execError.message || 'Unknown error';
         preHostRunResult.stdout = execError.stdout || '';
         preHostRunResult.stderr = execError.stderr || '';
-        preHostRunResult.exitCode = (execError as { code: number }).code || 1;
+        preHostRunResult.exitCode = typeof execError.code === 'string' ? parseInt(execError.code, 10) : execError.code || 1;
         overallStatus = 'failure';
         topLevelError = `Pre-host run script failed: ${execError.message}`;
         // Early exit for pre-host run failure

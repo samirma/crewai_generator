@@ -40,8 +40,7 @@ description = "crewai_generated using crewAI"
 authors = [{ name = "Your Name", email = "you@example.com" }]
 requires-python = ">=3.12"
 dependencies = [
-    "crewai>=1.2.0",
-    "crewai-tools[mcp]",
+    "crewai[tools]>=0.203.0,<1.0.0"
     "fastmcp",
     "zeroconf",
     "ollama",

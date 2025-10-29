@@ -3,10 +3,10 @@
 Use the JSON object provided as the single source of truth. Your task is to generate the content for any custom tool files.
 
 *   **Objective:** Iterate through task_roster[*].design_metadata.tools[*].custom_tool.
-*   **File Naming:** File Naming: Derived from custom_tool.class_definition.class_name, converted to snake_case.
+*   **File Naming:** File Naming: Derived from custom_tool.tool_id
 *   **File Content:**
     *   Each file should contain the Python code for the custom tool, as defined in the `code` property of the custom tool definition.
-    *   The code should be a valid Python script, defining a class that inherits from `BaseTool`.
+    *   The code should be a valid Python script, defining a class that inherits from `crewai.tools import BaseTool`.
 *   **Output Format:**
     *   The output should be a series of file blocks, each marked with `[START_FILE:FILE_PATH]` and `[END_FILE:FILE_PATH]`. The `FILE_PATH` should be `src/crewai_generated/tools/<file_name>.py`.
     *   If there are no custom tools, the output should be empty.

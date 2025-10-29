@@ -167,7 +167,7 @@ export async function interactWithLLM(
       if (timeoutId) { // Ensure timeout is cleared if an error occurs before fetch completes
         clearTimeout(timeoutId);
       }
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         console.error(`Ollama API request timed out after ${OLLAMA_TIMEOUT_DURATION / 1000} seconds`);
         throw new Error(`Ollama API request timed out after ${OLLAMA_TIMEOUT_DURATION / 1000} seconds`);
       }

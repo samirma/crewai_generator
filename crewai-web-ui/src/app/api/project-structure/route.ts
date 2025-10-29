@@ -21,14 +21,14 @@ async function getFileTree(dir: string, relativePath: string = ''): Promise<File
       if (dirent.isDirectory()) {
         return {
           name: dirent.name,
-          type: 'folder',
+          type: 'folder' as const,
           path: newRelativePath,
           children: await getFileTree(res, newRelativePath),
         };
       } else {
         return {
           name: dirent.name,
-          type: 'file',
+          type: 'file' as const,
           path: newRelativePath,
         };
       }
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
       const content = await fs.readFile(filePath, 'utf-8');
       return new Response(content, { headers: { 'Content-Type': 'text/plain' } });
     } catch (error) {
-      if (error.code === 'ENOENT') {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
         return new Response('File not found', { status: 404 });
       }
       console.error(`Error reading file ${file}:`, error);
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
     const fileTree = await getFileTree(GENERATED_DIR);
     return NextResponse.json(fileTree);
   } catch (error) {
-    if (error.code === 'ENOENT') {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
       return NextResponse.json([]);
     }
     console.error('Error reading project structure:', error);

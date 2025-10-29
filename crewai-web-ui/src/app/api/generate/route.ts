@@ -11,7 +11,7 @@ async function ensureDirectoryExists(dir: string) {
   try {
     await fs.mkdir(dir, { recursive: true });
   } catch (error) {
-    if (error.code !== 'EEXIST') {
+    if (error && typeof error === 'object' && 'code' in error && error.code !== 'EEXIST') {
       throw error;
     }
   }
