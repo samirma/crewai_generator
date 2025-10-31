@@ -3,6 +3,7 @@ import { PhaseState } from '../config/phases.config';
 import {
   defaultGenerateInputPrompt,
   codeGenerationGenerateInputPrompt,
+  pyProjectGenerateInputPrompt,
 } from '../config/phases.config';
 
 // Mock basePhaseState for easy reuse
@@ -81,6 +82,37 @@ describe('Phase Configuration', () => {
 
       const expectedMergedOutput = JSON.stringify({ key1: 'updated-value1', key2: 'updated-value2' }, null, 2);
       expect(result).toBe(`${expectedMergedOutput}\n\nTest Prompt`);
+    });
+  });
+
+  describe('pyProjectGenerateInputPrompt', () => {
+    it('should combine the file path and output of all dependencies with the current phase prompt', () => {
+      const dependencyPhase1: PhaseState = {
+        ...basePhaseState,
+        id: 8,
+        filePath: "src/crewai_generated/crew.py",
+        output: "crew.py content",
+        dependencies: [],
+      };
+      const dependencyPhase2: PhaseState = {
+        ...basePhaseState,
+        id: 9,
+        filePath: "src/crewai_generated/main.py",
+        output: "main.py content",
+        dependencies: [],
+      };
+      const currentPhase: PhaseState = {
+        ...basePhaseState,
+        id: 11,
+        dependencies: [dependencyPhase1, dependencyPhase2],
+      };
+      const allPhases: PhaseState[] = [dependencyPhase1, dependencyPhase2, currentPhase];
+      const initialUserInput = "Initial Input";
+
+      const result = pyProjectGenerateInputPrompt(currentPhase, allPhases, initialUserInput);
+
+      const expectedPythonCode = `File: src/crewai_generated/crew.py\ncrew.py content\n\n---\n\nFile: src/crewai_generated/main.py\nmain.py content`;
+      expect(result).toBe(`${expectedPythonCode}\n\nTest Prompt`);
     });
   });
 });

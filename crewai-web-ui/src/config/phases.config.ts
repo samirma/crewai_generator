@@ -62,15 +62,11 @@ export const codeGenerationGenerateInputPrompt = (currentPhase: PhaseState, allP
   return `${mergedOutput}\n\n${currentPhase.prompt}`;
 };
 
-const pyProjectGenerateInputPrompt = (currentPhase: PhaseState, allPhases: PhaseState[], initialUserInput: string): string => {
-  const crewPyPhase = allPhases.find(p => p.id === 8);
-  const mainPyPhase = allPhases.find(p => p.id === 9);
-  const toolsPhase = allPhases.find(p => p.id === 10);
-  const pythonCode = [
-    `File: ${crewPyPhase?.filePath}\n${crewPyPhase?.output}`,
-    `File: ${mainPyPhase?.filePath}\n${mainPyPhase?.output}`,
-    `File: ${toolsPhase?.filePath}\n${toolsPhase?.output}`,
-  ].filter(p => p && p.includes("\n")).join('\n\n---\n\n');
+export const pyProjectGenerateInputPrompt = (currentPhase: PhaseState, allPhases: PhaseState[], initialUserInput: string): string => {
+  const pythonCode = currentPhase.dependencies.map(dep => {
+    const depState = allPhases.find(p => p.id === dep.id);
+    return depState ? `File: ${depState.filePath}\n${depState.output}` : "";
+  }).filter(p => p && p.includes("\n")).join('\n\n---\n\n');
   return `${pythonCode}\n\n${currentPhase.prompt}`;
 };
 
