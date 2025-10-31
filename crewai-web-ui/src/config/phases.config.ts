@@ -42,7 +42,10 @@ const mergeOutputs = (outputs: string[]): string => {
 };
 
 export const defaultGenerateInputPrompt = (currentPhase: PhaseState, allPhases: PhaseState[], initialUserInput: string): string => {
-  const dependentOutputs = currentPhase.dependencies.map(dep => dep.output);
+  const dependentOutputs = currentPhase.dependencies.map(dep => {
+    const depState = allPhases.find(p => p.id === dep.id);
+    return depState ? depState.output : "";
+  });
   return `${dependentOutputs[0]}\n\n${currentPhase.prompt}`;
 };
 
@@ -51,7 +54,10 @@ const blueprintGenerateInputPrompt = (currentPhase: PhaseState, allPhases: Phase
 };
 
 export const codeGenerationGenerateInputPrompt = (currentPhase: PhaseState, allPhases: PhaseState[], initialUserInput: string): string => {
-  const dependentOutputs = currentPhase.dependencies.map(dep => dep.output);
+  const dependentOutputs = currentPhase.dependencies.map(dep => {
+    const depState = allPhases.find(p => p.id === dep.id);
+    return depState ? depState.output : "";
+  });
   const mergedOutput = mergeOutputs(dependentOutputs);
   return `${mergedOutput}\n\n${currentPhase.prompt}`;
 };

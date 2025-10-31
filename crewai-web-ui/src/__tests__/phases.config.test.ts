@@ -25,7 +25,7 @@ describe('Phase Configuration', () => {
       const dependencyPhase1: PhaseState = {
         ...basePhaseState,
         id: 1,
-        output: "Dependency Output 1",
+        output: "Initial Dependency Output 1",
         dependencies: [],
       };
       const dependencyPhase2: PhaseState = {
@@ -39,12 +39,15 @@ describe('Phase Configuration', () => {
         id: 3,
         dependencies: [dependencyPhase1, dependencyPhase2],
       };
-      const allPhases: PhaseState[] = [dependencyPhase1, dependencyPhase2, currentPhase];
+
+      // Simulate state update
+      const updatedDependencyPhase1 = { ...dependencyPhase1, output: "Updated Dependency Output 1" };
+      const allPhases: PhaseState[] = [updatedDependencyPhase1, dependencyPhase2, currentPhase];
       const initialUserInput = "Initial Input";
 
       const result = defaultGenerateInputPrompt(currentPhase, allPhases, initialUserInput);
 
-      expect(result).toBe("Dependency Output 1\n\nTest Prompt");
+      expect(result).toBe("Updated Dependency Output 1\n\nTest Prompt");
     });
   });
 
@@ -53,13 +56,13 @@ describe('Phase Configuration', () => {
       const dependencyPhase1: PhaseState = {
         ...basePhaseState,
         id: 1,
-        output: "{\"key1\":\"value1\"}",
+        output: "{\"key1\":\"initial-value1\"}",
         dependencies: [],
       };
       const dependencyPhase2: PhaseState = {
         ...basePhaseState,
         id: 2,
-        output: "```json\n{\"key2\":\"value2\"}\n```",
+        output: "```json\n{\"key2\":\"initial-value2\"}\n```",
         dependencies: [],
       };
       const currentPhase: PhaseState = {
@@ -67,12 +70,16 @@ describe('Phase Configuration', () => {
         id: 3,
         dependencies: [dependencyPhase1, dependencyPhase2],
       };
-      const allPhases: PhaseState[] = [dependencyPhase1, dependencyPhase2, currentPhase];
+
+      // Simulate state update
+      const updatedDependencyPhase1 = { ...dependencyPhase1, output: "{\"key1\":\"updated-value1\"}" };
+      const updatedDependencyPhase2 = { ...dependencyPhase2, output: "```json\n{\"key2\":\"updated-value2\"}\n```" };
+      const allPhases: PhaseState[] = [updatedDependencyPhase1, updatedDependencyPhase2, currentPhase];
       const initialUserInput = "Initial Input";
 
       const result = codeGenerationGenerateInputPrompt(currentPhase, allPhases, initialUserInput);
 
-      const expectedMergedOutput = JSON.stringify({ key1: 'value1', key2: 'value2' }, null, 2);
+      const expectedMergedOutput = JSON.stringify({ key1: 'updated-value1', key2: 'updated-value2' }, null, 2);
       expect(result).toBe(`${expectedMergedOutput}\n\nTest Prompt`);
     });
   });
