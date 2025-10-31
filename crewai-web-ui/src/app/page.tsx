@@ -10,6 +10,8 @@ import ExecutionTab from './components/ExecutionTab';
 import type { ExecutionResult as ExecutionResultType } from './api/execute/types';
 import { parseFileBlocks } from '@/utils/fileParser';
 import { useGenerationApi } from '@/hooks/useGenerationApi';
+import { usePhases } from '@/hooks/usePhases';
+import { PhaseState } from '@/config/phases.config';
 
 export interface Model {
   id: string;
@@ -30,52 +32,6 @@ export interface GeneratedFile {
   name: string;
   content: string;
 }
-
-// New type for a single phase's state
-export interface PhaseState {
-  id: number;
-  title: string;
-  prompt: string;
-  defaultPrompt: string;
-  input: string;
-  output: string;
-  isLoading: boolean;
-  duration: number | null;
-  isTimerRunning: boolean;
-  filePath?: string;
-  outputType?: 'file' | 'directory';
-  promptFileName?: string;
-}
-
-
-const initialPhases: PhaseState[] = [
-  { id: 1, title: "Blueprint Definition", promptFileName: "phase1_blueprint_prompt.md", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 2, title: "High-Level Architecture", promptFileName: "phase2.1_high_level_architecture_prompt.md", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 3, title: "Detailed Agent and Task Definition", promptFileName: "phase2.2_detailed_agent_and_task_prompt.md", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 4, title: "Tool Selection", promptFileName: "phase2.3_tool_selection_prompt.md", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 5, title: "Custom Tool Generation", promptFileName: "phase2.4_custom_tool_generation_prompt.md", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 6, title: "Agents.yaml Generation", promptFileName: "phase3_agents_prompt.md", filePath: "src/crewai_generated/config/agents.yaml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 7, title: "Tasks.yaml Generation", promptFileName: "phase3_tasks_prompt.md", filePath: "src/crewai_generated/config/tasks.yaml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 8, title: "Crew.py Generation", promptFileName: "phase3_crew_prompt.md", filePath: "src/crewai_generated/crew.py", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 9, title: "Main.py Generation", promptFileName: "phase3_main_prompt.md", filePath: "src/crewai_generated/main.py", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 10, title: "Tools Generation", promptFileName: "phase3_tools_prompt.md", filePath: "src/crewai_generated/tools", outputType: 'directory', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-  { id: 11, title: "PyProject Generation", promptFileName: "phase3_pyproject_prompt.md", filePath: "pyproject.toml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false },
-];
-
-
-
-const phaseDependencies: { [key: number]: number[] } = {
-  2: [1],
-  3: [2],
-  4: [3],
-  5: [4],
-  6: [2],
-  7: [2],
-  8: [2, 3, 4, 5],
-  9: [8],
-  10: [5],
-  11: [8, 9, 10],
-};
 
 // Helper function to set a cookie
 function setCookie(name: string, value: string, days: number) {
@@ -116,7 +72,15 @@ export default function Home() {
   const [dockerCommandToDisplay, setDockerCommandToDisplay] = useState<string>("");
 
   // Refactored State Management
-  const [phases, setPhases] = useState<PhaseState[]>(initialPhases);
+  const {
+    phases,
+    setPhases,
+    handlePhaseExecution,
+    handleRunAllPhases: runAllPhases,
+    currentActivePhase,
+    isRunAllLoading,
+    error: phasesError,
+  } = usePhases(initialInput, llmModel);
   const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
 
 
@@ -134,11 +98,8 @@ export default function Home() {
   const scriptSuccessSoundRef = useRef<HTMLAudioElement | null>(null);
   const scriptErrorSoundRef = useRef<HTMLAudioElement | null>(null);
 
-  // State to manage the active phase for visual highlighting
-  const [currentActivePhase, setCurrentActivePhase] = useState<number | null>(null);
   // State for managing active tab
   const [activeTab, setActiveTab] = useState<'generation' | 'execution'>('generation');
-  const [isRunAllLoading, setIsRunAllLoading] = useState<boolean>(false);
   const [runScriptAfterGeneration, setRunScriptAfterGeneration] = useState<boolean>(false);
 
 
@@ -268,38 +229,6 @@ export default function Home() {
     fetchModels();
   }, []);
 
-  useEffect(() => {
-    const fetchInitialPrompts = async () => {
-      try {
-        const responses = await Promise.all(
-          initialPhases.map(phase => phase.promptFileName ? fetch(`/prompts/${phase.promptFileName}`) : Promise.resolve(new Response("")))
-        );
-
-        for (const response of responses) {
-          if (!response.ok && response.url) {
-            console.error(`Failed to fetch a default prompt: ${response.status} ${response.url}`);
-            setError("Failed to load one or more default prompts. Please check the console.");
-            return;
-          }
-        }
-
-        const texts = await Promise.all(responses.map(res => res.text()));
-
-        setPhases(prevPhases =>
-          prevPhases.map((phase, index) => ({
-            ...phase,
-            prompt: texts[index],
-            defaultPrompt: texts[index],
-          }))
-        );
-
-      } catch (e) {
-        console.error("Error fetching initial prompts:", e);
-        setError("Error loading initial prompts. Check console.");
-      }
-    };
-    fetchInitialPrompts();
-  }, []);
 
   const playLlmSound = () => {
     llmRequestFinishSoundRef.current?.play().catch(e => console.error("Error playing LLM sound:", e));
@@ -338,235 +267,21 @@ export default function Home() {
       }))
     );
 
-    setCurrentActivePhase(null);
   };
 
 
-// Helper function to clean JSON string from markdown
-const cleanJsonString = (jsonString: string): string => {
-  const match = jsonString.match(/```json\n([\s\S]*?)\n```/);
-  if (match && match[1]) {
-    return match[1];
-  }
-  return jsonString;
-};
-
-// Helper function to merge JSON outputs from multiple phases
-const mergeOutputs = (outputs: string[]): string => {
-  const merged = outputs.reduce((acc, output) => {
-    try {
-      const cleanedOutput = cleanJsonString(output);
-      const parsed = JSON.parse(cleanedOutput);
-      return { ...acc, ...parsed };
-    } catch (e) {
-      console.error("Failed to parse phase output:", e);
-      return acc;
-    }
-  }, {});
-  return JSON.stringify(merged, null, 2);
-};
-
-
-  
-  const handlePhaseExecution = async (phaseId: number) => {
-    setCookie('initialInstruction', initialInput, 30);
-    setCookie('llmModelSelection', llmModel, 30);
-    if (!llmModel) {
-        setError("Please select an LLM model.");
-        return;
-    }
-
-    if (phaseId === 1) {
-        resetOutputStates();
-    }
-    
-    // Calculate the full prompt based on the current state of phases
-    const currentPhaseState = phases.find(p => p.id === phaseId)!;
-    const prevPhaseState = phaseId > 1 ? phases.find(p => p.id === phaseId - 1) : null;
-    
-    let fullPromptValue = "";
-    const dependencies = phaseDependencies[phaseId];
-
-    if (dependencies) {
-        const dependentOutputs = dependencies.map(depId => {
-            const phase = phases.find(p => p.id === depId);
-            return phase ? phase.output : "";
-        });
-
-        if (phaseId >= 6 && phaseId <= 10) {
-            const mergedOutput = mergeOutputs(dependentOutputs);
-            fullPromptValue = `${mergedOutput}\n\n${currentPhaseState.prompt}`;
-        } else if (phaseId === 11) {
-            const crewPyPhase = phases.find(p => p.id === 8);
-            const mainPyPhase = phases.find(p => p.id === 9);
-            const toolsPhase = phases.find(p => p.id === 10);
-            const pythonCode = [
-                `File: ${crewPyPhase?.filePath}\n${crewPyPhase?.output}`,
-                `File: ${mainPyPhase?.filePath}\n${mainPyPhase?.output}`,
-                `File: ${toolsPhase?.filePath}\n${toolsPhase?.output}`,
-            ].filter(p => p && p.includes("\n")).join('\n\n---\n\n');
-            fullPromptValue = `${pythonCode}\n\n${currentPhaseState.prompt}`;
-        } else {
-            fullPromptValue = `${dependentOutputs[0]}\n\n${currentPhaseState.prompt}`;
-        }
-    } else if (phaseId === 1) {
-        fullPromptValue = buildPrompt(initialInput, currentPhaseState.prompt, null, null);
-    } else if (prevPhaseState) {
-        fullPromptValue = `${prevPhaseState.output}\n\n${currentPhaseState.prompt}`;
-    }
-
-    // Update UI to show loading state
-    setCurrentActivePhase(phaseId);
-    setPhases(currentPhases =>
-        currentPhases.map(p => {
-            if (p.id > phaseId) {
-                return { ...p, output: "", duration: null, isLoading: false, isTimerRunning: false };
-            }
-            if (p.id === phaseId) {
-                return { ...p, input: fullPromptValue, isLoading: true, isTimerRunning: true };
-            }
-            return p;
-        })
-    );
-
-    try {
-        const result = await generateApi({
-            llmModel,
-            mode: 'advanced',
-            fullPrompt: fullPromptValue,
-            runPhase: phaseId,
-            filePath: currentPhaseState.filePath,
-            outputType: currentPhaseState.outputType,
-        });
-
-        playLlmSound();
-        const { output, duration } = result;
-        setPhases(currentPhases =>
-            currentPhases.map(p =>
-                p.id === phaseId
-                    ? { ...p, output, duration, isLoading: false, isTimerRunning: false }
-                    : p
-            )
-        );
-
-    } catch (error) {
-        playErrorSound();
-        if (error instanceof Error) {
-            setError(error.message);
-        }
-        else {
-            setError("An unknown error occurred during phase execution.");
-        }
-        setPhases(currentPhases =>
-            currentPhases.map(p =>
-                p.id === phaseId ? { ...p, isLoading: false, isTimerRunning: false } : p
-            )
-        );
-    }
-    finally {
-        setCurrentActivePhase(null);
-    }
-  };
-
-  const handleRunAllPhases = async () => {
+const handleRunAllPhases = async () => {
     setCookie('initialInstruction', initialInput, 30);
     setCookie('llmModelSelection', llmModel, 30);
     if (!llmModel) {
       setError("Please select an LLM model.");
       return;
     }
-
     resetOutputStates();
     setActiveTab('generation');
-    setIsRunAllLoading(true);
+    const success = await runAllPhases();
 
-    let currentPhasesState = [...phases];
-    let errorOccurred = false;
-
-    for (const phase of phases) {
-        setCurrentActivePhase(phase.id);
-
-        const currentPhaseForPrompt = currentPhasesState.find(p => p.id === phase.id)!;
-        const prevPhaseForPrompt = phase.id > 1 ? currentPhasesState.find(p => p.id === phase.id - 1) : null;
-
-        let fullPromptValue = "";
-        const dependencies = phaseDependencies[phase.id];
-
-        if (dependencies) {
-            const dependentOutputs = dependencies.map(depId => {
-                const depPhase = currentPhasesState.find(p => p.id === depId);
-                return depPhase ? depPhase.output : "";
-            });
-
-            if (phase.id >= 6 && phase.id <= 10) {
-                const mergedOutput = mergeOutputs(dependentOutputs);
-                fullPromptValue = `${mergedOutput}\n\n${currentPhaseForPrompt.prompt}`;
-            } else if (phase.id === 11) {
-                const crewPyPhase = currentPhasesState.find(p => p.id === 8);
-                const mainPyPhase = currentPhasesState.find(p => p.id === 9);
-                const toolsPhase = currentPhasesState.find(p => p.id === 10);
-                const pythonCode = [
-                    `File: ${crewPyPhase?.filePath}\n${crewPyPhase?.output}`,
-                    `File: ${mainPyPhase?.filePath}\n${mainPyPhase?.output}`,
-                    `File: ${toolsPhase?.filePath}\n${toolsPhase?.output}`,
-                ].filter(p => p && p.includes("\n")).join('\n\n---\n\n');
-                fullPromptValue = `${pythonCode}\n\n${currentPhaseForPrompt.prompt}`;
-            } else {
-                fullPromptValue = `${dependentOutputs[0]}\n\n${currentPhaseForPrompt.prompt}`;
-            }
-        } else if (phase.id === 1) {
-            fullPromptValue = buildPrompt(initialInput, currentPhaseForPrompt.prompt, null, null);
-        } else if (prevPhaseForPrompt) {
-            fullPromptValue = `${prevPhaseForPrompt.output}\n\n${currentPhaseForPrompt.prompt}`;
-        }
-
-        const newPhasesWithInput = currentPhasesState.map(p =>
-            p.id === phase.id ? { ...p, input: fullPromptValue, isLoading: true, isTimerRunning: true } : p
-        );
-        setPhases(newPhasesWithInput);
-        currentPhasesState = newPhasesWithInput;
-
-        try {
-            const result = await generateApi({
-                llmModel,
-                mode: 'advanced',
-                fullPrompt: fullPromptValue,
-                runPhase: phase.id,
-                filePath: currentPhaseForPrompt.filePath,
-                outputType: currentPhaseForPrompt.outputType
-            });
-            
-            playLlmSound();
-            const { output, duration } = result;
-
-            const newPhasesWithOutput = currentPhasesState.map(p =>
-                p.id === phase.id ? { ...p, output, duration, isLoading: false, isTimerRunning: false } : p
-            );
-            setPhases(newPhasesWithOutput);
-            currentPhasesState = newPhasesWithOutput;
-
-        } catch (error) {
-            errorOccurred = true;
-            playErrorSound();
-            console.error(`Error in phase ${phase.id}:`, error);
-            if (error instanceof Error) {
-                setError(`Error during phase ${phase.id}: ${error.message}`);
-            }
-            else {
-                setError(`An unknown error occurred during phase ${phase.id}.`);
-            }
-            const newPhasesWithError = currentPhasesState.map(p =>
-                p.id === phase.id ? { ...p, isLoading: false, isTimerRunning: false } : p
-            );
-            setPhases(newPhasesWithError);
-            break; 
-        }
-    }
-
-    setIsRunAllLoading(false);
-    setCurrentActivePhase(null);
-
-    if (!errorOccurred && runScriptAfterGeneration) {
+    if (success && runScriptAfterGeneration) {
       handleExecuteScript();
     }
   };
@@ -880,10 +595,10 @@ const mergeOutputs = (outputs: string[]): string => {
           </div>
         </div>
 
-        {error && (
+        {(error || phasesError) && (
           <div className="mt-8 p-4 border border-red-400 bg-red-100 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-500/50 dark:text-red-400 shadow-md">
             <p className="font-bold text-lg mb-2">Error:</p>
-            <p className="text-base">{error}</p>
+            <p className="text-base">{error || phasesError}</p>
           </div>
         )}
       </main>
