@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getPhases, PhaseState } from '../config/phases.config';
 import { useGenerationApi } from './useGenerationApi';
 
-export const usePhases = (initialInput: string, llmModel: string) => {
+export const usePhases = (initialInput: string, llmModel: string, playLlmSound: () => void) => {
   const [phases, setPhases] = useState<PhaseState[]>(getPhases());
   const { generate: generateApi } = useGenerationApi();
   const [currentActivePhase, setCurrentActivePhase] = useState<number | null>(null);
@@ -57,6 +57,7 @@ export const usePhases = (initialInput: string, llmModel: string) => {
           p.id === phaseId ? { ...p, output: result.output, duration: result.duration, isLoading: false, isTimerRunning: false } : p
         )
       );
+      playLlmSound();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
       setError(errorMessage);
