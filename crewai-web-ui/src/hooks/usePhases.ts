@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getPhases, PhaseState } from '../config/phases.config';
 import { useGenerationApi } from './useGenerationApi';
 
@@ -8,6 +8,15 @@ export const usePhases = (initialInput: string, llmModel: string, playLlmSound: 
   const [currentActivePhase, setCurrentActivePhase] = useState<number | null>(null);
   const [isRunAllLoading, setIsRunAllLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Refs to hold the latest state
+  const phasesRef = useRef(phases);
+  const errorRef = useRef(error);
+
+  useEffect(() => {
+    phasesRef.current = phases;
+    errorRef.current = error;
+  }, [phases, error]);
 
   useEffect(() => {
     const fetchInitialPrompts = async () => {
@@ -31,10 +40,10 @@ export const usePhases = (initialInput: string, llmModel: string, playLlmSound: 
   }, []);
 
   const handlePhaseExecution = async (phaseId: number) => {
-    const currentPhase = phases.find(p => p.id === phaseId);
+    const currentPhase = phasesRef.current.find(p => p.id === phaseId);
     if (!currentPhase) return;
 
-    const fullPromptValue = currentPhase.generateInputPrompt(currentPhase, phases, initialInput);
+    const fullPromptValue = currentPhase.generateInputPrompt(currentPhase, phasesRef.current, initialInput);
 
     setPhases(currentPhases =>
       currentPhases.map(p =>
@@ -77,9 +86,10 @@ export const usePhases = (initialInput: string, llmModel: string, playLlmSound: 
     setError(null);
     let errorOccurred = false;
 
-    for (const phase of phases) {
+    const initialPhases = phasesRef.current;
+    for (const phase of initialPhases) {
       await handlePhaseExecution(phase.id);
-      if (error) {
+      if (errorRef.current) {
         errorOccurred = true;
         break;
       }
