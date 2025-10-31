@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { getPhases, PhaseState } from '../config/phases.config';
 import { useGenerationApi } from './useGenerationApi';
 
@@ -8,15 +8,6 @@ export const usePhases = (initialInput: string, llmModel: string, playLlmSound: 
   const [currentActivePhase, setCurrentActivePhase] = useState<number | null>(null);
   const [isRunAllLoading, setIsRunAllLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Refs to hold the latest state
-  const phasesRef = useRef(phases);
-  const errorRef = useRef(error);
-
-  useEffect(() => {
-    phasesRef.current = phases;
-    errorRef.current = error;
-  }, [phases, error]);
 
   useEffect(() => {
     const fetchInitialPrompts = async () => {
@@ -39,17 +30,16 @@ export const usePhases = (initialInput: string, llmModel: string, playLlmSound: 
     fetchInitialPrompts();
   }, []);
 
-  const handlePhaseExecution = async (phaseId: number) => {
-    const currentPhase = phasesRef.current.find(p => p.id === phaseId);
-    if (!currentPhase) return;
+  const handlePhaseExecution = async (phaseId: number, phasesForExecution: PhaseState[] = phases): Promise<PhaseState[]> => {
+    const currentPhase = phasesForExecution.find(p => p.id === phaseId);
+    if (!currentPhase) return phasesForExecution;
 
-    const fullPromptValue = currentPhase.generateInputPrompt(currentPhase, phasesRef.current, initialInput);
+    const fullPromptValue = currentPhase.generateInputPrompt(currentPhase, phasesForExecution, initialInput);
 
-    setPhases(currentPhases =>
-      currentPhases.map(p =>
-        p.id === phaseId ? { ...p, input: fullPromptValue, isLoading: true, isTimerRunning: true } : p
-      )
+    const updatedPhasesWithInput = phasesForExecution.map(p =>
+      p.id === phaseId ? { ...p, input: fullPromptValue, isLoading: true, isTimerRunning: true } : p
     );
+    setPhases(updatedPhasesWithInput);
     setCurrentActivePhase(phaseId);
 
     try {
@@ -61,21 +51,22 @@ export const usePhases = (initialInput: string, llmModel: string, playLlmSound: 
         filePath: currentPhase.filePath,
         outputType: currentPhase.outputType,
       });
-      setPhases(currentPhases =>
-        currentPhases.map(p =>
-          p.id === phaseId ? { ...p, output: result.output, duration: result.duration, isLoading: false, isTimerRunning: false } : p
-        )
+
+      const finalPhases = updatedPhasesWithInput.map(p =>
+        p.id === phaseId ? { ...p, output: result.output, duration: result.duration, isLoading: false, isTimerRunning: false } : p
       );
+      setPhases(finalPhases);
       playLlmSound();
+      return finalPhases;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
       setError(errorMessage);
       console.error("Error executing phase:", err);
-      setPhases(currentPhases =>
-        currentPhases.map(p =>
-          p.id === phaseId ? { ...p, isLoading: false, isTimerRunning: false } : p
-        )
+      const finalPhases = updatedPhasesWithInput.map(p =>
+        p.id === phaseId ? { ...p, isLoading: false, isTimerRunning: false } : p
       );
+      setPhases(finalPhases);
+      return finalPhases;
     } finally {
       setCurrentActivePhase(null);
     }
@@ -84,19 +75,18 @@ export const usePhases = (initialInput: string, llmModel: string, playLlmSound: 
   const handleRunAllPhases = async () => {
     setIsRunAllLoading(true);
     setError(null);
-    let errorOccurred = false;
 
-    const initialPhases = phasesRef.current;
-    for (const phase of initialPhases) {
-      await handlePhaseExecution(phase.id);
-      if (errorRef.current) {
-        errorOccurred = true;
+    let currentPhases = phases;
+    for (const phase of phases) {
+      const newPhases = await handlePhaseExecution(phase.id, currentPhases);
+      currentPhases = newPhases;
+      if (error) {
         break;
       }
     }
 
     setIsRunAllLoading(false);
-    return !errorOccurred;
+    return !error;
   };
 
   return {
