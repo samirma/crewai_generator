@@ -41,8 +41,15 @@ const mergeOutputs = (outputs: string[]): string => {
   return JSON.stringify(merged, null, 2);
 };
 
-const defaultGenerateInputPrompt = (currentPhase: PhaseState, allPhases: PhaseState[], initialUserInput: string): string => {
-  const dependentOutputs = currentPhase.dependencies.map(dep => dep.output);
+const getDependentOutputs = (currentPhase: PhaseState, allPhases: PhaseState[]): string[] => {
+  return currentPhase.dependencies.map(dep => {
+    const depState = allPhases.find(p => p.id === dep.id);
+    return depState ? depState.output : "";
+  });
+};
+
+export const defaultGenerateInputPrompt = (currentPhase: PhaseState, allPhases: PhaseState[], initialUserInput: string): string => {
+  const dependentOutputs = getDependentOutputs(currentPhase, allPhases);
   return `${dependentOutputs[0]}\n\n${currentPhase.prompt}`;
 };
 
@@ -50,35 +57,186 @@ const blueprintGenerateInputPrompt = (currentPhase: PhaseState, allPhases: Phase
   return buildPrompt(initialUserInput, currentPhase.prompt, null, null);
 };
 
-const codeGenerationGenerateInputPrompt = (currentPhase: PhaseState, allPhases: PhaseState[], initialUserInput: string): string => {
-  const dependentOutputs = currentPhase.dependencies.map(dep => dep.output);
+export const codeGenerationGenerateInputPrompt = (currentPhase: PhaseState, allPhases: PhaseState[], initialUserInput: string): string => {
+  const dependentOutputs = getDependentOutputs(currentPhase, allPhases);
   const mergedOutput = mergeOutputs(dependentOutputs);
   return `${mergedOutput}\n\n${currentPhase.prompt}`;
 };
 
-const pyProjectGenerateInputPrompt = (currentPhase: PhaseState, allPhases: PhaseState[], initialUserInput: string): string => {
-  const crewPyPhase = allPhases.find(p => p.id === 8);
-  const mainPyPhase = allPhases.find(p => p.id === 9);
-  const toolsPhase = allPhases.find(p => p.id === 10);
-  const pythonCode = [
-    `File: ${crewPyPhase?.filePath}\n${crewPyPhase?.output}`,
-    `File: ${mainPyPhase?.filePath}\n${mainPyPhase?.output}`,
-    `File: ${toolsPhase?.filePath}\n${toolsPhase?.output}`,
-  ].filter(p => p && p.includes("\n")).join('\n\n---\n\n');
+export const pyProjectGenerateInputPrompt = (currentPhase: PhaseState, allPhases: PhaseState[], initialUserInput: string): string => {
+  const pythonCode = currentPhase.dependencies.map(dep => {
+    const depState = allPhases.find(p => p.id === dep.id);
+    return depState ? `File: ${depState.filePath}\n${depState.output}` : "";
+  }).filter(p => p && p.includes("\n")).join('\n\n---\n\n');
   return `${pythonCode}\n\n${currentPhase.prompt}`;
 };
 
-const blueprintDefinitionPhase: PhaseState = { id: 1, title: "Blueprint Definition", promptFileName: "phase1_blueprint_prompt.md", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false, dependencies: [], generateInputPrompt: blueprintGenerateInputPrompt };
-const highLevelArchitecturePhase: PhaseState = { id: 2, title: "High-Level Architecture", promptFileName: "phase2.1_high_level_architecture_prompt.md", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false, dependencies: [blueprintDefinitionPhase], generateInputPrompt: defaultGenerateInputPrompt };
-const detailedAgentAndTaskDefinitionPhase: PhaseState = { id: 3, title: "Detailed Agent and Task Definition", promptFileName: "phase2.2_detailed_agent_and_task_prompt.md", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false, dependencies: [highLevelArchitecturePhase], generateInputPrompt: defaultGenerateInputPrompt };
-const toolSelectionPhase: PhaseState = { id: 4, title: "Tool Selection", promptFileName: "phase2.3_tool_selection_prompt.md", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false, dependencies: [detailedAgentAndTaskDefinitionPhase], generateInputPrompt: defaultGenerateInputPrompt };
-const customToolGenerationPhase: PhaseState = { id: 5, title: "Custom Tool Generation", promptFileName: "phase2.4_custom_tool_generation_prompt.md", prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false, dependencies: [toolSelectionPhase], generateInputPrompt: defaultGenerateInputPrompt };
-const agentsYamlGenerationPhase: PhaseState = { id: 6, title: "Agents.yaml Generation", promptFileName: "phase3_agents_prompt.md", filePath: "src/crewai_generated/config/agents.yaml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false, dependencies: [highLevelArchitecturePhase], generateInputPrompt: codeGenerationGenerateInputPrompt };
-const tasksYamlGenerationPhase: PhaseState = { id: 7, title: "Tasks.yaml Generation", promptFileName: "phase3_tasks_prompt.md", filePath: "src/crewai_generated/config/tasks.yaml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false, dependencies: [highLevelArchitecturePhase], generateInputPrompt: codeGenerationGenerateInputPrompt };
-const crewPyGenerationPhase: PhaseState = { id: 8, title: "Crew.py Generation", promptFileName: "phase3_crew_prompt.md", filePath: "src/crewai_generated/crew.py", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false, dependencies: [highLevelArchitecturePhase, detailedAgentAndTaskDefinitionPhase, toolSelectionPhase, customToolGenerationPhase], generateInputPrompt: codeGenerationGenerateInputPrompt };
-const mainPyGenerationPhase: PhaseState = { id: 9, title: "Main.py Generation", promptFileName: "phase3_main_prompt.md", filePath: "src/crewai_generated/main.py", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false, dependencies: [crewPyGenerationPhase], generateInputPrompt: defaultGenerateInputPrompt };
-const toolsGenerationPhase: PhaseState = { id: 10, title: "Tools Generation", promptFileName: "phase3_tools_prompt.md", filePath: "src/crewai_generated/tools", outputType: 'directory', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false, dependencies: [customToolGenerationPhase], generateInputPrompt: codeGenerationGenerateInputPrompt };
-const pyProjectGenerationPhase: PhaseState = { id: 11, title: "PyProject Generation", promptFileName: "phase3_pyproject_prompt.md", filePath: "pyproject.toml", outputType: 'file', prompt: "", defaultPrompt: "", input: "", output: "", isLoading: false, duration: null, isTimerRunning: false, dependencies: [crewPyGenerationPhase, mainPyGenerationPhase, toolsGenerationPhase], generateInputPrompt: pyProjectGenerateInputPrompt };
+const blueprintDefinitionPhase: PhaseState = {
+  id: 1,
+  title: "Blueprint Definition",
+  promptFileName: "phase1_blueprint_prompt.md",
+  prompt: "",
+  defaultPrompt: "",
+  input: "",
+  output: "",
+  isLoading: false,
+  duration: null,
+  isTimerRunning: false,
+  dependencies: [],
+  generateInputPrompt: blueprintGenerateInputPrompt
+};
+const highLevelArchitecturePhase: PhaseState = {
+  id: 2,
+  title: "High-Level Architecture",
+  promptFileName: "phase2.1_high_level_architecture_prompt.md",
+  prompt: "",
+  defaultPrompt: "",
+  input: "",
+  output: "",
+  isLoading: false,
+  duration: null,
+  isTimerRunning: false,
+  dependencies: [blueprintDefinitionPhase],
+  generateInputPrompt: defaultGenerateInputPrompt
+};
+const detailedAgentAndTaskDefinitionPhase: PhaseState = {
+  id: 3,
+  title: "Detailed Agent and Task Definition",
+  promptFileName: "phase2.2_detailed_agent_and_task_prompt.md",
+  prompt: "",
+  defaultPrompt: "",
+  input: "",
+  output: "",
+  isLoading: false,
+  duration: null,
+  isTimerRunning: false,
+  dependencies: [highLevelArchitecturePhase],
+  generateInputPrompt: defaultGenerateInputPrompt
+};
+const toolSelectionPhase: PhaseState = {
+  id: 4,
+  title: "Tool Selection",
+  promptFileName: "phase2.3_tool_selection_prompt.md",
+  prompt: "",
+  defaultPrompt: "",
+  input: "",
+  output: "",
+  isLoading: false,
+  duration: null,
+  isTimerRunning: false,
+  dependencies: [detailedAgentAndTaskDefinitionPhase],
+  generateInputPrompt: defaultGenerateInputPrompt
+};
+const customToolGenerationPhase: PhaseState = {
+  id: 5,
+  title: "Custom Tool Generation",
+  promptFileName: "phase2.4_custom_tool_generation_prompt.md",
+  prompt: "",
+  defaultPrompt: "",
+  input: "",
+  output: "",
+  isLoading: false,
+  duration: null,
+  isTimerRunning: false,
+  dependencies: [toolSelectionPhase],
+  generateInputPrompt: defaultGenerateInputPrompt
+};
+const agentsYamlGenerationPhase: PhaseState = {
+  id: 6,
+  title: "Agents.yaml Generation",
+  promptFileName: "phase3_agents_prompt.md",
+  filePath: "src/crewai_generated/config/agents.yaml",
+  outputType: 'file',
+  prompt: "",
+  defaultPrompt: "",
+  input: "",
+  output: "",
+  isLoading: false,
+  duration: null,
+  isTimerRunning: false,
+  dependencies: [detailedAgentAndTaskDefinitionPhase],
+  generateInputPrompt: codeGenerationGenerateInputPrompt
+};
+const tasksYamlGenerationPhase: PhaseState = {
+  id: 7,
+  title: "Tasks.yaml Generation",
+  promptFileName: "phase3_tasks_prompt.md",
+  filePath: "src/crewai_generated/config/tasks.yaml",
+  outputType: 'file',
+  prompt: "",
+  defaultPrompt: "",
+  input: "",
+  output: "",
+  isLoading: false,
+  duration: null,
+  isTimerRunning: false,
+  dependencies: [highLevelArchitecturePhase],
+  generateInputPrompt: codeGenerationGenerateInputPrompt
+};
+const crewPyGenerationPhase: PhaseState = {
+  id: 8,
+  title: "Crew.py Generation",
+  promptFileName: "phase3_crew_prompt.md",
+  filePath: "src/crewai_generated/crew.py",
+  outputType: 'file',
+  prompt: "",
+  defaultPrompt: "",
+  input: "",
+  output: "",
+  isLoading: false,
+  duration: null,
+  isTimerRunning: false,
+  dependencies: [highLevelArchitecturePhase, detailedAgentAndTaskDefinitionPhase, toolSelectionPhase, customToolGenerationPhase],
+  generateInputPrompt: codeGenerationGenerateInputPrompt
+};
+const mainPyGenerationPhase: PhaseState = {
+  id: 9,
+  title: "Main.py Generation",
+  promptFileName: "phase3_main_prompt.md",
+  filePath: "src/crewai_generated/main.py",
+  outputType: 'file',
+  prompt: "",
+  defaultPrompt: "",
+  input: "",
+  output: "",
+  isLoading: false,
+  duration: null,
+  isTimerRunning: false,
+  dependencies: [crewPyGenerationPhase],
+  generateInputPrompt: defaultGenerateInputPrompt
+};
+const toolsGenerationPhase: PhaseState = {
+  id: 10,
+  title: "Tools Generation",
+  promptFileName: "phase3_tools_prompt.md",
+  filePath: "src/crewai_generated/tools",
+  outputType: 'directory',
+  prompt: "",
+  defaultPrompt: "",
+  input: "",
+  output: "",
+  isLoading: false,
+  duration: null,
+  isTimerRunning: false,
+  dependencies: [customToolGenerationPhase],
+  generateInputPrompt: codeGenerationGenerateInputPrompt
+};
+const pyProjectGenerationPhase: PhaseState = {
+  id: 11,
+  title: "PyProject Generation",
+  promptFileName: "phase3_pyproject_prompt.md",
+  filePath: "pyproject.toml",
+  outputType: 'file',
+  prompt: "",
+  defaultPrompt: "",
+  input: "",
+  output: "",
+  isLoading: false,
+  duration: null,
+  isTimerRunning: false,
+  dependencies: [crewPyGenerationPhase, mainPyGenerationPhase, toolsGenerationPhase],
+  generateInputPrompt: pyProjectGenerateInputPrompt
+};
 
 const phases = [
   blueprintDefinitionPhase,

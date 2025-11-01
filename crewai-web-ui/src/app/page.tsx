@@ -70,8 +70,23 @@ export default function Home() {
   const [phasedOutputs, setPhasedOutputs] = useState<PhasedOutput[]>([]); // For simple mode's task outputs
   const [scriptLogOutput, setScriptLogOutput] = useState<string[]>([]);
   const [dockerCommandToDisplay, setDockerCommandToDisplay] = useState<string>("");
+  const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
+  const [llmRequestDuration, setLlmRequestDuration] = useState<number | null>(null);
+  const [scriptExecutionDuration, setScriptExecutionDuration] = useState<number | null>(null);
+  const [hasExecutionAttempted, setHasExecutionAttempted] = useState<boolean>(false);
+  const [scriptTimerKey, setScriptTimerKey] = useState<number>(0);
+  const [finalExecutionStatus, setFinalExecutionStatus] = useState<string | null>(null);
+  const [finalExecutionResult, setFinalExecutionResult] = useState<ExecutionResultType | null>(null);
+  const llmRequestFinishSoundRef = useRef<HTMLAudioElement | null>(null);
+  const scriptSuccessSoundRef = useRef<HTMLAudioElement | null>(null);
+  const scriptErrorSoundRef = useRef<HTMLAudioElement | null>(null);
+  const [activeTab, setActiveTab] = useState<'generation' | 'execution'>('generation');
+  const [runScriptAfterGeneration, setRunScriptAfterGeneration] = useState<boolean>(false);
 
-  // Refactored State Management
+  const playLlmSound = () => {
+    llmRequestFinishSoundRef.current?.play().catch(e => console.error("Error playing LLM sound:", e));
+  };
+
   const {
     phases,
     setPhases,
@@ -80,30 +95,7 @@ export default function Home() {
     currentActivePhase,
     isRunAllLoading,
     error: phasesError,
-  } = usePhases(initialInput, llmModel);
-  const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
-
-
-  const [llmRequestDuration, setLlmRequestDuration] = useState<number | null>(null);
-  const [scriptExecutionDuration, setScriptExecutionDuration] = useState<number | null>(null);
-  const [hasExecutionAttempted, setHasExecutionAttempted] = useState<boolean>(false);
-  const [scriptTimerKey, setScriptTimerKey] = useState<number>(0);
-
-  // State for detailed execution status
-  const [finalExecutionStatus, setFinalExecutionStatus] = useState<string | null>(null);
-  const [finalExecutionResult, setFinalExecutionResult] = useState<ExecutionResultType | null>(null);
-
-  // Sound effects
-  const llmRequestFinishSoundRef = useRef<HTMLAudioElement | null>(null);
-  const scriptSuccessSoundRef = useRef<HTMLAudioElement | null>(null);
-  const scriptErrorSoundRef = useRef<HTMLAudioElement | null>(null);
-
-  // State for managing active tab
-  const [activeTab, setActiveTab] = useState<'generation' | 'execution'>('generation');
-  const [runScriptAfterGeneration, setRunScriptAfterGeneration] = useState<boolean>(false);
-
-
-
+  } = usePhases(initialInput, llmModel, playLlmSound);
 
   const fetchSavedPrompts = async () => {
     try {
@@ -120,23 +112,18 @@ export default function Home() {
 
   useEffect(() => {
     fetchSavedPrompts();
-    // Initialize Audio objects - only on client side
     llmRequestFinishSoundRef.current = new Audio('/sounds/llm_finish.mp3');
     scriptSuccessSoundRef.current = new Audio('/sounds/script_success.mp3');
     scriptErrorSoundRef.current = new Audio('/sounds/script_error.mp3');
-
-    // Load initialInput from cookie on component mount using helper
     const initialInstructionCookie = getCookie('initialInstruction');
     if (initialInstructionCookie) {
       setInitialInput(initialInstructionCookie);
     }
-
-    // Load llmModelSelection from cookie
     const llmModelCookie = getCookie('llmModelSelection');
     if (llmModelCookie) {
       setLlmModel(llmModelCookie);
     }
-  }, []); // Empty dependency array ensures this runs only on mount
+  }, []);
 
   const handleSavePrompt = async () => {
     const title = window.prompt("Enter a title for the prompt:");
@@ -193,46 +180,35 @@ export default function Home() {
         setAvailableModels(models);
         if (models.length > 0) {
           const selectableModels = models.filter(model => model.id !== 'ollama/not-configured' && model.id !== 'ollama/error');
-
           if (selectableModels.length > 0) {
-            // Prioritize the new Gemini model, then the first selectable model
             const newGeminiModel = selectableModels.find(model => model.id === "gemini-2.5-flash-preview-05-20");
-            const llmModelCookie = getCookie('llmModelSelection'); // Get cookie value here
-
+            const llmModelCookie = getCookie('llmModelSelection');
             if (llmModelCookie && selectableModels.some(model => model.id === llmModelCookie)) {
-              setLlmModel(llmModelCookie); // Use cookie value if available and valid
+              setLlmModel(llmModelCookie);
             } else if (newGeminiModel) {
-              setLlmModel(newGeminiModel.id); // Fallback to Gemini if cookie is not set or invalid
+              setLlmModel(newGeminiModel.id);
             } else {
-              setLlmModel(selectableModels[0].id); // Fallback to the first selectable model
+              setLlmModel(selectableModels[0].id);
             }
           } else {
-            setLlmModel(""); // No selectable models available
+            setLlmModel("");
           }
         } else {
-          setLlmModel(""); // No models available at all
+          setLlmModel("");
         }
-      }
-      catch (err) {
+      } catch (err) {
         console.error("Error fetching models:", err);
         if (err instanceof Error) {
           setModelsError(err.message);
-        }
-        else {
+        } else {
           setModelsError("An unknown error occurred while fetching models.");
         }
-      }
-      finally {
+      } finally {
         setModelsLoading(false);
       }
     };
     fetchModels();
   }, []);
-
-
-  const playLlmSound = () => {
-    llmRequestFinishSoundRef.current?.play().catch(e => console.error("Error playing LLM sound:", e));
-  };
 
   const playSuccessSound = () => {
     scriptSuccessSoundRef.current?.play().catch(e => console.error("Error playing success sound:", e));
@@ -254,8 +230,6 @@ export default function Home() {
     setDockerCommandToDisplay("");
     setScriptLogOutput([]);
     setGeneratedFiles([]);
-
-    // Reset all phase-specific states
     setPhases(prevPhases =>
       prevPhases.map(phase => ({
         ...phase,
@@ -266,11 +240,9 @@ export default function Home() {
         isTimerRunning: false,
       }))
     );
-
   };
 
-
-const handleRunAllPhases = async () => {
+  const handleRunAllPhases = async () => {
     setCookie('initialInstruction', initialInput, 30);
     setCookie('llmModelSelection', llmModel, 30);
     if (!llmModel) {
@@ -280,12 +252,10 @@ const handleRunAllPhases = async () => {
     resetOutputStates();
     setActiveTab('generation');
     const success = await runAllPhases();
-
     if (success && runScriptAfterGeneration) {
       handleExecuteScript();
     }
   };
-
 
   const handleExecuteScript = async () => {
     setHasExecutionAttempted(true);
@@ -298,7 +268,7 @@ const handleRunAllPhases = async () => {
     setScriptExecutionDuration(null);
     setFinalExecutionStatus(null);
     setFinalExecutionResult(null);
-    setActiveTab('execution'); // Ensure execution tab is active when running script
+    setActiveTab('execution');
 
     try {
       const response = await fetch('/api/execute', {
@@ -307,31 +277,24 @@ const handleRunAllPhases = async () => {
           'Content-Type': 'application/json',
         },
       });
-
       if (!response.ok) {
         let errorText = `API request failed with status ${response.status}`;
         try {
           const errorData = await response.json();
           errorText = errorData.error || errorText;
-        } catch {
-          // ignore
-        }
+        } catch {}
         playErrorSound();
         throw new Error(errorText);
       }
-
       if (!response.body) {
         playErrorSound();
         throw new Error("Response body is null");
       }
-
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
-
       while (true) {
-        let value;
-        let done;
+        let value, done;
         try {
           ({ value, done } = await reader.read());
         } catch (streamReadError) {
@@ -340,11 +303,7 @@ const handleRunAllPhases = async () => {
           setScriptLogOutput(prev => [...prev, "STREAM_ERROR: The log stream ended unexpectedly due to a read error."]);
           break;
         }
-
-        if (done) {
-          break;
-        }
-
+        if (done) break;
         try {
           buffer += decoder.decode(value, { stream: true });
         } catch (decodeError) {
@@ -353,10 +312,8 @@ const handleRunAllPhases = async () => {
           setScriptLogOutput(prev => [...prev, "STREAM_ERROR: The log stream contained undecodable data."]);
           break;
         }
-
         const lines = buffer.split('\n');
         buffer = lines.pop() || "";
-
         for (const line of lines) {
           if (line.startsWith("DOCKER_COMMAND: ")) {
             setDockerCommandToDisplay(line.substring("DOCKER_COMMAND: ".length));
@@ -373,27 +330,22 @@ const handleRunAllPhases = async () => {
               const finalResult: ExecutionResultType = JSON.parse(line.substring("RESULT: ".length));
               setFinalExecutionResult(finalResult);
               setFinalExecutionStatus(finalResult.overallStatus);
-
               if (finalResult.scriptExecutionDuration !== undefined) {
                 setScriptExecutionDuration(finalResult.scriptExecutionDuration);
-              }
-              else {
+              } else {
                 setScriptExecutionDuration(null);
               }
-
               if (finalResult.mainScript && finalResult.mainScript.stdout) {
                 const taskOutputs = parsePhasedOutputsFromStdout(finalResult.mainScript.stdout);
                 setPhasedOutputs(taskOutputs);
               }
-
               if (finalResult.overallStatus === 'failure') {
                 let errorMsg = "Script execution failed.";
                 if (finalResult.error) errorMsg += ` Error: ${finalResult.error}`;
                 if (finalResult.mainScript && finalResult.mainScript.stderr) errorMsg += ` Stderr: ${finalResult.mainScript.stderr}`;
                 setScriptExecutionError(errorMsg);
                 playErrorSound();
-              }
-              else if (finalResult.overallStatus === 'success') {
+              } else if (finalResult.overallStatus === 'success') {
                 playSuccessSound();
               }
             } catch (e) {
@@ -418,58 +370,49 @@ const handleRunAllPhases = async () => {
       } else if (buffer.startsWith("LOG_ERROR: ")) {
         setScriptLogOutput(prev => [...prev, buffer.substring("LOG_ERROR: ".length)]);
       } else if (buffer.startsWith("RESULT: ")) {
-         try {
-              const finalResult: ExecutionResultType = JSON.parse(buffer.substring("RESULT: ".length));
-              setFinalExecutionResult(finalResult);
-              setFinalExecutionStatus(finalResult.overallStatus);
-
-              if (finalResult.scriptExecutionDuration !== undefined) {
-                setScriptExecutionDuration(finalResult.scriptExecutionDuration);
-              }
-              else {
-                setScriptExecutionDuration(null);
-              }
-
-              if (finalResult.mainScript && finalResult.mainScript.stdout) {
-                const taskOutputs = parsePhasedOutputsFromStdout(finalResult.mainScript.stdout);
-                setPhasedOutputs(taskOutputs);
-              }
-
-              if (finalResult.overallStatus === 'failure') {
-                let errorMsg = "Script execution failed.";
-                if (finalResult.error) errorMsg += ` Error: ${finalResult.error}`;
-                if (finalResult.mainScript && finalResult.mainScript.stderr) errorMsg += ` Stderr: ${finalResult.mainScript.stderr}`;
-                setScriptExecutionError(errorMsg);
-                playErrorSound();
-              }
-              else if (finalResult.overallStatus === 'success') {
-                playSuccessSound();
-              }
-            } catch (e) {
-              console.error("Error parsing final result JSON from remaining buffer:", e);
-              setScriptExecutionError("Error parsing final result from script execution (buffer).");
-              setFinalExecutionStatus('failure');
-              setFinalExecutionResult(null);
-              setScriptExecutionDuration(null);
-              playErrorSound();
-            }
+        try {
+          const finalResult: ExecutionResultType = JSON.parse(buffer.substring("RESULT: ".length));
+          setFinalExecutionResult(finalResult);
+          setFinalExecutionStatus(finalResult.overallStatus);
+          if (finalResult.scriptExecutionDuration !== undefined) {
+            setScriptExecutionDuration(finalResult.scriptExecutionDuration);
+          } else {
+            setScriptExecutionDuration(null);
+          }
+          if (finalResult.mainScript && finalResult.mainScript.stdout) {
+            const taskOutputs = parsePhasedOutputsFromStdout(finalResult.mainScript.stdout);
+            setPhasedOutputs(taskOutputs);
+          }
+          if (finalResult.overallStatus === 'failure') {
+            let errorMsg = "Script execution failed.";
+            if (finalResult.error) errorMsg += ` Error: ${finalResult.error}`;
+            if (finalResult.mainScript && finalResult.mainScript.stderr) errorMsg += ` Stderr: ${finalResult.mainScript.stderr}`;
+            setScriptExecutionError(errorMsg);
+            playErrorSound();
+          } else if (finalResult.overallStatus === 'success') {
+            playSuccessSound();
+          }
+        } catch (e) {
+          console.error("Error parsing final result JSON from remaining buffer:", e);
+          setScriptExecutionError("Error parsing final result from script execution (buffer).");
+          setFinalExecutionStatus('failure');
+          setFinalExecutionResult(null);
+          setScriptExecutionDuration(null);
+          playErrorSound();
+        }
       }
-
     } catch (err) {
       console.error("Error executing script:", err);
       if (err instanceof Error) {
         setScriptExecutionError(err.message);
-      }
-      else {
+      } else {
         setScriptExecutionError("An unknown error occurred while executing the script.");
       }
       playErrorSound();
-    }
-    finally {
+    } finally {
       setIsExecutingScript(false);
     }
   };
-
 
   const phaseData = phases.map((phase, index) => {
     const prevPhase = index > 0 ? phases[index - 1] : null;
@@ -481,7 +424,6 @@ const handleRunAllPhases = async () => {
       (index === 0 && !initialInput.trim()) ||
       (index === 1 && (!prevPhase || !prevPhase.output.trim())) ||
       (index > 1 && !phase2Completed);
-
     return {
       ...phase,
       isRunDisabled,
@@ -506,12 +448,10 @@ const handleRunAllPhases = async () => {
   return (
     <div className="flex flex-col md:flex-row h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-inter">
       <SavedPrompts prompts={savedPrompts} onSelectPrompt={setInitialInput} onDeletePrompt={handleDeletePrompt} />
-
       <main className="flex-1 overflow-y-auto p-6 md:p-8">
         <h1 className="text-4xl font-extrabold mb-10 text-center text-indigo-700 dark:text-indigo-400 drop-shadow-md">
           CrewAI Studio
         </h1>
-
         <ProjectSetup
           initialInput={initialInput}
           setInitialInput={setInitialInput}
@@ -528,7 +468,6 @@ const handleRunAllPhases = async () => {
           runScriptAfterGeneration={runScriptAfterGeneration}
           setRunScriptAfterGeneration={setRunScriptAfterGeneration}
         />
-
         {(isLlmLoading || llmRequestDuration !== null) && (
           <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg mb-8 border border-slate-200 dark:border-slate-700 text-center">
             {isLlmLoading ? (
@@ -544,7 +483,6 @@ const handleRunAllPhases = async () => {
             )}
           </div>
         )}
-
         <div className="mb-8">
           <div className="flex border-b border-slate-200 dark:border-slate-700">
             <button
@@ -562,7 +500,6 @@ const handleRunAllPhases = async () => {
               Script Execution
             </button>
           </div>
-
           <div className="mt-6">
             {activeTab === 'generation' && (
               <GenerationTab
@@ -575,7 +512,6 @@ const handleRunAllPhases = async () => {
                 phaseData={phaseData}
               />
             )}
-
             {activeTab === 'execution' && (
               <ExecutionTab
                 isExecutingScript={isExecutingScript}
@@ -594,7 +530,6 @@ const handleRunAllPhases = async () => {
             )}
           </div>
         </div>
-
         {(error || phasesError) && (
           <div className="mt-8 p-4 border border-red-400 bg-red-100 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-500/50 dark:text-red-400 shadow-md">
             <p className="font-bold text-lg mb-2">Error:</p>
@@ -606,17 +541,14 @@ const handleRunAllPhases = async () => {
   );
 }
 
-// Helper function to parse phased outputs from script stdout
 const parsePhasedOutputsFromStdout = (stdout: string): PhasedOutput[] => {
   const outputs: PhasedOutput[] = [];
   const lines = stdout.split('\n');
   let currentTaskName = "Unknown Task";
   let currentOutput = "";
-
   for (const line of lines) {
     const taskOutputMatch = line.match(/^(?:\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}\])?.*?\[(\w+Agent)\] - (.*?) - Task Output: (.*)/i);
     const genericTaskOutputMatch = line.match(/^(?:\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}\])?.*?Task Output: (.*)/i);
-
     if (taskOutputMatch) {
       if (currentOutput.trim()) {
         outputs.push({ taskName: currentTaskName, output: currentOutput.trim() });
@@ -629,8 +561,7 @@ const parsePhasedOutputsFromStdout = (stdout: string): PhasedOutput[] => {
       }
       currentTaskName = "Unnamed Task";
       currentOutput = genericTaskOutputMatch[1];
-    }
-    else {
+    } else {
       currentOutput += `\n${line}`;
     }
   }

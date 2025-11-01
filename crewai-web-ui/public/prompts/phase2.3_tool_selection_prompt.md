@@ -62,3 +62,5 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
             *   `tool_id` (String): A unique identifier for this specific tool instance.
             *   `class_name` (String): The exact Python class name to instantiate.
             *   `initialization_params` (Object, Optional): Constructor parameters for the tool.
+            **CRITICAL RULE for MCP Servers:** If using an MCP Server, the `class_name` MUST be `MCPServerAdapter`. The `initialization_params` object MUST contain a single key: `serverparams`. This `serverparams` object must contain two keys: `command` (String) and `args` (Array of Strings), which define how to run the MCP server process.
+            **CRITICAL RULE for Embedding-Supported Tools:** If `design_metadata.is_custom_embedding_supported` is `true` and `crew_memory.activation` is `true`, the `initialization_params` object should be left empty (`{}`). The script generation phase will automatically use the global `rag_config`. For all other tools, specify parameters as needed.

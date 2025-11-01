@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getPhases, PhaseState } from '../config/phases.config';
 import { useGenerationApi } from './useGenerationApi';
 
-export const usePhases = (initialInput: string, llmModel: string) => {
+export const usePhases = (initialInput: string, llmModel: string, playLlmSound: () => void) => {
   const [phases, setPhases] = useState<PhaseState[]>(getPhases());
   const { generate: generateApi } = useGenerationApi();
   const [currentActivePhase, setCurrentActivePhase] = useState<number | null>(null);
@@ -30,17 +30,16 @@ export const usePhases = (initialInput: string, llmModel: string) => {
     fetchInitialPrompts();
   }, []);
 
-  const handlePhaseExecution = async (phaseId: number) => {
-    const currentPhase = phases.find(p => p.id === phaseId);
-    if (!currentPhase) return;
+  const handlePhaseExecution = async (phaseId: number, phasesForExecution: PhaseState[] = phases): Promise<PhaseState[]> => {
+    const currentPhase = phasesForExecution.find(p => p.id === phaseId);
+    if (!currentPhase) return phasesForExecution;
 
-    const fullPromptValue = currentPhase.generateInputPrompt(currentPhase, phases, initialInput);
+    const fullPromptValue = currentPhase.generateInputPrompt(currentPhase, phasesForExecution, initialInput);
 
-    setPhases(currentPhases =>
-      currentPhases.map(p =>
-        p.id === phaseId ? { ...p, input: fullPromptValue, isLoading: true, isTimerRunning: true } : p
-      )
+    const updatedPhasesWithInput = phasesForExecution.map(p =>
+      p.id === phaseId ? { ...p, input: fullPromptValue, isLoading: true, isTimerRunning: true } : p
     );
+    setPhases(updatedPhasesWithInput);
     setCurrentActivePhase(phaseId);
 
     try {
@@ -52,20 +51,22 @@ export const usePhases = (initialInput: string, llmModel: string) => {
         filePath: currentPhase.filePath,
         outputType: currentPhase.outputType,
       });
-      setPhases(currentPhases =>
-        currentPhases.map(p =>
-          p.id === phaseId ? { ...p, output: result.output, duration: result.duration, isLoading: false, isTimerRunning: false } : p
-        )
+
+      const finalPhases = updatedPhasesWithInput.map(p =>
+        p.id === phaseId ? { ...p, output: result.output, duration: result.duration, isLoading: false, isTimerRunning: false } : p
       );
+      setPhases(finalPhases);
+      playLlmSound();
+      return finalPhases;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
       setError(errorMessage);
       console.error("Error executing phase:", err);
-      setPhases(currentPhases =>
-        currentPhases.map(p =>
-          p.id === phaseId ? { ...p, isLoading: false, isTimerRunning: false } : p
-        )
+      const finalPhases = updatedPhasesWithInput.map(p =>
+        p.id === phaseId ? { ...p, isLoading: false, isTimerRunning: false } : p
       );
+      setPhases(finalPhases);
+      return finalPhases;
     } finally {
       setCurrentActivePhase(null);
     }
@@ -74,18 +75,18 @@ export const usePhases = (initialInput: string, llmModel: string) => {
   const handleRunAllPhases = async () => {
     setIsRunAllLoading(true);
     setError(null);
-    let errorOccurred = false;
 
+    let currentPhases = phases;
     for (const phase of phases) {
-      await handlePhaseExecution(phase.id);
+      const newPhases = await handlePhaseExecution(phase.id, currentPhases);
+      currentPhases = newPhases;
       if (error) {
-        errorOccurred = true;
         break;
       }
     }
 
     setIsRunAllLoading(false);
-    return !errorOccurred;
+    return !error;
   };
 
   return {

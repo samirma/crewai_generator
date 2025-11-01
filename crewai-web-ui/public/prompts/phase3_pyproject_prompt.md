@@ -41,6 +41,8 @@ authors = [{ name = "Your Name", email = "you@example.com" }]
 requires-python = ">=3.12"
 dependencies = [
     "crewai[tools]>=0.203.0,<1.0.0"
+    "crewai[mcp]",
+    "mcp",
     "fastmcp",
     "zeroconf",
     "ollama",
