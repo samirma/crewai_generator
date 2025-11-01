@@ -3,7 +3,7 @@
 Use the JSON object provided as the single source of truth. Your task is to generate the content for any custom tool files.
 
 *   **Objective:** Iterate through task_roster[*].design_metadata.tools[*].custom_tool.
-*   **File Naming:** File Naming: Derived from custom_tool.tool_id
+*   **File Naming:** File Naming: Derived from custom_tool.tool_id in lowcase
 *   **File Content:**
     *   Each file should contain the Python code for the custom tool, as defined in the `code` property of the custom tool definition.
     *   The code should be a valid Python script, defining a class that inherits from `crewai.tools import BaseTool`.
@@ -14,7 +14,7 @@ Use the JSON object provided as the single source of truth. Your task is to gene
 **Expected Output:**
 
 
-[START_FILE:src/crewai_generated/tools/my_custom_tool.py]
+[START_FILE:src/crewai_generated/tools/tool_id.py]
 from crewai.tools import BaseTool
 
 class MyCustomTool(BaseTool):
@@ -24,4 +24,4 @@ class MyCustomTool(BaseTool):
     def _run(self, argument: str) -> str:
         //Implement the logic for this tool here using python to archive the output expected tool.design_metadata.required_functionality
         return f"The custom tool received: {argument}"
-[END_FILE:src/crewai_generated/tools/my_custom_tool.py]
+[END_FILE:src/crewai_generated/tools/tool_id.py]
