@@ -154,7 +154,7 @@ const agentsYamlGenerationPhase: PhaseState = {
   isLoading: false,
   duration: null,
   isTimerRunning: false,
-  dependencies: [highLevelArchitecturePhase],
+  dependencies: [detailedAgentAndTaskDefinitionPhase],
   generateInputPrompt: codeGenerationGenerateInputPrompt
 };
 const tasksYamlGenerationPhase: PhaseState = {

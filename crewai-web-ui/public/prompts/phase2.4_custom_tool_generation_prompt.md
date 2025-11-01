@@ -19,4 +19,4 @@
             * `name` (String): The parameter's name (e.g., "url").
             * `python_type` (String): The parameter's Python type hint (e.g., "str").
             * `description` (String): A description for the argument.
-        * `run_method_logic` (String): The Python code for the `_run` method.
+        * `run_method_logic` (String): The explanation and requirements for the Python code for the `_run` method.
