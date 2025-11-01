@@ -2,7 +2,7 @@
 import { PhaseState } from '../config/phases.config';
 import {
   defaultGenerateInputPrompt,
-  codeGenerationGenerateInputPrompt,
+  jsonGenerateInputPrompt,
   pyProjectGenerateInputPrompt,
 } from '../config/phases.config';
 
@@ -78,7 +78,7 @@ describe('Phase Configuration', () => {
       const allPhases: PhaseState[] = [updatedDependencyPhase1, updatedDependencyPhase2, currentPhase];
       const initialUserInput = "Initial Input";
 
-      const result = codeGenerationGenerateInputPrompt(currentPhase, allPhases, initialUserInput);
+      const result = jsonGenerateInputPrompt(currentPhase, allPhases, initialUserInput);
 
       const expectedMergedOutput = JSON.stringify({ key1: 'updated-value1', key2: 'updated-value2' }, null, 2);
       expect(result).toBe(`${expectedMergedOutput}\n\nTest Prompt`);

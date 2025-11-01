@@ -15,6 +15,7 @@ Use the JSON object provided as the single source of truth. Your task is to gene
 
 
 [START_FILE:src/crewai_generated/tools/tool_id.py]
+# BaseTool should be alwys imported from crewai.tools
 from crewai.tools import BaseTool
 
 class MyCustomTool(BaseTool):

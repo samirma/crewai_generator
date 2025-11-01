@@ -50,14 +50,15 @@ const getDependentOutputs = (currentPhase: PhaseState, allPhases: PhaseState[]):
 
 export const defaultGenerateInputPrompt = (currentPhase: PhaseState, allPhases: PhaseState[], initialUserInput: string): string => {
   const dependentOutputs = getDependentOutputs(currentPhase, allPhases);
-  return `${dependentOutputs[0]}\n\n${currentPhase.prompt}`;
+  const mergedOutput = dependentOutputs.join('\n\n');
+  return `${mergedOutput}\n\n${currentPhase.prompt}`;
 };
 
 const blueprintGenerateInputPrompt = (currentPhase: PhaseState, allPhases: PhaseState[], initialUserInput: string): string => {
   return buildPrompt(initialUserInput, currentPhase.prompt, null, null);
 };
 
-export const codeGenerationGenerateInputPrompt = (currentPhase: PhaseState, allPhases: PhaseState[], initialUserInput: string): string => {
+export const jsonGenerateInputPrompt = (currentPhase: PhaseState, allPhases: PhaseState[], initialUserInput: string): string => {
   const dependentOutputs = getDependentOutputs(currentPhase, allPhases);
   const mergedOutput = mergeOutputs(dependentOutputs);
   return `${mergedOutput}\n\n${currentPhase.prompt}`;
@@ -110,7 +111,7 @@ const detailedAgentAndTaskDefinitionPhase: PhaseState = {
   isLoading: false,
   duration: null,
   isTimerRunning: false,
-  dependencies: [highLevelArchitecturePhase],
+  dependencies: [highLevelArchitecturePhase, blueprintDefinitionPhase],
   generateInputPrompt: defaultGenerateInputPrompt
 };
 const toolSelectionPhase: PhaseState = {
@@ -155,7 +156,7 @@ const agentsYamlGenerationPhase: PhaseState = {
   duration: null,
   isTimerRunning: false,
   dependencies: [detailedAgentAndTaskDefinitionPhase],
-  generateInputPrompt: codeGenerationGenerateInputPrompt
+  generateInputPrompt: jsonGenerateInputPrompt
 };
 const tasksYamlGenerationPhase: PhaseState = {
   id: 7,
@@ -170,8 +171,8 @@ const tasksYamlGenerationPhase: PhaseState = {
   isLoading: false,
   duration: null,
   isTimerRunning: false,
-  dependencies: [highLevelArchitecturePhase],
-  generateInputPrompt: codeGenerationGenerateInputPrompt
+  dependencies: [detailedAgentAndTaskDefinitionPhase],
+  generateInputPrompt: jsonGenerateInputPrompt
 };
 const crewPyGenerationPhase: PhaseState = {
   id: 8,
@@ -187,7 +188,7 @@ const crewPyGenerationPhase: PhaseState = {
   duration: null,
   isTimerRunning: false,
   dependencies: [highLevelArchitecturePhase, detailedAgentAndTaskDefinitionPhase, toolSelectionPhase, customToolGenerationPhase],
-  generateInputPrompt: codeGenerationGenerateInputPrompt
+  generateInputPrompt: jsonGenerateInputPrompt
 };
 const mainPyGenerationPhase: PhaseState = {
   id: 9,
@@ -219,7 +220,7 @@ const toolsGenerationPhase: PhaseState = {
   duration: null,
   isTimerRunning: false,
   dependencies: [customToolGenerationPhase],
-  generateInputPrompt: codeGenerationGenerateInputPrompt
+  generateInputPrompt: jsonGenerateInputPrompt
 };
 const pyProjectGenerationPhase: PhaseState = {
   id: 11,
