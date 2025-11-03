@@ -40,13 +40,13 @@ description = "crewai_generated using crewAI"
 authors = [{ name = "Your Name", email = "you@example.com" }]
 requires-python = ">=3.12"
 dependencies = [
-    "crewai[tools]>=0.203.0,<1.0.0"
-    "crewai[mcp]",
-    "mcp",
+    "crewai[google-genai,tools]>=1.3.0",
+    "crewai-tools[mcp]",
     "fastmcp",
+    "litellM",
     "zeroconf",
     "ollama",
-    // dependencies from python code here, after evaluate them. For each depedency add include a justification comment explaining which python code this new depedency should contemplate.
+    // Append dependencies from python code here, after evaluate them. For each depedency add include a justification comment explaining which python code this new depedency should contemplate.
 ]
 
 [project.scripts]

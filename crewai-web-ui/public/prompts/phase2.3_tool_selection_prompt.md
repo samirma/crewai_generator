@@ -1,7 +1,7 @@
 
-* **Instruction:** Use the 'Detailed Architecture Plan' as the source of truth.
+* **Instruction:** Only use the previouly generated document as a source of truth.
 * **Objective:** Your task is to select the appropriate tools for each task from the 'Canonical Tool Library'. If no suitable tool is available, you must identify that a custom tool is required.
-* **Output Structure:** The output should be a JSON object with a single key: `task_roster`.
+* **Output Structure:** The output should be a JSON object to serve as reference to build a crewai plan to be implmented.
 * **Final Output Format:** Your entire response must be a single, comprehensive JSON object. Do not include any other text before or after the JSON.
 
 ### **Canonical Tool Library for Evaluation**
@@ -44,8 +44,9 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 
 **'Tool-Selection-Plan' - JSON Schema:**
 
-*   `task_roster` (Array of Objects): Each object represents a task, with tool selection details.
+*   `tool_repository` (Array of Objects): Each object represents a task from task_roster to indendify and select tools requeried for the task.
     *   `task_identifier` (String): From the detailed plan.
+    *   `justification` (String): Considering the information of the current task available in the design_metadata and yaml_definition, you should determ if a tool is required or not, and why based on the capatiblites of a llm.
     *   `tools` (Array of Objects, Optional): Defines instances of tools selected exclusively from the provided 'Canonical Tool Library'.
         *   `design_metadata` (Object):
             *   `required_functionality` (String): A clear, one-sentence description of the specific action the tool must perform.

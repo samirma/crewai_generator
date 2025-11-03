@@ -1,5 +1,5 @@
 
-* **Instruction:** Use the 'Tool Selection Plan' as the source of truth.
+* **Instruction:** Only use the previouly generated document as a source of truth.
 * **Objective:** Your task is to generate the complete definition for any custom tools that were identified in the tool selection plan.
 * **Output Structure:** The output should be a JSON object with a single key: `custom_tools`.
 * **Final Output Format:** Your entire response must be a single, comprehensive JSON object. Do not include any other text before or after the JSON.

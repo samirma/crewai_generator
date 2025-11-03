@@ -1,15 +1,14 @@
 
-* **Instruction:** Only use the document identified as 'Project Blueprint' within `{{{ }}}` as your sole source of truth.
+* **Instruction:** Only use the previouly generated document as a source of truth.
 * **Objective:** Your task is to design a high-level CrewAI configuration. This design must fully implement the goals from the 'Project Blueprint'. Your role is strictly that of an architect; you are not to write code or execute the plan.
-* **Output Structure:** The design must be a JSON object with the following keys: `workflow_process`, `crew_memory`.
 * **Final Output Format:** Your entire response must be a single, comprehensive JSON object. Do not include any other text before or after the JSON.
 
 ---
 
-**'High-Level-Architecture-Plan' - JSON Schema:**
+**JSON Schema:**
 
 *   `workflow_process` (Object):
-    *   `rationale` (String): The Justification for the choice between Process.sequential and Process.hierarchical.
+    *   `rationale` (String): The Justification for the choice between Process.sequential and Process.hierarchical, which determined by the complexity and interdependencies of the project goals. Process.sequential is best for linear, straightforward tasks with a clear, predetermined order, where the output of one task is the direct input for the next. This model ensures precise and orderly progression and is suitable for projects with low to medium complexity. In contrast, Process.hierarchical is the ideal choice for complex, multi-stage projects that require dynamic, multi-agent collaboration, where a manager agent delegates tasks to specialized worker agents to achieve a common goal. This model is selected when the solution benefits from a variety of specialized perspectives and complex, non-linear workflows. As input information you should consider all tasks described in the task_roster
     *   `selected_process` (String): `Process.sequential` OR `Process.hierarchical`.
 
 *   `crew_memory` (Object):

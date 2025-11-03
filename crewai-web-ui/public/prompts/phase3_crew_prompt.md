@@ -1,7 +1,7 @@
 
 ### 3. `crew.py` Generation Logic (Orchestration)
 
-Use the JSON object provided as the single source of truth. Your task is to generate the content the main Python file that defines all programmatic components and assembles the CrewBase class corresposndent to `crew.py` of the recommended project structure of CrewAi lib  https://docs.crewai.com/en/quickstart.
+Use the JSON objects provided as the single source of truth. Your task is to generate the content the main Python file that defines all programmatic components and assembles the CrewBase class corresposndent to `crew.py` of the recommended project structure of CrewAi lib  https://docs.crewai.com/en/quickstart.
 
 #### **Environment Setup (Order is CRITICAL):**
 
@@ -96,7 +96,7 @@ For each  `custom_tool` in `tools` in `task_roster` of json you should import it
       * For each agent in `agent_cadre`, create a method decorated with `@agent`.
       * The method name MUST be the agent's `yaml_definition.yaml_id`.
       * The method returns an `Agent` instance, loading its config from YAML: `config=self.agents_config['<yaml_id>']`.
-      * Assign the correct pre-instantiated LLM variable to the `llm` parameter.
+      * Find inside the agent_llm using `yaml_definition.yaml_id` to assign the porper llm to the agent.
 
 
   * **`@task` Methods:**
@@ -104,7 +104,6 @@ For each  `custom_tool` in `tools` in `task_roster` of json you should import it
       * For each task in `task_roster`, create a method decorated with `@task`.
       * The method name MUST be the task's `yaml_definition.yaml_id`.
       * The method returns a `Task` instance, loading its config from YAML: `config=self.tasks_config['<yaml_id>']`.
-      * The `agent` parameter is assigned the result of the corresponding `@agent` method call (e.g., `agent=self.search_orchestrator_agent()`).
       * The `context` parameter is a list of calls to prerequisite `@task` methods (e.g., `context=[self.task_one(), self.task_two()]`).
       * Assign the tool list to the `tools` parameter. For standard tools, use the tool instance variable. For MCP tools, **you MUST unpack the adapter's `.tools` property** (e.g., `tools=[*search_adapter.tools]`).
       
