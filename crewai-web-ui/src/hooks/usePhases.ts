@@ -37,7 +37,7 @@ export const usePhases = (initialInput: string, llmModel: string, playLlmSound: 
     const fullPromptValue = currentPhase.generateInputPrompt(currentPhase, phasesForExecution, initialInput);
 
     const updatedPhasesWithInput = phasesForExecution.map(p =>
-      p.id === phaseId ? { ...p, input: fullPromptValue, isLoading: true, isTimerRunning: true } : p
+      p.id === phaseId ? { ...p, input: fullPromptValue, isLoading: true, isTimerRunning: true, error: null } : p
     );
     setPhases(updatedPhasesWithInput);
     setCurrentActivePhase(phaseId);
@@ -60,13 +60,13 @@ export const usePhases = (initialInput: string, llmModel: string, playLlmSound: 
       return finalPhases;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
-      setError(errorMessage);
       console.error("Error executing phase:", err);
       const finalPhases = updatedPhasesWithInput.map(p =>
-        p.id === phaseId ? { ...p, isLoading: false, isTimerRunning: false } : p
+        p.id === phaseId ? { ...p, isLoading: false, isTimerRunning: false, error: errorMessage } : p
       );
       setPhases(finalPhases);
-      return finalPhases;
+      // Re-throw the error to be caught by handleRunAllPhases
+      throw err;
     } finally {
       setCurrentActivePhase(null);
     }
@@ -76,17 +76,24 @@ export const usePhases = (initialInput: string, llmModel: string, playLlmSound: 
     setIsRunAllLoading(true);
     setError(null);
 
-    let currentPhases = phases;
-    for (const phase of phases) {
-      const newPhases = await handlePhaseExecution(phase.id, currentPhases);
-      currentPhases = newPhases;
-      if (error) {
-        break;
-      }
-    }
+    let currentPhases = phases.map(p => ({ ...p, output: "", error: null })); // Reset outputs and errors
+    setPhases(currentPhases);
 
-    setIsRunAllLoading(false);
-    return !error;
+    let success = true;
+    try {
+      for (const phase of currentPhases) {
+        const newPhases = await handlePhaseExecution(phase.id, currentPhases);
+        currentPhases = newPhases;
+      }
+    } catch (err) {
+      console.error("Halting 'Run All' due to an error in a phase.", err);
+      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred during phase execution.";
+      setError(errorMessage);
+      success = false;
+    } finally {
+      setIsRunAllLoading(false);
+    }
+    return success;
   };
 
   return {

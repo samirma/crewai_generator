@@ -13,6 +13,7 @@ interface PhaseData {
   setInput: (value: string) => void;
   output: string;
   setOutput: (value: string) => void;
+  error: string | null;
 }
 
 interface GenerationTabProps {
@@ -59,6 +60,7 @@ const GenerationTab = ({
             setInput={data.setInput}
             output={data.output}
             setOutput={data.setOutput}
+            error={data.error}
           />
         ))}
       </div>
@@ -67,4 +69,3 @@ const GenerationTab = ({
 };
 
 export default GenerationTab;
-

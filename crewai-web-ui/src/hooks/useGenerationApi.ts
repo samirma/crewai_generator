@@ -1,8 +1,7 @@
 import { useState } from 'react';
 
-// The hook is simplified to only manage the loading and error state of the API call.
-// It no longer takes callbacks, making its behavior more predictable.
-// The component calling this hook will be responsible for handling the returned data or errors.
+// This hook now throws an error on failure, which must be caught by the calling component.
+// This makes the error handling more explicit and robust.
 export const useGenerationApi = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,13 +21,16 @@ export const useGenerationApi = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        setError(errorData.error || `API request failed with status ${response.status}`);
+        // The calling function will now be responsible for catching this error.
+        throw new Error(errorData.error || `API request failed with status ${response.status}`);
       }
 
       const result = await response.json();
-      return result; // Return the result directly
+      return result;
     } catch (err: any) {
+      // Re-throw the error to be caught by the calling function (e.g., in usePhases).
       setError(err.message);
+      throw err;
     } finally {
       setIsGenerating(false);
     }
