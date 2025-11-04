@@ -94,7 +94,6 @@ For each  `custom_tool` in `tools` in `task_roster` of json you should import it
 ```
 
   * **`@agent` Methods:**
-
       * For each agent in `agent_cadre`, create a method decorated with `@agent`.
       * The method name MUST be the agent's `yaml_definition.yaml_id`.
       * The method returns an `Agent` instance, loading its config from YAML: `config=self.agents_config['<yaml_id>']`.

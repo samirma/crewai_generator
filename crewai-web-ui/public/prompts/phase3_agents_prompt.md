@@ -5,13 +5,9 @@ Use the JSON object provided as the single source of truth. Your task is to gene
 *   **Objective:** Iterate through the `agent_cadre` list from the JSON input.
 *   **Output Format:** For each agent object in the list, create a YAML entry.
     *   The main key for each agent entry MUST be the `yaml_definition.yaml_id`.
-    *   The entry for each agent must include the following keys, with values derived from the corresponding fields in the agent's `yaml_definition` object:
-        *   `role`
-        *   `goal`
-        *   `backstory`
-    *   The `allow_delegation` key must be included, with its value taken from `constructor_args.allow_delegation`.
+    *   The entry for each agent must include the following keys, with values derived from the corresponding fields in the agent's `yaml_definition` object.
 *   **Formatting:**
-    *   Ensure the output is a single, valid YAML file content.
+    *   Ensure the output is a single, valid CrewAi agent YAML file.
     *   Use proper YAML syntax, especially for multi-line strings (`goal` and `backstory`), to ensure they are correctly parsed.
 
 **Example Input JSON Snippet (`agent_cadre`):**

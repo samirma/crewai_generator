@@ -5,7 +5,7 @@ Use the JSON object provided as the single source of truth. Your task is to gene
 *   **Objective:** Iterate through the `task_roster` list from the JSON input.
 *   **Output Format:** For each task object in the list, create a YAML entry.
     *   The main key for each task entry MUST be the `yaml_definition.yaml_id`.
-    *   The entry for each task must include the following keys of a valid CrewAi task YAML file, with values derived from the corresponding fields in the task's `yaml_definition` object:
+    *   The entry for each task must include the following keys of a valid CrewAi task YAML file, with values derived from the corresponding fields in the task's `yaml_definition` object.
 *   **Formatting:**
     *   Ensure the output is a single, valid YAML file content.
     *   Use proper YAML syntax, especially for multi-line strings (`description` and `expected_output`).
