@@ -66,6 +66,7 @@ RUN python -m pip install --upgrade pip && \
     weasyprint \
     reportlab \
     pdfkit \
+    streamlit \
     langchain-community \
     duckduckgo-search
 

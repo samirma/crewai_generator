@@ -63,6 +63,14 @@ For each  `custom_tool` in `tools` in `task_roster` of json you should import it
           * The `llm` value must be a fixed dictionary for a local provider: `{ "provider": "ollama", "config": { "model": "llama3:instruct", "temperature": 0.0 } }`.
           * The `embedder` value must be the `embedder_config` variable created in the previous step.
 
+
+#### **CrewBase Definition (Orchestration):**
+
+  * Generate a Python class named **`CrewaiGenerated`**  annoted with `@CrewBase`.
+
+  * Set the class variables: `agents_config = 'config/agents.yaml'` and `tasks_config = 'config/tasks.yaml'`.
+
+
 **Tool Instantiation exclusive for canonical_tool:**
 
   *  **Objective:** Iterate through task_roster[*].design_metadata.tools[*].canonical_tool and generate Python code to instantiate each tool:
@@ -76,12 +84,6 @@ For each  `custom_tool` in `tools` in `task_roster` of json you should import it
       * **For all other tools:**
           * If `initialization_params` exists and is non-empty, pass its contents as keyword arguments to the class constructor.
 
-
-#### **CrewBase Definition (Orchestration):**
-
-  * Generate a Python class named **`CrewaiGenerated`**  annoted with `@CrewBase`.
-
-  * Set the class variables: `agents_config = 'config/agents.yaml'` and `tasks_config = 'config/tasks.yaml'`.
 
   * The class should have the following vai:
 
@@ -100,12 +102,11 @@ For each  `custom_tool` in `tools` in `task_roster` of json you should import it
 
 
   * **`@task` Methods:**
-
       * For each task in `task_roster`, create a method decorated with `@task`.
       * The method name MUST be the task's `yaml_definition.yaml_id`.
       * The method returns a `Task` instance, loading its config from YAML: `config=self.tasks_config['<yaml_id>']`.
-      * The `context` parameter is a list of calls to prerequisite `@task` methods (e.g., `context=[self.task_one(), self.task_two()]`).
       * Assign the tool list to the `tools` parameter. For standard tools, use the tool instance variable. For MCP tools, **you MUST unpack the adapter's `.tools` property** (e.g., `tools=[*search_adapter.tools]`).
+      * This Task should have only `config` and `tools` parameters in its constructor.
       
   * **`@crew` Method:**
   * Create the `Crew` instance based on the properties in the input JSON.

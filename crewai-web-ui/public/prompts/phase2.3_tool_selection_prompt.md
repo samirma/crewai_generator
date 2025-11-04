@@ -32,7 +32,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
     * **Description**: This tool performs a web search based on a text query and an optional pageno for pagination. It returns a JSON formatted list of search results, with each result containing its url, title, and a only a snippet of the content. A scrape tool is required to get more information from each result.
 * **`time-stdio`**: (**tool_id: `mcp_time_adapter`**)
     * `serverparams`: `{   "command": "uvx",  "args": ["mcp-server-time"]    }`
-    * **Description**: The Time MCP Server integrates with LLMs to provide accurate time information and timezone conversion capabilities. This server uses IANA timezone names and can automatically detect your system's timezone, allowing AI models to work with real-time temporal data and have date-time awareness for all tasks that require it.
+    * **Description**: It should be used whenever there is a time component to the task allowing to now the current date and time. This server uses IANA timezone names and can automatically detect your system's timezone, allowing AI models to work with real-time temporal data and have date-time awareness for all tasks that require it.
 * **`excel-stdio`**: (**tool_id: `mcp_excel_adapter`**)
     * `serverparams`: `{ "command": "uvx", "args": ["excel-mcp-server", "stdio"] }`
     * **Description**: This MCP server is designed to handle Excel files, allowing for reading and writing operations directly from standard input/output. It supports various Excel file formats and can be used to manipulate spreadsheet data programmatically.

@@ -22,14 +22,13 @@ export const useGenerationApi = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `API request failed with status ${response.status}`);
+        setError(errorData.error || `API request failed with status ${response.status}`);
       }
 
       const result = await response.json();
       return result; // Return the result directly
     } catch (err: any) {
       setError(err.message);
-      throw err; // Re-throw the error to be caught by the calling component
     } finally {
       setIsGenerating(false);
     }

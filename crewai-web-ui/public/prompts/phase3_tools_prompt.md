@@ -10,6 +10,7 @@ Use the JSON object provided as the single source of truth. Your task is to gene
 *   **Output Format:**
     *   The output should be a series of file blocks, each marked with `[START_FILE:FILE_PATH]` and `[END_FILE:FILE_PATH]`. The `FILE_PATH` should be `src/crewai_generated/tools/<file_name>.py`.
     *   If there are no custom tools, the output should be empty.
+    *   Each file block should implement a fully working python code that follow run_method_logic and description of the current tool.
 
 **Expected Output:**
 
@@ -23,6 +24,5 @@ class MyCustomTool(BaseTool):
     description: str = "A custom tool that does something."
 
     def _run(self, argument: str) -> str:
-        //Implement the logic for this tool here using python to archive the output expected tool.design_metadata.required_functionality
-        return f"The custom tool received: {argument}"
+        Insert the python code here
 [END_FILE:src/crewai_generated/tools/tool_id.py]

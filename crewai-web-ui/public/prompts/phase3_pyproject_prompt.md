@@ -25,12 +25,17 @@ The dependencies array inside [project] must include:
 Any other libraries you identified from the import statements. For example, if you see from dotenv import load_dotenv, you must add "python-dotenv". If you see a tool that requires a specific package (like duckduckgo-search for DuckDuckGoSearchRun), you must add it.
 
 Formatting:
-
 The entire output must be a single, valid TOML file content inside a markdown block. Do not include any other text before or after.
 
+Those area the mandadoty dependencies for the dependencies section:
+"crewai[google-genai,tools]>=1.3.0"
+"crewai-tools[mcp]"
+"fastmcp"
+"litellM"
+"zeroconf"
+"ollama"
+
 Example pyproject.toml Output:
-
-
 
 ```toml
 [project]
@@ -40,12 +45,9 @@ description = "crewai_generated using crewAI"
 authors = [{ name = "Your Name", email = "you@example.com" }]
 requires-python = ">=3.12"
 dependencies = [
-    "crewai[google-genai,tools]>=1.3.0",
-    "crewai-tools[mcp]",
-    "fastmcp",
-    "litellM",
-    "zeroconf",
-    "ollama",
+    # Mandadory dependencies
+
+    # Extra dependencies 
     // Append dependencies from python code here, after evaluate them. For each depedency add include a justification comment explaining which python code this new depedency should contemplate.
 ]
 
