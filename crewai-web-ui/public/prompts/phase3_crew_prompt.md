@@ -3,6 +3,9 @@
 
 Use the JSON objects provided as the single source of truth. Your task is to generate the content the main Python file that defines all programmatic components and assembles the CrewBase class corresposndent to `crew.py` of the recommended project structure of CrewAi lib  https://docs.crewai.com/en/quickstart.
 
+No explication shoudl be provided, just output the code.
+
+
 #### **Environment Setup (Order is CRITICAL):**
 
 **Core Imports:**

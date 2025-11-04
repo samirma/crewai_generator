@@ -1,4 +1,3 @@
-
 * **Instruction:** Only use the previouly generated document as a source of truth.
 * **Final Output Format:** Your entire response must be a single, comprehensive JSON object. Do not include any other text before or after the JSON.
 
@@ -11,7 +10,7 @@
         *   `llm_id` (String): A unique identifier for this configuration (e.g., "gemini_pro_reasoner", "deepseek_chat_basic"). This will be used to name the Python variable.
         *   `reasoner` (Boolean): `True` if the model has strong reasoning capabilities.
         *   `multimodal_support` (Boolean): `True` if the model can process images.
-        *   `rationale` (String): Justification for including this LLM in the registry, highlighting its key strengths for the crew.
+        *   `description` (String): Justification for including this LLM in the registry, highlighting its key strengths for the crew.
     *   `constructor_args` (Object): Contains only the parameters for the CrewAI `LLM` class constructor.
         *   `model` (String): The model name string required by the provider.
         *   `temperature` (Number): The sampling temperature.
@@ -28,7 +27,7 @@
       "llm_id": "gemini/gemini-2.5-flash",
       "reasoner": true,
       "multimodal_support": true,
-      "rationale": "A high-performance, cost-effective model from Google, excellent for complex reasoning, long-context understanding, and multimodal tasks. Ideal for manager agents or agents requiring deep analysis."
+      "description": "A high-performance, cost-effective model from Google, excellent for complex reasoning, long-context understanding, and multimodal tasks. Ideal for manager agents or agents requiring deep analysis."
     },
     "constructor_args": {
       "model": "gemini/gemini-2.5-flash",
@@ -41,7 +40,7 @@
       "llm_id": "qwen-3-235b-a22b-instruct",
       "reasoner": false,
       "multimodal_support": false,
-      "rationale": "A powerful non-thinking model with 235 billion parameters, excelling in instruction following, multilingual tasks, and efficient text generation at speeds exceeding 1,400 tokens per second. Ideal for worker agents handling high-volume, general-purpose tasks."
+      "description": "A powerful non-thinking model with 235 billion parameters, excelling in instruction following, multilingual tasks, and efficient text generation at speeds exceeding 1,400 tokens per second. Ideal for worker agents handling high-volume, general-purpose tasks."
     },
     "constructor_args": {
       "model": "cerebras/qwen-3-235b-a22b-instruct-2507",
@@ -55,12 +54,26 @@
       "llm_id": "deepseek_chat_worker",
       "reasoner": false,
       "multimodal_support": false,
-      "rationale": "A capable and efficient model for general-purpose tasks like writing, summarization, and data extraction. A good choice for worker agents that don't require advanced reasoning."
+      "description": "A capable and efficient model for general-purpose tasks like writing, summarization, and data extraction. A good choice for worker agents that don't require advanced reasoning."
     },
     "constructor_args": {
       "model": "deepseek/deepseek-chat",
       "timeout": 600,
       "api_key": "DEEPSEEK_API_KEY"
+    }
+  },
+  {
+    "design_metadata": {
+      "llm_id": "minimax-m2",
+      "reasoner": false,
+      "multimodal_support": false,
+      "description": "A powerful model from Minimax, suitable for various tasks."
+    },
+    "constructor_args": {
+      "model": "MiniMax-M2",
+      "timeout": 600,
+      "api_key": "MINIMAX_API_KEY",
+      "base_url": "https://api.minimax.io/v1"
     }
   }
 ]
@@ -69,6 +82,6 @@
 *   `agent_llm` (Array of Objects): Each object agent from agent_cadre.
     *   `design_metadata` (Object): Contains contextual information and justifications to select a model for this agent.
         *   `multimodal` (Boolean): `True` ONLY if this agent needs to process both text and images.
-        *   `llm_rationale` (String): Justification for the chosen `llm_id` also considering the tasks task_roster assigned to this agent, in the task_roster.yaml_definition.agent . If `multimodal` is `True`, this rationale MUST confirm the selected model has `multimodal_support=True`. It should also reference the model's 'reasoner' capability.
+        *   `llm_rationale` (String): Justification for the chosen `llm_id` also considering the tasks task_roster assigned to this agent, in the task_roster.yaml_definition.agent . This rationale should read the `description` of the model to better decide which model to select. If `multimodal` is `True`, this rationale MUST confirm the selected model has `multimodal_support=True`. It should also reference the model's 'reasoner' capability.
         *   `yaml_id` (String): Unique yaml_id to be used to indendify this agent.
         *   `llm_id` (String): The identifier of the LLM to be used by this agent, referencing an entry in the `llm_registry`.
