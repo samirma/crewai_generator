@@ -67,7 +67,7 @@
       "llm_id": "minimax-m2",
       "reasoner": false,
       "multimodal_support": false,
-      "description": "A powerful model from Minimax, suitable for various tasks."
+      "description": "A powerful model from Minimax, suitable for various tasks, with the best performance of all with deep reasoning capabilities."
     },
     "constructor_args": {
       "model": "MiniMax-M2",
