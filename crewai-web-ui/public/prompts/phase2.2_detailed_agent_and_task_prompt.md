@@ -6,7 +6,6 @@
 ---
 
 **'Detailed-Architecture-Plan' - JSON Schema:**
-* `crewai_expert_reasoning_plan` (String): A comprehensive strategy for the CrewAI architecture based on the 'Project Blueprint'. This plan should detail how the agents will collaborate, the logical sequence of tasks, and how information will flow between them to successfully execute the 'Project Blueprint'. It should justify the agent composition and task breakdown, ensuring all project requirements are met efficiently.
 *   `agent_cadre` (Array of Objects):  Using CrewAI best practices, create a comprehensive list of agent to fully execute the 'Project Blueprint', covering all its aspects, details, and specifications.
     *   `design_metadata` (Object): Contains contextual information and justifications, not used for code generation.
         *   `multimodal` (Boolean): `True` ONLY if this agent needs to process both text and images.
