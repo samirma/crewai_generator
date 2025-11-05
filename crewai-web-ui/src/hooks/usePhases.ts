@@ -2,9 +2,14 @@ import { useState, useEffect } from 'react';
 import { getPhases, PhaseState } from '../config/phases.config';
 import { useGenerationApi } from './useGenerationApi';
 
-export const usePhases = (initialInput: string, llmModel: string, playLlmSound: () => void) => {
+export const usePhases = (
+  initialInput: string,
+  llmModel: string,
+  playLlmSound: () => void,
+  generateApi: (payload: any) => Promise<any>,
+  setIsLlmLoading: (loading: boolean) => void
+) => {
   const [phases, setPhases] = useState<PhaseState[]>(getPhases());
-  const { generate: generateApi } = useGenerationApi();
   const [currentActivePhase, setCurrentActivePhase] = useState<number | null>(null);
   const [isRunAllLoading, setIsRunAllLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);

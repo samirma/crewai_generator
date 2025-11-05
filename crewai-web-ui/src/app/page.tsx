@@ -57,7 +57,7 @@ function getCookie(name: string): string | null {
 }
 
 export default function Home() {
-  const { generate: generateApi, isLoading: isLlmLoading } = useGenerationApi();
+  const { generate: generateApi } = useGenerationApi();
   const [initialInput, setInitialInput] = useState<string>("");
   const [llmModel, setLlmModel] = useState<string>("");
   const [savedPrompts, setSavedPrompts] = useState<Prompt[]>([]);
@@ -82,6 +82,7 @@ export default function Home() {
   const scriptErrorSoundRef = useRef<HTMLAudioElement | null>(null);
   const [activeTab, setActiveTab] = useState<'generation' | 'execution'>('generation');
   const [runScriptAfterGeneration, setRunScriptAfterGeneration] = useState<boolean>(false);
+  const [isLlmLoading, setIsLlmLoading] = useState<boolean>(false);
 
   const playLlmSound = () => {
     llmRequestFinishSoundRef.current?.play().catch(e => console.error("Error playing LLM sound:", e));
@@ -95,7 +96,7 @@ export default function Home() {
     currentActivePhase,
     isRunAllLoading,
     error: phasesError,
-  } = usePhases(initialInput, llmModel, playLlmSound);
+  } = usePhases(initialInput, llmModel, playLlmSound, generateApi, setIsLlmLoading);
 
   const fetchSavedPrompts = async () => {
     try {

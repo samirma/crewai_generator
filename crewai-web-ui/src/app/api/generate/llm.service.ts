@@ -67,12 +67,10 @@ export async function interactWithLLM(
     llmResponseText = completion.choices?.[0]?.message?.content ?? '';
   } catch (error) {
     console.error(`Error interacting with LLM for model ${llmModel}:`, error);
-    throw new Error(`API Error: Unable to get completion from LLM. ${error instanceof Error ? error.message : JSON.stringify(error)}`);
   }
 
   if (!llmResponseText) {
     console.error("API call successful but response format is unexpected or content is missing.");
-    throw new Error("API Error: No content generated or unexpected response structure.");
   }
 
   if (runPhase === 9) {
