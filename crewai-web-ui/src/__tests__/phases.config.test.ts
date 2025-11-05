@@ -22,7 +22,7 @@ const basePhaseState: Omit<PhaseState, 'id' | 'dependencies'> = {
 describe('Phase Configuration', () => {
 
   describe('defaultGenerateInputPrompt', () => {
-    it('should combine the output of the first dependency with the current phase prompt', () => {
+    it('should combine the outputs of all dependencies with the current phase prompt', () => {
       const dependencyPhase1: PhaseState = {
         ...basePhaseState,
         id: 1,
@@ -48,7 +48,7 @@ describe('Phase Configuration', () => {
 
       const result = defaultGenerateInputPrompt(currentPhase, allPhases, initialUserInput);
 
-      expect(result).toBe("Updated Dependency Output 1\n\nTest Prompt");
+      expect(result).toBe("Updated Dependency Output 1\n\nDependency Output 2\n\nTest Prompt");
     });
   });
 

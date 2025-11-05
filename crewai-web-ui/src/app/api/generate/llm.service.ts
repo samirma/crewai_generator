@@ -56,7 +56,11 @@ export async function interactWithLLM(
   }
 
   console.log(`Using model: ${modelConfig.model} for request via OpenAI SDK.`);
-  console.log("Calling API with params:", params);
+  const { messages, ...restParams } = params;
+  console.log("Calling API with params:", {
+    ...restParams,
+    promptSummary: `${fullPrompt.substring(0, 100)}...`,
+  });
   try {
     completion = await openai.chat.completions.create(params);
     console.log("API call completed.");
