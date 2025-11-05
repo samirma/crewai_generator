@@ -1,16 +1,16 @@
-import { useState } from 'react';
+// Define the return type for the generate function for clarity
+type GenerateApiResponse = {
+  isSuccess: boolean;
+  result: any | null;       // 'any' to match the successful JSON payload
+  errorMessage: string | null;
+};
 
-// The hook is simplified to only manage the loading and error state of the API call.
-// It no longer takes callbacks, making its behavior more predictable.
-// The component calling this hook will be responsible for handling the returned data or errors.
+// This hook is stateless and returns a structured response object
+// instead of throwing errors.
 export const useGenerationApi = () => {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const generate = async (payload: any) => {
-    setIsGenerating(true);
-    setError(null);
-
+  
+  // The function is now typed to return a Promise of GenerateApiResponse
+  const generate = async (payload: any): Promise<GenerateApiResponse> => {
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
@@ -20,19 +20,33 @@ export const useGenerationApi = () => {
         body: JSON.stringify(payload),
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        setError(errorData.error || `API request failed with status ${response.status}`);
+        // API returned an error (e.g., 4xx, 5xx)
+        return {
+          isSuccess: false,
+          result: null,
+          errorMessage: result.error || `API request failed with status ${response.status}`,
+        };
       }
 
-      const result = await response.json();
-      return result; // Return the result directly
+      // API call was successful
+      return {
+        isSuccess: true,
+        result: result, // 'result' is the successful JSON payload
+        errorMessage: null,
+      };
+
     } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsGenerating(false);
+      // Catch network errors or JSON parsing errors
+      return {
+        isSuccess: false,
+        result: null,
+        errorMessage: err.message || "A network or parsing error occurred.",
+      };
     }
   };
 
-  return { generate, isLoading: isGenerating, error };
+  return { generate };
 };
