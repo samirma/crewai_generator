@@ -29,10 +29,10 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 
 * **`mcp-local-seaxng`**: (**tool_id: `mcp_searxng_adapter`**)
     * `serverparams`: `{ "command": "python", "args": ["/workspace/mcp/mcp_searxng.py"] }`
-    * **Description**: This tool performs a web search based on a text query and an optional pageno for pagination. It returns a JSON formatted list of search results, with each result containing its url, title, and a only a snippet of the content. A scrape tool is required to get more information from each result.
+    * **Description**: This tool performs a web search based on a text query and an optional pageno for pagination. It returns a JSON formatted list of search results, with each result containing its url, title, and a only a snippet of the content. A web scrape tool is required to recover the fully information of the web pages.
 * **`time-stdio`**: (**tool_id: `mcp_time_adapter`**)
-    * `serverparams`: `{   "command": "uvx",  "args": ["mcp-server-time"]    }`
-    * **Description**: It should be used whenever there is a time component to the task allowing to now the current date and time. This server uses IANA timezone names and can automatically detect your system's timezone, allowing AI models to work with real-time temporal data and have date-time awareness for all tasks that require it.
+    * `serverparams`: `{   "command": "uvx",  "args": ["mcp-server-time"] }`
+    * **Description**: It should be used whenever there is a time component to the task allowing to now the current date and time. Must be used for all cases that are a time component in the task, for instance reference to 'current', days, hours, past, future dates, or all other kind of temporal references.
 * **`excel-stdio`**: (**tool_id: `mcp_excel_adapter`**)
     * `serverparams`: `{ "command": "uvx", "args": ["excel-mcp-server", "stdio"] }`
     * **Description**: This MCP server is designed to handle Excel files, allowing for reading and writing operations directly from standard input/output. It supports various Excel file formats and can be used to manipulate spreadsheet data programmatically.

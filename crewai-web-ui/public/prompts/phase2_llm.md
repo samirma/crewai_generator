@@ -61,20 +61,6 @@
       "timeout": 600,
       "api_key": "DEEPSEEK_API_KEY"
     }
-  },
-  {
-    "design_metadata": {
-      "llm_id": "minimax-m2",
-      "reasoner": false,
-      "multimodal_support": false,
-      "description": "A powerful model from Minimax, suitable for various tasks, with the best performance of all with deep reasoning capabilities."
-    },
-    "constructor_args": {
-      "model": "MiniMax-M2",
-      "timeout": 600,
-      "api_key": "MINIMAX_API_KEY",
-      "base_url": "https://api.minimax.io/v1"
-    }
   }
 ]
 ```
