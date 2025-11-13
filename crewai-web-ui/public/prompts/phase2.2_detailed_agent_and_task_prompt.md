@@ -22,7 +22,7 @@
 
 *   `task_roster` (Array of Objects): Using CrewAI best practices, create a comprehensive list of tasks to fully execute the 'Project Blueprint', covering all its aspects, details, and specifications. A single step can be extrapolated into one or more tasks if it is too complex, considering the CrewAI recommended architecture.
     *   `design_metadata` (Object): Contains contextual information and justifications, not used directly for code generation.
-        *   `task_reasoning` (String): Justification for the async_execution setting. Explain why this task is (or is not) a dependency for other tasks and whether it can safely run in parallel.
+        *   `task_reasoning` (String): Justification for the async_execution setting, in case this task depend on another task it should be always false. Explain why this task is (or is not) a dependency for other tasks and whether it can safely run in parallel.
         *   `quality_gate` (String): A high-level, human-readable statement of the success criteria for this task.
     *   `yaml_definition` (Object): Contains only the parameters for config/tasks.yaml file.
         *   `description` (String): Detailed operational prompt for the agent, derived from 'Blueprint's Execution Outline'.
