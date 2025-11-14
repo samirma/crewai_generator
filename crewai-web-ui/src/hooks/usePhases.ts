@@ -107,12 +107,77 @@ export const usePhases = (
     return runAllSuccess; // Return the final status
   };
 
+  const handleRunAllPhasesInParallel = async () => {
+    setIsRunAllLoading(true);
+    setError(null);
+
+    let currentPhases = [...phases];
+    const completedPhases = new Set<number>();
+    const inProgressPhases = new Set<number>();
+
+    const executePhase = async (phaseId: number): Promise<boolean> => {
+      inProgressPhases.add(phaseId);
+      const { newPhases, success } = await handlePhaseExecution(
+        phaseId,
+        currentPhases
+      );
+      currentPhases = newPhases;
+
+      if (success) {
+        completedPhases.add(phaseId);
+      }
+      inProgressPhases.delete(phaseId);
+      return success;
+    };
+
+    const pendingPromises = new Set<Promise<boolean>>();
+    const allExecutedPromises: Promise<boolean>[] = [];
+
+    while (completedPhases.size < phases.length) {
+      const readyPhases = phases.filter(
+        (phase) =>
+          !completedPhases.has(phase.id) &&
+          !inProgressPhases.has(phase.id) &&
+          phase.dependencies.every((depId) => completedPhases.has(depId))
+      );
+
+      for (const phase of readyPhases) {
+        const promise = executePhase(phase.id);
+        promise.finally(() => {
+          pendingPromises.delete(promise);
+        });
+        pendingPromises.add(promise);
+        allExecutedPromises.push(promise);
+      }
+
+      if (pendingPromises.size === 0) {
+        if (completedPhases.size < phases.length) {
+          const remainingPhases = phases.filter((p) => !completedPhases.has(p.id));
+          const remainingPhaseNames = remainingPhases.map((p) => p.name).join(', ');
+          setError(
+            `Failed to run all phases. Could not resolve dependencies for: ${remainingPhaseNames}`
+          );
+        }
+        break;
+      }
+
+      await Promise.race(pendingPromises);
+    }
+
+    const results = await Promise.all(allExecutedPromises);
+    const overallSuccess = results.every((res) => res);
+
+    setIsRunAllLoading(false);
+    return overallSuccess;
+  };
+
   return {
     phases,
     setPhases,
     handlePhaseExecution: (phaseId: number, phasesForExecution?: PhaseState[]) =>
       handlePhaseExecution(phaseId, phasesForExecution).then(result => result.newPhases),
     handleRunAllPhases,
+    handleRunAllPhasesInParallel, // --- Add new function to return object
     currentActivePhase,
     isRunAllLoading,
     error,

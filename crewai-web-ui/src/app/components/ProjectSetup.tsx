@@ -19,6 +19,8 @@ interface ProjectSetupProps {
   isRunAllLoading: boolean;
   runScriptAfterGeneration: boolean;
   setRunScriptAfterGeneration: (value: boolean) => void;
+  runInParallel: boolean;
+  setRunInParallel: (value: boolean) => void;
 }
 
 const ProjectSetup = ({
@@ -36,6 +38,8 @@ const ProjectSetup = ({
   isRunAllLoading,
   runScriptAfterGeneration,
   setRunScriptAfterGeneration,
+  runInParallel,
+  setRunInParallel,
 }: ProjectSetupProps) => {
   return (
     <section className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg mb-8 border border-slate-200 dark:border-slate-700">
@@ -129,6 +133,18 @@ const ProjectSetup = ({
         />
         <label htmlFor="run-script-after-generation" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
           Run script after generation
+        </label>
+      </div>
+      <div className="mt-4 flex items-center justify-center">
+        <input
+          id="run-in-parallel"
+          type="checkbox"
+          checked={runInParallel}
+          onChange={(e) => setRunInParallel(e.target.checked)}
+          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+        />
+        <label htmlFor="run-in-parallel" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
+          Run Phases in Parallel
         </label>
       </div>
     </section>
