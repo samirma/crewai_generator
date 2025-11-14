@@ -43,25 +43,37 @@ const PhaseComponent = ({
 }: PhaseComponentProps) => {
   return (
     <div
+      data-testid={`phase-component-${phase}`}
       className={`p-6 rounded-xl shadow-md border-2 transition-all duration-300 ease-in-out
         ${currentActivePhase === phase
           ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950'
           : 'border-slate-200 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
         }`}
     >
-      <h3 className="text-xl font-semibold mb-4 flex items-center text-slate-700 dark:text-slate-200">
-        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full mr-3 font-bold
-          ${currentActivePhase === phase ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>
-          {phase}
-        </span>
-        Phase {phase}: {title}
-        {isLoading && (
-          <svg className="animate-spin ml-3 h-5 w-5 text-indigo-500 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-xl font-semibold flex items-center text-slate-700 dark:text-slate-200">
+          <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full mr-3 font-bold
+            ${currentActivePhase === phase ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>
+            {phase}
+          </span>
+          Phase {phase}: {title}
+          {isLoading && (
+            <svg className="animate-spin ml-3 h-5 w-5 text-indigo-500 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          )}
+        </h3>
+        {(timerRunning || duration) && (
+          <div className="p-1 border rounded-md shadow-sm text-center bg-gray-50 dark:bg-gray-700">
+            <Timer
+              isRunning={timerRunning}
+              duration={duration}
+              className="text-sm text-gray-600 dark:text-gray-300 font-semibold"
+            />
+          </div>
         )}
-      </h3>
+      </div>
 
       <details className="mb-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600 shadow-inner" open={false}>
         <summary className="text-md font-medium text-slate-700 dark:text-slate-300 cursor-pointer flex justify-between items-center">
@@ -91,21 +103,6 @@ const PhaseComponent = ({
         )}
         Run Phase {phase} Only
       </button>
-
-      {timerRunning && (
-        <div className="mt-4 p-3 border border-purple-300 dark:border-purple-700 rounded-md bg-purple-50 dark:bg-purple-900/30 shadow-sm text-center">
-          <p className="text-sm text-purple-700 dark:text-purple-300">
-            Phase {phase} Timer: <Timer isRunning={timerRunning} className="inline font-semibold" />
-          </p>
-        </div>
-      )}
-      {duration !== null && !timerRunning && (
-        <div className="mt-4 p-3 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm text-center">
-          <p className="text-sm text-slate-600 dark:text-slate-300">
-            Phase {phase} took: <span className="font-semibold">{duration?.toFixed(2)} seconds</span>
-          </p>
-        </div>
-      )}
 
       <details className="mt-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600 shadow-inner" open={false}>
         <summary className="text-md font-medium text-slate-700 dark:text-slate-300 cursor-pointer flex justify-between items-center">
