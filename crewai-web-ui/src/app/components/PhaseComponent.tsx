@@ -43,6 +43,7 @@ const PhaseComponent = ({
 }: PhaseComponentProps) => {
   return (
     <div
+      data-testid={`phase-component-${phase}`}
       className={`p-6 rounded-xl shadow-md border-2 transition-all duration-300 ease-in-out
         ${currentActivePhase === phase
           ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950'
@@ -92,17 +93,27 @@ const PhaseComponent = ({
         Run Phase {phase} Only
       </button>
 
-      {timerRunning && (
-        <div className="mt-4 p-3 border border-purple-300 dark:border-purple-700 rounded-md bg-purple-50 dark:bg-purple-900/30 shadow-sm text-center">
-          <p className="text-sm text-purple-700 dark:text-purple-300">
-            Phase {phase} Timer: <Timer isRunning={timerRunning} className="inline font-semibold" />
-          </p>
-        </div>
-      )}
-      {duration !== null && !timerRunning && (
-        <div className="mt-4 p-3 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-100 dark:bg-slate-700 shadow-sm text-center">
-          <p className="text-sm text-slate-600 dark:text-slate-300">
-            Phase {phase} took: <span className="font-semibold">{duration?.toFixed(2)} seconds</span>
+      {(timerRunning || duration) && (
+        <div
+          className={`mt-4 p-3 border rounded-md shadow-sm text-center ${
+            timerRunning
+              ? 'border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/30'
+              : 'border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700'
+          }`}
+        >
+          <p
+            className={`text-sm ${
+              timerRunning
+                ? 'text-purple-700 dark:text-purple-300'
+                : 'text-slate-600 dark:text-slate-300'
+            }`}
+          >
+            Phase {phase} Timer:{' '}
+            <Timer
+              isRunning={timerRunning}
+              duration={duration}
+              className="inline font-semibold"
+            />
           </p>
         </div>
       )}

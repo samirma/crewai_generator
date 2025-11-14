@@ -83,6 +83,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'generation' | 'execution'>('generation');
   const [runScriptAfterGeneration, setRunScriptAfterGeneration] = useState<boolean>(false);
   const [isLlmLoading, setIsLlmLoading] = useState<boolean>(false);
+  const [runInParallel, setRunInParallel] = useState<boolean>(false);
 
   const playLlmSound = () => {
     llmRequestFinishSoundRef.current?.play().catch(e => console.error("Error playing LLM sound:", e));
@@ -93,6 +94,7 @@ export default function Home() {
     setPhases,
     handlePhaseExecution,
     handleRunAllPhases: runAllPhases,
+    handleRunAllPhasesInParallel,
     currentActivePhase,
     isRunAllLoading,
     error: phasesError,
@@ -252,7 +254,10 @@ export default function Home() {
     }
     resetOutputStates();
     setActiveTab('generation');
-    const success = await runAllPhases();
+
+    const executePhases = runInParallel ? handleRunAllPhasesInParallel : runAllPhases;
+    const success = await executePhases();
+
     if (success && runScriptAfterGeneration) {
       handleExecuteScript();
     }
@@ -468,6 +473,8 @@ export default function Home() {
           isRunAllLoading={isRunAllLoading}
           runScriptAfterGeneration={runScriptAfterGeneration}
           setRunScriptAfterGeneration={setRunScriptAfterGeneration}
+          runInParallel={runInParallel}
+          setRunInParallel={setRunInParallel}
         />
         {(isLlmLoading || llmRequestDuration !== null) && (
           <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg mb-8 border border-slate-200 dark:border-slate-700 text-center">
