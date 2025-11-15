@@ -107,12 +107,89 @@ export const usePhases = (
     return runAllSuccess; // Return the final status
   };
 
+  const handleRunAllPhasesInParallel = async () => {
+    setIsRunAllLoading(true);
+    setError(null);
+
+    let currentPhases = [...phases];
+    const completedPhases = new Set<number>();
+    const inProgressPhases = new Set<number>();
+    let overallSuccess = true;
+
+    // A map of promises for phases that are currently running
+    const pendingPromises = new Map<number, Promise<{ newPhases: PhaseState[]; success: boolean }>>();
+
+    while (completedPhases.size < phases.length) {
+      // Find phases that are ready to run
+      const readyPhases = currentPhases.filter(
+        (phase) =>
+          !completedPhases.has(phase.id) &&
+          !inProgressPhases.has(phase.id) &&
+          phase.dependencies.every((dep) => completedPhases.has(dep.id))
+      );
+
+      // Launch all ready phases
+      for (const phase of readyPhases) {
+        inProgressPhases.add(phase.id);
+        const promise = handlePhaseExecution(phase.id, currentPhases);
+        pendingPromises.set(phase.id, promise);
+      }
+
+      // If there are no running phases and we're not done, it's a deadlock
+      if (pendingPromises.size === 0) {
+        if (completedPhases.size < phases.length) {
+          const remainingPhases = currentPhases.filter(p => !completedPhases.has(p.id));
+          const remainingPhaseNames = remainingPhases.map(p => p.name).join(', ');
+          setError(`Failed to run all phases. Could not resolve dependencies for: ${remainingPhaseNames}`);
+          overallSuccess = false;
+        }
+        break;
+      }
+
+      // Create promises that resolve with their phase ID
+      const promisesWithId = Array.from(pendingPromises.entries()).map(([phaseId, promise]) =>
+        promise.then(result => ({ ...result, phaseId }))
+      );
+
+      // Wait for any of the running phases to complete
+      const finishedResult = await Promise.race(promisesWithId);
+      const { phaseId, newPhases, success } = finishedResult;
+
+      // Update the main state with the result of the completed phase
+      currentPhases = newPhases;
+
+      // Update tracking sets
+      pendingPromises.delete(phaseId);
+      inProgressPhases.delete(phaseId);
+      if (success) {
+        completedPhases.add(phaseId);
+      } else {
+        // A phase failed, so we stop the process
+        setError(`Phase ${phaseId} failed.`);
+        overallSuccess = false;
+        break;
+      }
+    }
+
+    // Wait for any remaining promises to finish to avoid orphaned processes
+    try {
+      await Promise.all(pendingPromises.values());
+    } catch (e) {
+      // Errors from already-failed phases might surface here; we can ignore them as we've already handled the failure.
+      console.error("Additional errors from remaining phases:", e);
+    }
+
+    setIsRunAllLoading(false);
+    return overallSuccess;
+  };
+
   return {
     phases,
     setPhases,
     handlePhaseExecution: (phaseId: number, phasesForExecution?: PhaseState[]) =>
       handlePhaseExecution(phaseId, phasesForExecution).then(result => result.newPhases),
     handleRunAllPhases,
+    handleRunAllPhasesInParallel, // --- Add new function to return object
     currentActivePhase,
     isRunAllLoading,
     error,

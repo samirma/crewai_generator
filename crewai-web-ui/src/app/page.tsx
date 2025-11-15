@@ -83,6 +83,10 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'generation' | 'execution'>('generation');
   const [runScriptAfterGeneration, setRunScriptAfterGeneration] = useState<boolean>(false);
   const [isLlmLoading, setIsLlmLoading] = useState<boolean>(false);
+  const [runDuration, setRunDuration] = useState<number | null>(null);
+  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
+  const [activeExecutionMode, setActiveExecutionMode] = useState<'sequential' | 'parallel' | null>(null);
+
 
   const playLlmSound = () => {
     llmRequestFinishSoundRef.current?.play().catch(e => console.error("Error playing LLM sound:", e));
@@ -92,7 +96,8 @@ export default function Home() {
     phases,
     setPhases,
     handlePhaseExecution,
-    handleRunAllPhases: runAllPhases,
+    handleRunAllPhases,
+    handleRunAllPhasesInParallel,
     currentActivePhase,
     isRunAllLoading,
     error: phasesError,
@@ -243,7 +248,7 @@ export default function Home() {
     );
   };
 
-  const handleRunAllPhases = async () => {
+  const handleRunScript = async (isParallel: boolean) => {
     setCookie('initialInstruction', initialInput, 30);
     setCookie('llmModelSelection', llmModel, 30);
     if (!llmModel) {
@@ -252,7 +257,19 @@ export default function Home() {
     }
     resetOutputStates();
     setActiveTab('generation');
-    const success = await runAllPhases();
+    setIsTimerRunning(true);
+    setRunDuration(null);
+    setActiveExecutionMode(isParallel ? 'parallel' : 'sequential');
+
+    const startTime = Date.now();
+    const executePhases = isParallel ? handleRunAllPhasesInParallel : handleRunAllPhases;
+    const success = await executePhases();
+    const endTime = Date.now();
+
+    setRunDuration((endTime - startTime) / 1000);
+    setIsTimerRunning(false);
+    setActiveExecutionMode(null);
+
     if (success && runScriptAfterGeneration) {
       handleExecuteScript();
     }
@@ -464,10 +481,13 @@ export default function Home() {
           modelsError={modelsError}
           isLlmTimerRunning={isLlmLoading}
           isExecutingScript={isExecutingScript}
-          handleRunAllPhases={handleRunAllPhases}
+          handleRunAllPhases={handleRunScript}
           isRunAllLoading={isRunAllLoading}
           runScriptAfterGeneration={runScriptAfterGeneration}
           setRunScriptAfterGeneration={setRunScriptAfterGeneration}
+          runDuration={runDuration}
+          isTimerRunning={isTimerRunning}
+          activeExecutionMode={activeExecutionMode}
         />
         {(isLlmLoading || llmRequestDuration !== null) && (
           <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg mb-8 border border-slate-200 dark:border-slate-700 text-center">
