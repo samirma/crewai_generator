@@ -1,5 +1,7 @@
 import { buildPrompt } from "@/utils/promptUtils";
 
+export type PhaseStatus = 'pending' | 'running' | 'completed' | 'failed';
+
 export interface PhaseState {
   id: number;
   title: string;
@@ -7,9 +9,8 @@ export interface PhaseState {
   defaultPrompt: string;
   input: string;
   output: string;
-  isLoading: boolean;
+  status: PhaseStatus;
   duration: number | null;
-  isTimerRunning: boolean;
   filePath?: string;
   outputType?: 'file' | 'directory';
   promptFileName?: string;
@@ -31,9 +32,8 @@ const defaultPhaseStateProperties: Omit<PhaseState,
   defaultPrompt: "",
   input: "",
   output: "",
-  isLoading: false,
+  status: 'pending',
   duration: null,
-  isTimerRunning: false,
 };
 
 // Define the type for creating a new phase.

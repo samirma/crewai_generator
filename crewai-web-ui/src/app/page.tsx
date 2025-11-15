@@ -241,9 +241,8 @@ export default function Home() {
         ...phase,
         input: "",
         output: "",
-        isLoading: false,
+        status: 'pending',
         duration: null,
-        isTimerRunning: false,
       }))
     );
   };
@@ -524,11 +523,8 @@ export default function Home() {
           <div className="mt-6">
             {activeTab === 'generation' && (
               <GenerationTab
-                currentActivePhase={currentActivePhase}
-                isLlmTimerRunning={isLlmLoading}
                 isExecutingScript={isExecutingScript}
                 handleMultiStepPhaseExecution={handlePhaseExecution}
-                multiStepPhase_Timers_Running={Object.fromEntries(phases.map(p => [p.id, p.isTimerRunning]))}
                 multiStepPhase_Durations={Object.fromEntries(phases.map(p => [p.id, p.duration]))}
                 phaseData={phaseData}
               />

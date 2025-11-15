@@ -1,11 +1,12 @@
 "use client";
 
 import PhaseComponent from '@/app/components/PhaseComponent';
+import { PhaseStatus } from '@/config/phases.config';
 
 interface PhaseData {
   id: number;
   title: string;
-  isLoading: boolean;
+  status: PhaseStatus;
   prompt: string;
   setPrompt: (value: string) => void;
   isRunDisabled: boolean;
@@ -16,21 +17,15 @@ interface PhaseData {
 }
 
 interface GenerationTabProps {
-  currentActivePhase: number | null;
-  isLlmTimerRunning: boolean;
   isExecutingScript: boolean;
   handleMultiStepPhaseExecution: (phase: number) => void;
-  multiStepPhase_Timers_Running: Record<number, boolean>;
   multiStepPhase_Durations: Record<number, number | null>;
   phaseData: PhaseData[];
 }
 
 const GenerationTab = ({
-  currentActivePhase,
-  isLlmTimerRunning,
   isExecutingScript,
   handleMultiStepPhaseExecution,
-  multiStepPhase_Timers_Running,
   multiStepPhase_Durations,
   phaseData,
 }: GenerationTabProps) => {
@@ -45,15 +40,12 @@ const GenerationTab = ({
             key={data.id}
             phase={data.id}
             title={data.title}
-            currentActivePhase={currentActivePhase}
-            isLoading={data.isLoading}
+            status={data.status}
             prompt={data.prompt}
             setPrompt={data.setPrompt}
-            isLlmTimerRunning={isLlmTimerRunning}
             isExecutingScript={isExecutingScript}
             onRunPhase={() => handleMultiStepPhaseExecution(data.id)}
             isRunDisabled={data.isRunDisabled}
-            timerRunning={multiStepPhase_Timers_Running[data.id]}
             duration={multiStepPhase_Durations[data.id]}
             input={data.input}
             setInput={data.setInput}
@@ -67,4 +59,3 @@ const GenerationTab = ({
 };
 
 export default GenerationTab;
-
