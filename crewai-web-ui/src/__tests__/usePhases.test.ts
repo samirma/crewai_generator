@@ -101,9 +101,9 @@ describe('usePhases', () => {
     );
 
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise(resolve => setTimeout(resolve, 0)); 
     });
-
+    
     await act(async () => {
       await result.current.handleRunAllPhases();
     });
@@ -160,7 +160,7 @@ describe('usePhases', () => {
     expect(mockGenerateApi).toHaveBeenCalledTimes(mockPhases.length);
 
     const calls = mockGenerateApi.mock.calls.map(call => call[0].runPhase);
-
+    
     // A simple helper to verify dependency constraints
     const getPhase = (id: number) => mockPhases.find(p => p.id === id)!;
     const indexOf = (id: number) => calls.indexOf(id);
@@ -217,7 +217,7 @@ describe('usePhases', () => {
     const { result } = renderHook(() =>
       usePhases('initial', 'model', mockPlayLlmSound, mockGenerateApi, mockSetIsLlmLoading)
     );
-
+    
     await act(async () => {
       await new Promise(resolve => setTimeout(resolve, 0));
     });
@@ -227,14 +227,14 @@ describe('usePhases', () => {
     });
 
     expect(mockGenerateApi).toHaveBeenCalledTimes(mockPhases.length);
-
+    
     const finalPyProjectPhase = result.current.phases.find(p => p.id === pyProjectGenerationPhase.id)!;
-
+    
     // Check that the final phase's input contains the output from its direct dependencies
     for (const dep of finalPyProjectPhase.dependencies) {
         expect(finalPyProjectPhase.input).toContain(`Output ${dep.id}`);
     }
-
+    
     // Check that all phases are marked as 'completed'
     result.current.phases.forEach(p => {
         expect(p.status).toBe('completed');
