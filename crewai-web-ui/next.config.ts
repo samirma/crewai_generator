@@ -32,9 +32,6 @@ const nextConfig = {
     // Important: return the modified config
     return config;
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
 };
 
 export default nextConfig;
