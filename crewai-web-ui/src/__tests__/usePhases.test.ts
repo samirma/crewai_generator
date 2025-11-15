@@ -132,12 +132,15 @@ describe('usePhases', () => {
 
   it('should stop parallel execution if a phase fails', async () => {
     const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-    mockGenerateApi
-      .mockResolvedValueOnce({
-        isSuccess: true,
-        result: { output: 'Success', duration: 1 },
-      })
-      .mockResolvedValueOnce({ isSuccess: false, errorMessage: 'Failed' });
+    mockGenerateApi.mockImplementation(async ({ runPhase }) => {
+      if (runPhase === 1) {
+        return { isSuccess: true, result: { output: 'Success', duration: 1 } };
+      }
+      if (runPhase === 2) {
+        return { isSuccess: false, errorMessage: 'Phase 2 failed' };
+      }
+      return { isSuccess: true, result: { output: `Success for ${runPhase}`, duration: 1 } };
+    });
 
     const { result } = renderHook(() =>
       usePhases('initial', 'model', mockPlayLlmSound, mockGenerateApi, mockSetIsLlmLoading)
