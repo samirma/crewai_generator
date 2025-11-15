@@ -45,6 +45,16 @@ export const usePhases = (
       return { newPhases: phasesForExecution, success: false };
     }
 
+    // --- MODIFICATION: Check for dependencies ---
+    for (const dep of currentPhase.dependencies) {
+      const depState = phasesForExecution.find(p => p.id === dep.id);
+      if (!depState || !depState.output) {
+        const errorMessage = `Cannot run phase ${currentPhase.title} because its dependency ${dep.title} has not completed successfully.`;
+        setError(errorMessage);
+        return { newPhases: phasesForExecution, success: false };
+      }
+    }
+
     const fullPromptValue = currentPhase.generateInputPrompt(currentPhase, phasesForExecution, initialInput);
 
     const updatedPhasesWithInput = phasesForExecution.map(p =>
@@ -130,6 +140,7 @@ export const usePhases = (
 
       // Launch all ready phases
       for (const phase of readyPhases) {
+        if (!overallSuccess) break;
         inProgressPhases.add(phase.id);
         const promise = handlePhaseExecution(phase.id, currentPhases);
         pendingPromises.set(phase.id, promise);
@@ -156,7 +167,10 @@ export const usePhases = (
       const { phaseId, newPhases, success } = finishedResult;
 
       // Update the main state with the result of the completed phase
-      currentPhases = newPhases;
+      const finishedPhase = newPhases.find(p => p.id === phaseId);
+      if (finishedPhase) {
+        currentPhases = currentPhases.map(p => p.id === phaseId ? finishedPhase : p);
+      }
 
       // Update tracking sets
       pendingPromises.delete(phaseId);
@@ -167,7 +181,7 @@ export const usePhases = (
         // A phase failed, so we stop the process
         setError(`Phase ${phaseId} failed.`);
         overallSuccess = false;
-        break;
+        // Do not break here, let other running phases finish, but no new ones will start.
       }
     }
 
