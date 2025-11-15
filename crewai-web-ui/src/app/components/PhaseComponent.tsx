@@ -3,19 +3,17 @@
 import { ChangeEvent } from 'react';
 import CopyButton from '@/app/components/CopyButton';
 import Timer from '@/app/components/Timer';
+import { PhaseStatus } from '@/config/phases.config';
 
 interface PhaseComponentProps {
   phase: number;
   title: string;
-  currentActivePhase: number | null;
-  isLoading: boolean;
+  status: PhaseStatus;
   prompt: string;
   setPrompt: (value: string) => void;
-  isLlmTimerRunning: boolean;
   isExecutingScript: boolean;
   onRunPhase: () => void;
   isRunDisabled: boolean;
-  timerRunning: boolean;
   duration: number | null;
   input: string;
   setInput: (value: string) => void;
@@ -23,18 +21,60 @@ interface PhaseComponentProps {
   setOutput: (value: string) => void;
 }
 
+const getStatusIndicator = (status: PhaseStatus) => {
+  switch (status) {
+    case 'pending':
+      return <div className="w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600 animate-pulse" title="Pending"></div>;
+    case 'running':
+      return (
+        <svg className="animate-spin h-5 w-5 text-indigo-500 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <title>Running</title>
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      );
+    case 'completed':
+      return (
+        <svg className="h-6 w-6 text-green-500 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <title>Completed</title>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      );
+    case 'failed':
+      return (
+        <svg className="h-6 w-6 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <title>Failed</title>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+};
+
+const getBorderColor = (status: PhaseStatus) => {
+  switch (status) {
+    case 'running':
+      return 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950';
+    case 'completed':
+      return 'border-green-500 bg-green-50 dark:bg-green-950';
+    case 'failed':
+      return 'border-red-500 bg-red-50 dark:bg-red-950';
+    default:
+      return 'border-slate-200 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700';
+  }
+};
+
+
 const PhaseComponent = ({
   phase,
   title,
-  currentActivePhase,
-  isLoading,
+  status,
   prompt,
   setPrompt,
-  isLlmTimerRunning,
   isExecutingScript,
   onRunPhase,
   isRunDisabled,
-  timerRunning,
   duration,
   input,
   setInput,
@@ -44,30 +84,21 @@ const PhaseComponent = ({
   return (
     <div
       data-testid={`phase-component-${phase}`}
-      className={`p-6 rounded-xl shadow-md border-2 transition-all duration-300 ease-in-out
-        ${currentActivePhase === phase
-          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950'
-          : 'border-slate-200 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-        }`}
+      className={`p-6 rounded-xl shadow-md border-2 transition-all duration-300 ease-in-out ${getBorderColor(status)}`}
     >
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-semibold flex items-center text-slate-700 dark:text-slate-200">
           <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full mr-3 font-bold
-            ${currentActivePhase === phase ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>
+            ${status === 'running' ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>
             {phase}
           </span>
           Phase {phase}: {title}
-          {isLoading && (
-            <svg className="animate-spin ml-3 h-5 w-5 text-indigo-500 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          )}
+          <div className="ml-3">{getStatusIndicator(status)}</div>
         </h3>
-        {(timerRunning || duration) && (
+        {(status === 'running' || duration) && (
           <div className="p-1 border rounded-md shadow-sm text-center bg-gray-50 dark:bg-gray-700">
             <Timer
-              isRunning={timerRunning}
+              isRunning={status === 'running'}
               duration={duration}
               className="text-sm text-gray-600 dark:text-gray-300 font-semibold"
             />
@@ -86,16 +117,16 @@ const PhaseComponent = ({
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
           rows={6}
           className="mt-2 w-full p-3 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500/80 focus:border-indigo-500 hover:border-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:border-indigo-500 dark:hover:border-slate-500 text-sm resize-y"
-          disabled={isLlmTimerRunning || isExecutingScript}
+          disabled={status === 'running' || isExecutingScript}
         />
       </details>
 
       <button
         onClick={onRunPhase}
-        disabled={isRunDisabled}
+        disabled={isRunDisabled || status === 'running'}
         className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2.5 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-purple-400 focus:outline-none dark:focus:ring-purple-700 flex items-center justify-center gap-2"
       >
-        {isLoading && (
+        {status === 'running' && (
           <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -132,4 +163,3 @@ const PhaseComponent = ({
 };
 
 export default PhaseComponent;
-
