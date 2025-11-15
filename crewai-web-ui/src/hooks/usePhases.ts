@@ -45,6 +45,16 @@ export const usePhases = (
       return { newPhases: phasesForExecution, success: false };
     }
 
+    // --- MODIFICATION: Check for dependencies ---
+    for (const dep of currentPhase.dependencies) {
+      const depState = phasesForExecution.find(p => p.id === dep.id);
+      if (!depState || !depState.output) {
+        const errorMessage = `Cannot run phase ${currentPhase.name} because its dependency ${dep.name} has not completed successfully.`;
+        setError(errorMessage);
+        return { newPhases: phasesForExecution, success: false };
+      }
+    }
+
     const fullPromptValue = currentPhase.generateInputPrompt(currentPhase, phasesForExecution, initialInput);
 
     const updatedPhasesWithInput = phasesForExecution.map(p =>
@@ -156,7 +166,10 @@ export const usePhases = (
       const { phaseId, newPhases, success } = finishedResult;
 
       // Update the main state with the result of the completed phase
-      currentPhases = newPhases;
+      const finishedPhase = newPhases.find(p => p.id === phaseId);
+      if (finishedPhase) {
+        currentPhases = currentPhases.map(p => p.id === phaseId ? finishedPhase : p);
+      }
 
       // Update tracking sets
       pendingPromises.delete(phaseId);
