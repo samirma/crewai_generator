@@ -87,6 +87,7 @@ describe('usePhases', () => {
   });
 
   it('should stop sequential execution if a phase fails', async () => {
+    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
     mockGenerateApi
       .mockResolvedValueOnce({
         isSuccess: true,
@@ -103,6 +104,7 @@ describe('usePhases', () => {
     });
 
     expect(mockGenerateApi).toHaveBeenCalledTimes(2);
+    consoleLogSpy.mockRestore();
   });
 
   it('should run all phases in parallel respecting dependencies', async () => {
@@ -129,6 +131,7 @@ describe('usePhases', () => {
   });
 
   it('should stop parallel execution if a phase fails', async () => {
+    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
     mockGenerateApi
       .mockResolvedValueOnce({
         isSuccess: true,
@@ -147,5 +150,6 @@ describe('usePhases', () => {
     const calls = mockGenerateApi.mock.calls.map(call => call[0].runPhase);
     expect(calls.length).toBeLessThanOrEqual(3);
     expect(calls).not.toContain(4);
+    consoleLogSpy.mockRestore();
   });
 });
