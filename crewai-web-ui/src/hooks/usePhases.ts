@@ -126,11 +126,9 @@ export const usePhases = (
     const inProgressPhases = new Set<number>();
     let overallSuccess = true;
 
-    // A map of promises for phases that are currently running
-    const pendingPromises = new Map<number, Promise<{ newPhases: PhaseState[]; success: boolean }>>();
+    const pendingPromises = new Map<number, Promise<any>>();
 
-    while (completedPhases.size < phases.length) {
-      // Find phases that are ready to run
+    while (completedPhases.size < phases.length && overallSuccess) {
       const readyPhases = currentPhases.filter(
         (phase) =>
           !completedPhases.has(phase.id) &&
@@ -138,15 +136,15 @@ export const usePhases = (
           phase.dependencies.every((dep) => completedPhases.has(dep.id))
       );
 
-      // Launch all ready phases
       for (const phase of readyPhases) {
-        if (!overallSuccess) break;
         inProgressPhases.add(phase.id);
-        const promise = handlePhaseExecution(phase.id, currentPhases);
-        pendingPromises.set(phase.id, promise);
+
+        const executionPromise = handlePhaseExecution(phase.id, currentPhases)
+          .then(result => ({ ...result, phaseId: phase.id }));
+
+        pendingPromises.set(phase.id, executionPromise);
       }
 
-      // If there are no running phases and we're not done, it's a deadlock
       if (pendingPromises.size === 0) {
         if (completedPhases.size < phases.length) {
           const remainingPhases = currentPhases.filter(p => !completedPhases.has(p.id));
@@ -157,39 +155,43 @@ export const usePhases = (
         break;
       }
 
-      // Create promises that resolve with their phase ID
-      const promisesWithId = Array.from(pendingPromises.entries()).map(([phaseId, promise]) =>
-        promise.then(result => ({ ...result, phaseId }))
-      );
+      try {
+        const promisesWithId = Array.from(pendingPromises.values());
+        const finishedResult = await Promise.race(promisesWithId);
 
-      // Wait for any of the running phases to complete
-      const finishedResult = await Promise.race(promisesWithId);
-      const { phaseId, newPhases, success } = finishedResult;
+        const { phaseId, newPhases, success } = finishedResult;
 
-      // Update the main state with the result of the completed phase
-      const finishedPhase = newPhases.find(p => p.id === phaseId);
-      if (finishedPhase) {
-        currentPhases = currentPhases.map(p => p.id === phaseId ? finishedPhase : p);
-      }
+        // **SERIALIZE STATE UPDATE**
+        const finishedPhase = newPhases.find(p => p.id === phaseId);
+        if (finishedPhase) {
+          // This is the key fix: update only the completed phase in the current state
+          // array, preserving the outputs of other phases that might have finished
+          // while this one was running.
+          currentPhases = currentPhases.map(p => p.id === phaseId ? finishedPhase : p);
+        }
 
-      // Update tracking sets
-      pendingPromises.delete(phaseId);
-      inProgressPhases.delete(phaseId);
-      if (success) {
-        completedPhases.add(phaseId);
-      } else {
-        // A phase failed, so we stop the process
-        setError(`Phase ${phaseId} failed.`);
+        pendingPromises.delete(phaseId);
+        inProgressPhases.delete(phaseId);
+
+        if (success) {
+          completedPhases.add(phaseId);
+        } else {
+          setError(`Phase "${newPhases.find(p => p.id === phaseId)?.title}" failed.`);
+          overallSuccess = false;
+          // Stop starting new phases, but let existing ones finish.
+        }
+
+      } catch (error) {
+        console.error("An unexpected error occurred during phase execution:", error);
+        setError("An unexpected error occurred. Check the console for details.");
         overallSuccess = false;
-        // Do not break here, let other running phases finish, but no new ones will start.
+        break;
       }
     }
 
-    // Wait for any remaining promises to finish to avoid orphaned processes
     try {
       await Promise.all(pendingPromises.values());
     } catch (e) {
-      // Errors from already-failed phases might surface here; we can ignore them as we've already handled the failure.
       console.error("Additional errors from remaining phases:", e);
     }
 
