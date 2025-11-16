@@ -1,16 +1,13 @@
 import { useState, useEffect } from 'react';
 import { getPhases, PhaseState } from '../config/phases.config';
-import { useGenerationApi } from './useGenerationApi';
 
 export const usePhases = (
   initialInput: string,
   llmModel: string,
   playLlmSound: () => void,
-  generateApi: (payload: any) => Promise<any>,
-  setIsLlmLoading: (loading: boolean) => void
+  generateApi: (payload: any) => Promise<any>
 ) => {
   const [phases, setPhases] = useState<PhaseState[]>(getPhases());
-  const [currentActivePhase, setCurrentActivePhase] = useState<number | null>(null);
   const [isRunAllLoading, setIsRunAllLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +32,6 @@ export const usePhases = (
     fetchInitialPrompts();
   }, []);
 
-  // --- MODIFICATION: This function now returns an object indicating success ---
   const handlePhaseExecution = async (
     phaseId: number,
     phasesForExecution: PhaseState[] = phases
@@ -45,7 +41,6 @@ export const usePhases = (
       return { newPhases: phasesForExecution, success: false };
     }
 
-    // --- MODIFICATION: Check for dependencies ---
     for (const dep of currentPhase.dependencies) {
       const depState = phasesForExecution.find(p => p.id === dep.id);
       if (!depState || depState.status !== 'completed') {
@@ -64,7 +59,6 @@ export const usePhases = (
       p.id === phaseId ? { ...p, input: fullPromptValue, status: 'running' as const } : p
     );
     setPhases(updatedPhasesWithInput);
-    setCurrentActivePhase(phaseId);
 
     const response = await generateApi({
       llmModel,
@@ -84,7 +78,6 @@ export const usePhases = (
       );
       setPhases(finalPhases);
       playLlmSound();
-      setCurrentActivePhase(null);
       return { newPhases: finalPhases, success: true }; // --- Return success
     } else {
       const errorMessage = response.errorMessage || "An unknown error occurred.";
@@ -94,7 +87,6 @@ export const usePhases = (
         p.id === phaseId ? { ...p, status: 'failed' as const } : p
       );
       setPhases(finalPhases);
-      setCurrentActivePhase(null);
       return { newPhases: finalPhases, success: false }; // --- Return failure
     }
   };
@@ -210,7 +202,7 @@ export const usePhases = (
     handlePhaseExecution: (phaseId: number, phasesForExecution?: PhaseState[]) =>
       handlePhaseExecution(phaseId, phasesForExecution).then(result => result.newPhases),
     handleRunAllPhases,
-    handleRunAllPhasesInParallel, // --- Add new function to return object
+    handleRunAllPhasesInParallel,
     currentActivePhase,
     isRunAllLoading,
     error,
