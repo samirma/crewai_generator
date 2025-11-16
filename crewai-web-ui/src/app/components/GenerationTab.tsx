@@ -29,30 +29,40 @@ const GenerationTab = ({
   multiStepPhase_Durations,
   phaseData,
 }: GenerationTabProps) => {
+  const firstRunningPhase = phaseData.find(p => p.status === 'running');
+  const firstPendingPhase = phaseData.find(p => p.status === 'pending');
+
   return (
     <section className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
       <h2 className="text-2xl font-semibold mb-6 text-slate-700 dark:text-slate-200">
         Script Generation Phases
       </h2>
       <div className="space-y-8">
-        {phaseData.map((data) => (
-          <PhaseComponent
-            key={data.id}
-            phase={data.id}
-            title={data.title}
-            status={data.status}
-            prompt={data.prompt}
-            setPrompt={data.setPrompt}
-            isExecutingScript={isExecutingScript}
-            onRunPhase={() => handleMultiStepPhaseExecution(data.id)}
-            isRunDisabled={data.isRunDisabled}
-            duration={multiStepPhase_Durations[data.id]}
-            input={data.input}
-            setInput={data.setInput}
-            output={data.output}
-            setOutput={data.setOutput}
-          />
-        ))}
+        {phaseData.map((data) => {
+          const isInitiallyOpen =
+            data.status === 'running' ||
+            (!firstRunningPhase && data.id === firstPendingPhase?.id);
+
+          return (
+            <PhaseComponent
+              key={data.id}
+              phase={data.id}
+              title={data.title}
+              status={data.status}
+              prompt={data.prompt}
+              setPrompt={data.setPrompt}
+              isExecutingScript={isExecutingScript}
+              onRunPhase={() => handleMultiStepPhaseExecution(data.id)}
+              isRunDisabled={data.isRunDisabled}
+              duration={multiStepPhase_Durations[data.id]}
+              input={data.input}
+              setInput={data.setInput}
+              output={data.output}
+              setOutput={data.setOutput}
+              isInitiallyOpen={isInitiallyOpen}
+            />
+          );
+        })}
       </div>
     </section>
   );

@@ -11,6 +11,7 @@ import type { ExecutionResult as ExecutionResultType } from './api/execute/types
 import { parseFileBlocks } from '@/utils/fileParser';
 import { useGenerationApi } from '@/hooks/useGenerationApi';
 import { usePhases } from '@/hooks/usePhases';
+import PhaseSummary from './components/PhaseSummary';
 import { PhaseState } from '@/config/phases.config';
 
 export interface Model {
@@ -488,6 +489,11 @@ export default function Home() {
           isTimerRunning={isTimerRunning}
           activeExecutionMode={activeExecutionMode}
         />
+        {isRunAllLoading && (
+          <div className="my-8">
+            <PhaseSummary phases={phases} />
+          </div>
+        )}
         {(isLlmLoading || llmRequestDuration !== null) && (
           <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg mb-8 border border-slate-200 dark:border-slate-700 text-center">
             {isLlmLoading ? (
