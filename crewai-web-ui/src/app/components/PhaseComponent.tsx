@@ -6,6 +6,7 @@ import Timer from '@/app/components/Timer';
 import { PhaseStatus } from '@/config/phases.config';
 
 interface PhaseComponentProps {
+  isInitiallyOpen?: boolean;
   phase: number;
   title: string;
   status: PhaseStatus;
@@ -80,36 +81,39 @@ const PhaseComponent = ({
   setInput,
   output,
   setOutput,
+  isInitiallyOpen = false,
 }: PhaseComponentProps) => {
   return (
     <div
       data-testid={`phase-component-${phase}`}
       className={`p-6 rounded-xl shadow-md border-2 transition-all duration-300 ease-in-out ${getBorderColor(status)}`}
     >
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-semibold flex items-center text-slate-700 dark:text-slate-200">
-          <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full mr-3 font-bold
-            ${status === 'running' ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>
-            {phase}
-          </span>
-          Phase {phase}: {title}
-          <div className="ml-3">{getStatusIndicator(status)}</div>
-        </h3>
-        {(status === 'running' || duration) && (
-          <div className="p-1 border rounded-md shadow-sm text-center bg-gray-50 dark:bg-gray-700">
-            <Timer
-              isRunning={status === 'running'}
-              duration={duration}
-              className="text-sm text-gray-600 dark:text-gray-300 font-semibold"
-            />
-          </div>
-        )}
-      </div>
+      <details open={isInitiallyOpen}>
+        <summary className="flex justify-between items-center mb-4 cursor-pointer">
+          <h3 className="text-xl font-semibold flex items-center text-slate-700 dark:text-slate-200">
+            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full mr-3 font-bold
+              ${status === 'running' ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>
+              {phase}
+            </span>
+            Phase {phase}: {title}
+            <div className="ml-3">{getStatusIndicator(status)}</div>
+          </h3>
+          {(status === 'running' || duration) && (
+            <div className="p-1 border rounded-md shadow-sm text-center bg-gray-50 dark:bg-gray-700">
+              <Timer
+                isRunning={status === 'running'}
+                duration={duration}
+                className="text-sm text-gray-600 dark:text-gray-300 font-semibold"
+              />
+            </div>
+          )}
+        </summary>
 
-      <details className="mb-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600 shadow-inner" open={false}>
-        <summary className="text-md font-medium text-slate-700 dark:text-slate-300 cursor-pointer flex justify-between items-center">
-          <span>Prompt for Phase {phase}</span>
-          <CopyButton textToCopy={prompt} />
+        <div className="mt-4">
+          <details className="mb-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600 shadow-inner" open={false}>
+            <summary className="text-md font-medium text-slate-700 dark:text-slate-300 cursor-pointer flex justify-between items-center">
+              <span>Prompt for Phase {phase}</span>
+              <CopyButton textToCopy={prompt} />
         </summary>
         <textarea
           id={`phase${phase}Prompt`}
@@ -157,6 +161,8 @@ const PhaseComponent = ({
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setOutput(e.target.value)}
           className="mt-2 w-full p-3 border border-slate-300 rounded-md bg-slate-100 shadow-inner overflow-auto whitespace-pre-wrap min-h-[160px] text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-slate-400 resize-y"
         />
+      </details>
+      </div>
       </details>
     </div>
   );
