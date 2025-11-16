@@ -18,6 +18,8 @@ export interface PhaseState {
   dependencies: PhaseState[];
 }
 
+export type Phase = PhaseState;
+
 // --- Helper for Auto-Incrementing IDs ---
 let phaseIdCounter = 0;
 

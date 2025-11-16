@@ -2,7 +2,7 @@
 
 import { ChangeEvent } from 'react';
 import CopyButton from './CopyButton';
-import { Model } from '../page'; // Assuming Model type is exported from page.tsx or a types file
+import { Model } from '@/hooks/useModels';
 import Timer from './Timer';
 
 interface ProjectSetupProps {

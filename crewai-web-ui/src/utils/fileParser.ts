@@ -1,4 +1,7 @@
-import type { GeneratedFile } from "@/app/page";
+export interface GeneratedFile {
+  name: string;
+  content: string;
+}
 
 // Function to strip markdown code block notations
 const stripMarkdown = (content: string): string => {
