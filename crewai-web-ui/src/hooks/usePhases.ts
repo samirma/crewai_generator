@@ -10,7 +10,6 @@ export const usePhases = (
   setIsLlmLoading: (loading: boolean) => void
 ) => {
   const [phases, setPhases] = useState<PhaseState[]>(getPhases());
-  const [currentActivePhase, setCurrentActivePhase] = useState<number | null>(null);
   const [isRunAllLoading, setIsRunAllLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,7 +63,6 @@ export const usePhases = (
       p.id === phaseId ? { ...p, input: fullPromptValue, status: 'running' as const } : p
     );
     setPhases(updatedPhasesWithInput);
-    setCurrentActivePhase(phaseId);
 
     const response = await generateApi({
       llmModel,
@@ -84,7 +82,6 @@ export const usePhases = (
       );
       setPhases(finalPhases);
       playLlmSound();
-      setCurrentActivePhase(null);
       return { newPhases: finalPhases, success: true }; // --- Return success
     } else {
       const errorMessage = response.errorMessage || "An unknown error occurred.";
@@ -94,7 +91,6 @@ export const usePhases = (
         p.id === phaseId ? { ...p, status: 'failed' as const } : p
       );
       setPhases(finalPhases);
-      setCurrentActivePhase(null);
       return { newPhases: finalPhases, success: false }; // --- Return failure
     }
   };
@@ -211,7 +207,6 @@ export const usePhases = (
       handlePhaseExecution(phaseId, phasesForExecution).then(result => result.newPhases),
     handleRunAllPhases,
     handleRunAllPhasesInParallel, // --- Add new function to return object
-    currentActivePhase,
     isRunAllLoading,
     error,
   };
