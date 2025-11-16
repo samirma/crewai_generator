@@ -10,7 +10,6 @@ export const usePhases = (
   setIsLlmLoading: (loading: boolean) => void
 ) => {
   const [phases, setPhases] = useState<PhaseState[]>(getPhases());
-  const [currentActivePhase, setCurrentActivePhase] = useState<number | null>(null);
   const [isRunAllLoading, setIsRunAllLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,26 +44,31 @@ export const usePhases = (
       return { newPhases: phasesForExecution, success: false };
     }
 
-    // --- MODIFICATION: Check for dependencies ---
     for (const dep of currentPhase.dependencies) {
       const depState = phasesForExecution.find(p => p.id === dep.id);
       if (!depState || depState.status !== 'completed') {
         const errorMessage = `Cannot run phase ${currentPhase.title} because its dependency ${dep.title} has not completed successfully.`;
         setError(errorMessage);
-        // Mark the current phase as failed
-        const finalPhases = phasesForExecution.map(p => p.id === phaseId ? { ...p, status: 'failed' as const } : p);
+        const finalPhases = phasesForExecution.map(p =>
+          p.id === phaseId ? { ...p, status: 'failed' as const } : p,
+        );
         setPhases(finalPhases);
         return { newPhases: finalPhases, success: false };
       }
     }
 
-    const fullPromptValue = currentPhase.generateInputPrompt(currentPhase, phasesForExecution, initialInput);
+    const fullPromptValue = currentPhase.generateInputPrompt(
+      currentPhase,
+      phasesForExecution,
+      initialInput,
+    );
 
     const updatedPhasesWithInput = phasesForExecution.map(p =>
-      p.id === phaseId ? { ...p, input: fullPromptValue, status: 'running' as const } : p
+      p.id === phaseId
+        ? { ...p, input: fullPromptValue, status: 'running' as const }
+        : p,
     );
     setPhases(updatedPhasesWithInput);
-    setCurrentActivePhase(phaseId);
 
     const response = await generateApi({
       llmModel,
@@ -80,23 +84,29 @@ export const usePhases = (
     if (response.isSuccess) {
       const result = response.result;
       finalPhases = updatedPhasesWithInput.map(p =>
-        p.id === phaseId ? { ...p, output: result.output, duration: result.duration, status: 'completed' as const } : p
+        p.id === phaseId
+          ? {
+              ...p,
+              output: result.output,
+              duration: result.duration,
+              status: 'completed' as const,
+            }
+          : p,
       );
       setPhases(finalPhases);
       playLlmSound();
-      setCurrentActivePhase(null);
-      return { newPhases: finalPhases, success: true }; // --- Return success
     } else {
-      const errorMessage = response.errorMessage || "An unknown error occurred.";
+      const errorMessage =
+        response.errorMessage || 'An unknown error occurred.';
       setError(errorMessage);
-      console.log("Error executing phase:", errorMessage);
+      console.log('Error executing phase:', errorMessage);
       finalPhases = updatedPhasesWithInput.map(p =>
-        p.id === phaseId ? { ...p, status: 'failed' as const } : p
+        p.id === phaseId ? { ...p, status: 'failed' as const } : p,
       );
       setPhases(finalPhases);
-      setCurrentActivePhase(null);
-      return { newPhases: finalPhases, success: false }; // --- Return failure
     }
+
+    return { newPhases: finalPhases, success: response.isSuccess };
   };
 
   const handleRunAllPhases = async () => {
@@ -210,8 +220,7 @@ export const usePhases = (
     handlePhaseExecution: (phaseId: number, phasesForExecution?: PhaseState[]) =>
       handlePhaseExecution(phaseId, phasesForExecution).then(result => result.newPhases),
     handleRunAllPhases,
-    handleRunAllPhasesInParallel, // --- Add new function to return object
-    currentActivePhase,
+    handleRunAllPhasesInParallel,
     isRunAllLoading,
     error,
   };
