@@ -71,7 +71,7 @@ export const usePhases = (
 
     let finalPhases: PhaseState[];
 
-    if (response.isSuccess) {
+    if (response.isSuccess && response.result.output.length > 0) {
       const result = response.result;
       finalPhases = updatedPhasesWithInput.map(p =>
         p.id === phaseId ? { ...p, output: result.output, duration: result.duration, status: 'completed' as const } : p
@@ -95,7 +95,9 @@ export const usePhases = (
     setIsRunAllLoading(true);
     setError(null); // Clear previous errors
 
-    let currentPhases: PhaseState[] = phases;
+    let currentPhases: PhaseState[] = phases.map((p) => ({ ...p, status: 'pending' as const }));
+    setPhases(currentPhases);
+    
     let runAllSuccess = true; 
 
     for (const phase of phases) {
