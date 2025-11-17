@@ -93,38 +93,38 @@ export const usePhases = (
 
   const handleRunAllPhases = async () => {
     setIsRunAllLoading(true);
-    setError(null); // Clear previous errors
+    setError(null);
 
     let currentPhases = phases;
-    let runAllSuccess = true; 
+    let runAllSuccess = true;
 
     for (const phase of phases) {
       const { newPhases, success } = await handlePhaseExecution(phase.id, currentPhases);
       currentPhases = newPhases;
 
       if (!success) {
-        runAllSuccess = false; // Mark the overall run as failed
-        break; // Stop the loop immediately
+        runAllSuccess = false;
+        break;
       }
     }
 
     setIsRunAllLoading(false);
-    return runAllSuccess; // Return the final status
+    return runAllSuccess;
   };
 
   const handleRunAllPhasesInParallel = async () => {
     setIsRunAllLoading(true);
     setError(null);
-  
-    let currentPhases = phases.map(p => ({ ...p, status: 'pending' as const }));
-    setPhases(currentPhases); // Set initial status for all phases
+
+    let currentPhases = phases.map((p) => ({ ...p, status: 'pending' as const }));
+    setPhases(currentPhases);
 
     const completedPhases = new Set<number>();
     const inProgressPhases = new Set<number>();
     let overallSuccess = true;
-  
+
     const pendingPromises = new Map<number, Promise<any>>();
-  
+
     while (completedPhases.size < phases.length && overallSuccess) {
       const readyPhases = currentPhases.filter(
         (phase) =>
@@ -132,66 +132,71 @@ export const usePhases = (
           !inProgressPhases.has(phase.id) &&
           phase.dependencies.every((dep) => completedPhases.has(dep.id))
       );
-  
+
+      if (readyPhases.length > 0) {
+        const runningPhaseIds = readyPhases.map((p) => p.id);
+        const phasesWithRunning = currentPhases.map((p) =>
+          runningPhaseIds.includes(p.id) ? { ...p, status: 'running' as const } : p
+        );
+        setPhases(phasesWithRunning)
+        currentPhases = phasesWithRunning;
+      }
+
       for (const phase of readyPhases) {
         inProgressPhases.add(phase.id);
-  
+
         const executionPromise = handlePhaseExecution(phase.id, currentPhases)
-          .then(result => ({ ...result, phaseId: phase.id }));
-        
+          .then((result) => ({ ...result, phaseId: phase.id }));
+
         pendingPromises.set(phase.id, executionPromise);
       }
-  
+
       if (pendingPromises.size === 0) {
         if (completedPhases.size < phases.length) {
-          const remainingPhases = currentPhases.filter(p => !completedPhases.has(p.id));
-          const remainingPhaseNames = remainingPhases.map(p => p.title).join(', ');
+          const remainingPhases = currentPhases.filter((p) => !completedPhases.has(p.id));
+          const remainingPhaseNames = remainingPhases.map((p) => p.title).join(', ');
           setError(`Failed to run all phases. Could not resolve dependencies for: ${remainingPhaseNames}`);
           overallSuccess = false;
         }
         break;
       }
-  
+
       try {
         const promisesWithId = Array.from(pendingPromises.values());
         const finishedResult = await Promise.race(promisesWithId);
-        
+
         const { phaseId, newPhases, success } = finishedResult;
-  
-        // **SERIALIZE STATE UPDATE**
+
         const finishedPhase = newPhases.find((p: PhaseState) => p.id === phaseId);
         if (finishedPhase) {
-          // This is the key fix: update only the completed phase in the current state
-          // array, preserving the outputs of other phases that might have finished
-          // while this one was running.
-          currentPhases = currentPhases.map((p: PhaseState) => p.id === phaseId ? finishedPhase : p);
+          currentPhases = currentPhases.map((p: PhaseState) => (p.id === phaseId ? finishedPhase : p));
         }
         
+        setPhases(currentPhases);
+
         pendingPromises.delete(phaseId);
         inProgressPhases.delete(phaseId);
-  
+
         if (success) {
           completedPhases.add(phaseId);
         } else {
           setError(`Phase "${newPhases.find((p: PhaseState) => p.id === phaseId)?.title}" failed.`);
           overallSuccess = false;
-          // Stop starting new phases, but let existing ones finish.
         }
-  
       } catch (error) {
-        console.error("An unexpected error occurred during phase execution:", error);
-        setError("An unexpected error occurred. Check the console for details.");
+        console.error('An unexpected error occurred during phase execution:', error);
+        setError('An unexpected error occurred. Check the console for details.');
         overallSuccess = false;
-        break; 
+        break;
       }
     }
-  
+
     try {
       await Promise.all(pendingPromises.values());
     } catch (e) {
-      console.error("Additional errors from remaining phases:", e);
+      console.error('Additional errors from remaining phases:', e);
     }
-  
+
     setIsRunAllLoading(false);
     return overallSuccess;
   };
@@ -200,10 +205,9 @@ export const usePhases = (
     phases,
     setPhases,
     handlePhaseExecution: (phaseId: number, phasesForExecution?: PhaseState[]) =>
-      handlePhaseExecution(phaseId, phasesForExecution).then(result => result.newPhases),
+      handlePhaseExecution(phaseId, phasesForExecution),
     handleRunAllPhases,
     handleRunAllPhasesInParallel,
-    currentActivePhase,
     isRunAllLoading,
     error,
   };

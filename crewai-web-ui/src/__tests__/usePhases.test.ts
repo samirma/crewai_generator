@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { usePhases } from '../hooks/usePhases';
 import { getPhases, PhaseState, PhaseStatus } from '../config/phases.config';
 
@@ -71,7 +71,7 @@ describe('usePhases', () => {
         generateInputPrompt: jest.fn().mockImplementation((currentPhase: PhaseState, allPhases: PhaseState[]) => {
           const depOutputs = currentPhase.dependencies
             .map(dep => {
-              const foundDep = allPhases.find(phase => phase.id === dep.id);
+              const foundDep = allPhases.find((phase: PhaseState) => phase.id === dep.id);
               return foundDep ? foundDep.output : '';
             })
             .join('\n');
@@ -81,7 +81,6 @@ describe('usePhases', () => {
     );
     mockGenerateApi.mockClear();
     mockPlayLlmSound.mockClear();
-    mockSetIsLlmLoading.mockClear();
 
     global.fetch = jest.fn(() =>
       Promise.resolve({
@@ -97,7 +96,7 @@ describe('usePhases', () => {
     });
 
     const { result } = renderHook(() =>
-      usePhases('initial', 'model', mockPlayLlmSound, mockGenerateApi, mockSetIsLlmLoading)
+      usePhases('initial', 'model', mockPlayLlmSound, mockGenerateApi)
     );
 
     await act(async () => {
@@ -124,7 +123,7 @@ describe('usePhases', () => {
       .mockResolvedValueOnce({ isSuccess: false, errorMessage: 'Failed' });
 
     const { result } = renderHook(() =>
-      usePhases('initial', 'model', mockPlayLlmSound, mockGenerateApi, mockSetIsLlmLoading)
+      usePhases('initial', 'model', mockPlayLlmSound, mockGenerateApi)
     );
 
     await act(async () => {
@@ -146,7 +145,7 @@ describe('usePhases', () => {
     });
 
     const { result } = renderHook(() =>
-      usePhases('initial', 'model', mockPlayLlmSound, mockGenerateApi, mockSetIsLlmLoading)
+      usePhases('initial', 'model', mockPlayLlmSound, mockGenerateApi)
     );
 
     await act(async () => {
@@ -185,7 +184,7 @@ describe('usePhases', () => {
     });
 
     const { result } = renderHook(() =>
-      usePhases('initial', 'model', mockPlayLlmSound, mockGenerateApi, mockSetIsLlmLoading)
+      usePhases('initial', 'model', mockPlayLlmSound, mockGenerateApi)
     );
 
     await act(async () => {
@@ -215,7 +214,7 @@ describe('usePhases', () => {
     });
 
     const { result } = renderHook(() =>
-      usePhases('initial', 'model', mockPlayLlmSound, mockGenerateApi, mockSetIsLlmLoading)
+      usePhases('initial', 'model', mockPlayLlmSound, mockGenerateApi)
     );
     
     await act(async () => {
@@ -240,4 +239,84 @@ describe('usePhases', () => {
         expect(p.status).toBe('completed');
     });
   });
+
+  it('should set multiple phases to "running" simultaneously in parallel execution', async () => {
+    const resolvers = new Map<number, (value: any) => void>();
+    const promises = new Map<number, Promise<any>>();
+
+    mockGenerateApi.mockImplementation(async ({ runPhase }) => {
+      const promise = new Promise(resolve => {
+        resolvers.set(runPhase, resolve);
+      });
+      promises.set(runPhase, promise);
+      return promise;
+    });
+
+    const { result } = renderHook(() =>
+      usePhases('initial', 'model', mockPlayLlmSound, mockGenerateApi)
+    );
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
+
+    await act(async () => {
+      result.current.handleRunAllPhasesInParallel();
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    });
+
+    const phase1Resolver = resolvers.get(1);
+    expect(phase1Resolver).toBeDefined();
+
+    act(() => {
+      if(phase1Resolver) {
+        phase1Resolver({ isSuccess: true, result: { output: 'Output 1', duration: 10 } });
+      }
+    });
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    });
+
+    const phase2Resolver = resolvers.get(2);
+    expect(phase2Resolver).toBeDefined();
+
+    const runningPhases = result.current.phases.filter(p => p.status === 'running');
+    expect(runningPhases.length).toBe(1);
+    expect(runningPhases[0].id).toBe(2);
+
+    act(() => {
+      if(phase2Resolver) {
+        phase2Resolver({ isSuccess: true, result: { output: 'Output 2', duration: 10 } });
+      }
+    });
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    });
+
+    const runningPhasesAfter2 = result.current.phases.filter(p => p.status === 'running');
+    const runningIds = runningPhasesAfter2.map(p => p.id);
+
+    expect(runningPhasesAfter2.length).toBe(5);
+    expect(runningIds).toContain(3);
+    expect(runningIds).toContain(4);
+    expect(runningIds).toContain(5);
+    expect(runningIds).toContain(7);
+    expect(runningIds).toContain(8);
+
+    const remainingResolvers = Array.from(resolvers.keys()).filter(id => id > 2);
+    act(() => {
+      remainingResolvers.forEach(id => {
+        const resolver = resolvers.get(id);
+        if (resolver) {
+          resolver({ isSuccess: true, result: { output: `Output ${id}`, duration: 10 } });
+        }
+      });
+    });
+  }, 10000);
 });
