@@ -58,7 +58,7 @@ export default function Home() {
     handleRunAllPhasesInParallel,
     isRunAllLoading,
     error: phasesError,
-  } = usePhases(initialInput, llmModel, playLlmSound, generateApi, setIsLlmLoading);
+  } = usePhases(initialInput, llmModel, playLlmSound, generateApi);
 
   useEffect(() => {
     llmRequestFinishSoundRef.current = new Audio('/sounds/llm_finish.mp3');
