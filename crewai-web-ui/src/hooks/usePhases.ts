@@ -95,7 +95,7 @@ export const usePhases = (
     setIsRunAllLoading(true);
     setError(null); // Clear previous errors
 
-    let currentPhases = phases;
+    let currentPhases: PhaseState[] = phases;
     let runAllSuccess = true; 
 
     for (const phase of phases) {
@@ -116,7 +116,7 @@ export const usePhases = (
     setIsRunAllLoading(true);
     setError(null);
 
-    let currentPhases = phases.map((p) => ({ ...p, status: 'pending' as const }));
+    let currentPhases: PhaseState[] = phases.map((p) => ({ ...p, status: 'pending' as const }));
     setPhases(currentPhases); // Set initial status for all phases
 
     const completedPhases = new Set<number>();
