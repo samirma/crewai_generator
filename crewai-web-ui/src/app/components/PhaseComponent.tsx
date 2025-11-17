@@ -14,7 +14,6 @@ interface PhaseComponentProps {
   setPrompt: (value: string) => void;
   isExecutingScript: boolean;
   onRunPhase: () => void;
-  isRunDisabled: boolean;
   duration: number | null;
   input: string;
   setInput: (value: string) => void;
@@ -75,7 +74,6 @@ const PhaseComponent = ({
   setPrompt,
   isExecutingScript,
   onRunPhase,
-  isRunDisabled,
   duration,
   input,
   setInput,
@@ -127,7 +125,7 @@ const PhaseComponent = ({
 
       <button
         onClick={onRunPhase}
-        disabled={isRunDisabled || status === 'running'}
+        disabled={status === 'running'}
         className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2.5 rounded-md shadow-sm transition duration-150 ease-in-out disabled:opacity-60 focus:ring-2 focus:ring-purple-400 focus:outline-none dark:focus:ring-purple-700 flex items-center justify-center gap-2"
       >
         {status === 'running' && (

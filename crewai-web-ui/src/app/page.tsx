@@ -116,18 +116,8 @@ export default function Home() {
   };
 
   const phaseData = phases.map((phase, index) => {
-    const prevPhase = index > 0 ? phases[index - 1] : null;
-    const phase2Completed = phases[1] && phases[1].output.trim() !== '';
-    const isRunDisabled =
-      isLlmLoading ||
-      isExecutingScript ||
-      !phase.prompt.trim() ||
-      (index === 0 && !initialInput.trim()) ||
-      (index === 1 && (!prevPhase || !prevPhase.output.trim())) ||
-      (index > 1 && !phase2Completed);
     return {
       ...phase,
-      isRunDisabled,
       setPrompt: (value: string) => {
         setPhases(currentPhases =>
           currentPhases.map(p => (p.id === phase.id ? { ...p, prompt: value } : p))

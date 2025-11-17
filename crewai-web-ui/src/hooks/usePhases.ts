@@ -56,7 +56,7 @@ export const usePhases = (
     const fullPromptValue = currentPhase.generateInputPrompt(currentPhase, phasesForExecution, initialInput);
 
     const updatedPhasesWithInput = phasesForExecution.map(p =>
-      p.id === phaseId ? { ...p, input: fullPromptValue, status: 'running' as const } : p
+      p.id === phaseId ? { ...p, output: '', input: fullPromptValue, status: 'running' as const } : p
     );
     setPhases(updatedPhasesWithInput);
 

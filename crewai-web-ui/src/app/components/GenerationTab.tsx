@@ -9,7 +9,6 @@ interface PhaseData {
   status: PhaseStatus;
   prompt: string;
   setPrompt: (value: string) => void;
-  isRunDisabled: boolean;
   input: string;
   setInput: (value: string) => void;
   output: string;
@@ -53,7 +52,6 @@ const GenerationTab = ({
               setPrompt={data.setPrompt}
               isExecutingScript={isExecutingScript}
               onRunPhase={() => handleMultiStepPhaseExecution(data.id)}
-              isRunDisabled={data.isRunDisabled}
               duration={multiStepPhase_Durations[data.id]}
               input={data.input}
               setInput={data.setInput}
@@ -67,5 +65,4 @@ const GenerationTab = ({
     </section>
   );
 };
-
 export default GenerationTab;
