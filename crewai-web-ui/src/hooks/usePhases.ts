@@ -132,7 +132,7 @@ export const usePhases = (
           !inProgressPhases.has(phase.id) &&
           phase.dependencies.every((dep) => completedPhases.has(dep.id))
       );
-
+      
       if (readyPhases.length > 0) {
         const runningPhaseIds = readyPhases.map((p) => p.id);
         const phasesWithRunning = currentPhases.map((p) =>
@@ -141,7 +141,7 @@ export const usePhases = (
         setPhases(phasesWithRunning)
         currentPhases = phasesWithRunning;
       }
-
+      
       for (const phase of readyPhases) {
         inProgressPhases.add(phase.id);
 
@@ -166,7 +166,7 @@ export const usePhases = (
         const finishedResult = await Promise.race(promisesWithId);
 
         const { phaseId, newPhases, success } = finishedResult;
-
+        
         const finishedPhase = newPhases.find((p: PhaseState) => p.id === phaseId);
         if (finishedPhase) {
           currentPhases = currentPhases.map((p: PhaseState) => (p.id === phaseId ? finishedPhase : p));
