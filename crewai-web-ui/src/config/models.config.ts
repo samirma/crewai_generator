@@ -18,6 +18,14 @@ export const staticModels: ModelConfig[] = [
     baseURL: "https://generativelanguage.googleapis.com/v1beta",
   },
   {
+    id: "gemini-3-pro-preview",
+    name: "Gemini 3",
+    model: "gemini-3-pro-preview",
+    timeout: 600,
+    apiKey: "GEMINI_API_KEY",
+    baseURL: "https://generativelanguage.googleapis.com/v1beta",
+  },
+  {
     id: "qwen-3-235b-a22b-instruct",
     name: "Qwen 3 235B Instruct",
     model: "qwen-3-235b-a22b-instruct-2507",

@@ -10,7 +10,6 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 
 #### `crewai_tools`
 
-* `ScrapeWebsiteTool` (supports_embedding: `False`, **tool_id: `website_scraper`**)
 * `WebsiteSearchTool` (supports_embedding: `True`, **tool_id: `website_searcher`**)
 * `BrowserbaseTool` (supports_embedding: `False`, **tool_id: `browserbase_tool`**)
 * `CodeDocsSearchTool` (supports_embedding: `True`, **tool_id: `code_docs_searcher`**)
@@ -27,6 +26,9 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 
 #### MCP Servers (Accessed via `MCPServerAdapter`)
 
+* **`mcp-crawl`**: (**tool_id: `mcp-crawl`**)
+    * `serverparams`: `{ "command": "python", "args": ["/workspace/mcp/mcp_crawl4ai.py"] }`
+    * **Description**: Reads and extracts the main content from a list of URLs or a single url.
 * **`mcp-local-seaxng`**: (**tool_id: `mcp_searxng_adapter`**)
     * `serverparams`: `{ "command": "python", "args": ["/workspace/mcp/mcp_searxng.py"] }`
     * **Description**: This tool performs a web search based on a text query and an optional pageno for pagination. It returns a JSON formatted list of search results, with each result containing its url, title, and a only a snippet of the content. A web scrape tool is required to recover the fully information of the web pages.
