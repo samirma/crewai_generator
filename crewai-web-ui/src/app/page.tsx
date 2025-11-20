@@ -162,6 +162,12 @@ export default function Home() {
           isTimerRunning={isTimerRunning}
           activeExecutionMode={activeExecutionMode}
         />
+        {(error || phasesError) && (
+          <div className="mt-8 p-4 border border-red-400 bg-red-100 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-500/50 dark:text-red-400 shadow-md">
+            <p className="font-bold text-lg mb-2">Error:</p>
+            <p className="text-base">{error || phasesError}</p>
+          </div>
+        )}
         {isRunAllLoading && (
           <div className="my-8">
             <PhaseSummary phases={phases} />
@@ -226,12 +232,6 @@ export default function Home() {
             )}
           </div>
         </div>
-        {(error || phasesError) && (
-          <div className="mt-8 p-4 border border-red-400 bg-red-100 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-500/50 dark:text-red-400 shadow-md">
-            <p className="font-bold text-lg mb-2">Error:</p>
-            <p className="text-base">{error || phasesError}</p>
-          </div>
-        )}
       </main>
     </div>
   );

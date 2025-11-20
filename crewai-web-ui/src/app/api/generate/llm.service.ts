@@ -67,6 +67,18 @@ export async function interactWithLLM(
     llmResponseText = completion.choices?.[0]?.message?.content ?? '';
   } catch (error) {
     console.error(`Error interacting with LLM for model ${llmModel}:`, error);
+    if (error instanceof OpenAI.APIError) {
+      // Handle 429, 400, and 500 status codes
+      if (error.status === 429) {
+        throw new Error(`Error 429: Too many requests. Please wait and try again. Details: ${error.message}`);
+      } else if (error.status >= 400 && error.status < 500) {
+        throw new Error(`Error ${error.status}: Client error. Details: ${error.message}`);
+      } else if (error.status >= 500) {
+        throw new Error(`Error ${error.status}: Server error. Please try again later. Details: ${error.message}`);
+      }
+    }
+    // Re-throw other errors
+    throw error;
   }
 
   if (!llmResponseText) {

@@ -71,7 +71,7 @@ export const usePhases = (
 
     let finalPhases: PhaseState[];
 
-    if (response.isSuccess && response.result.output.length > 0) {
+    if (response.isSuccess) {
       const result = response.result;
       finalPhases = updatedPhasesWithInput.map(p =>
         p.id === phaseId ? { ...p, output: result.output, duration: result.duration, status: 'completed' as const } : p
