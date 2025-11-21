@@ -193,7 +193,7 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-workspace/*
+
 server_logs.txt
 
 llm_input_prompt.txt
@@ -201,3 +201,4 @@ llm_output_prompt.txt
 
 node_modules/
 prompts.json
+workspace/*

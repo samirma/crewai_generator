@@ -107,21 +107,26 @@ export async function executePythonScript(): Promise<ExecutePythonScriptSetupRes
 
     // --- Docker Container Setup ---
     const dockerCommand = `
+  set -e
   if [ -f /workspace/pre_docker_run.sh ]; then
     echo "--- Running pre_docker_run.sh ---";
     /bin/sh /workspace/pre_docker_run.sh;
-    PRE_DOCKER_RUN_EXIT_CODE=$?;
-    echo "--- pre_docker_run.sh finished with exit code $PRE_DOCKER_RUN_EXIT_CODE ---";
-    if [ $PRE_DOCKER_RUN_EXIT_CODE -ne 0 ]; then exit $PRE_DOCKER_RUN_EXIT_CODE; fi;
+    echo "--- pre_docker_run.sh finished with exit code 0 ---";
   else
     echo "--- /workspace/pre_docker_run.sh not found, skipping. ---";
-  fi &&
-  echo "--- Running crewai run ---" &&
-  cd /workspace/crewai_generated &&
-  cp /workspace/.env /workspace/crewai_generated/ &&
-  touch /workspace/crewai_generated/src/crewai_generated/__init__.py &&
-  crewai run &&
-  echo "--- crewai run finished ---"
+  fi
+  echo "--- Running main script ---"
+  cd /workspace/crewai_generated && \\
+  cp /workspace/.env /workspace/crewai_generated/ && \\
+  touch /workspace/crewai_generated/src/crewai_generated/__init__.py
+
+  if uv run run_crew; then
+    echo "Crew Execution successful"
+  else
+    echo "Crew Execution failed"
+    exit 1
+  fi
+  echo "--- Main script finished with exit code 0 ---"
 `;
     try {
       const container = await docker.createContainer({
