@@ -22,9 +22,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     curl \
     sqlite3 \
-    # LaTeX for PDF generation (provides pdflatex)
     pandoc texlive-xetex \
     texlive-full \
+    avahi-daemon \ 
+    avahi-utils \
     texlive-latex-extra \
     texlive-fonts-recommended \
     texlive-fonts-extra \

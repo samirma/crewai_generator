@@ -1,79 +1,37 @@
 import requests
 import json
 import time
-import socket
 import sys
+import os
+import configparser
 from fastmcp import FastMCP
-from zeroconf import ServiceBrowser, Zeroconf, ServiceListener
 
 # This global variable will hold the address of the discovered service.
 searxng_service_address = None
 
-class ServiceDiscoveryListener(ServiceListener):
+def get_server_config() -> tuple[str | None, int]:
     """
-    A listener for Zeroconf that captures details of the first service found.
+    Reads the server IP and port from the server_config.ini file using configparser.
+    Returns (ip, port). Port defaults to 8080 if not found.
     """
-    def __init__(self):
-        self.discovered_services = []
-
-    def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        """Called by Zeroconf when a new service is discovered."""
-        info = zc.get_service_info(type_, name)
-        if not info:
-            return
-
-        # Build the full base URL for the service
-        address = socket.inet_ntoa(info.addresses[0])
-        port = info.port
-        full_address = f"http://{address}:{port}/"
-        
-        # Store the service details
-        service_data = {
-            "name": info.name,
-            "address": full_address,
-        }
-        self.discovered_services.append(service_data)
-        print(f"-> Found service: {info.name} at {full_address}")
-
-    def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        """Called when a service is updated; not needed for this implementation."""
-        pass
-
-    def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        """Called when a service is removed; not needed for this implementation."""
-        pass
-
-def find_searxng_service_at_startup(timeout: int = 5) -> str | None:
-    """
-    Scans the network for a SearxNG service using Zeroconf.
-
-    Args:
-        timeout: The number of seconds to search for the service.
-
-    Returns:
-        The full base URL of the first discovered service, or None if no
-        service was found within the timeout period.
-    """
-    SERVICE_TYPE = "_searxng._tcp.local."
-    
-    zeroconf = Zeroconf()
-    listener = ServiceDiscoveryListener()
-    browser = ServiceBrowser(zeroconf, SERVICE_TYPE, listener)
-    
-    print(f"🔍 Searching for '{SERVICE_TYPE}' services for {timeout} seconds...")
-    
+    config_path = os.path.join(os.path.dirname(__file__), 'server_config.ini')
+    ip = None
+    port = 8080
     try:
-        # Wait for the specified time to allow for discovery
-        time.sleep(timeout)
-    finally:
-        zeroconf.close()
-
-    # If services were found, return the address of the first one
-    if listener.discovered_services:
-        return listener.discovered_services[0]["address"]
-    
-    # Otherwise, return None
-    return None
+        if os.path.exists(config_path):
+            config = configparser.ConfigParser()
+            config.read(config_path)
+            if 'DEFAULT' in config:
+                if 'server_ip' in config['DEFAULT']:
+                    ip = config['DEFAULT']['server_ip'].strip()
+                if 'searxng_port' in config['DEFAULT']:
+                    try:
+                        port = int(config['DEFAULT']['searxng_port'].strip())
+                    except ValueError:
+                        pass
+    except Exception as e:
+        print(f"Error reading server config file: {e}")
+    return ip, port
 
 # Initialize the FastMCP server
 mcp = FastMCP("SearxNG Web Search Server")
@@ -120,8 +78,12 @@ def perform_web_search(query: str, pageno: int = 1) -> str:
     try:
         print(f"Using SearxNG instance at: {searxng_service_address}")
         params = {'q': query, 'format': 'json', 'pageno': pageno}
-        # The base URL already has a trailing slash from the discovery function
-        response = requests.get(f"{searxng_service_address}search", params=params, timeout=10)
+        
+        base_url = searxng_service_address
+        if not base_url.endswith('/'):
+            base_url += '/'
+            
+        response = requests.get(f"{base_url}search", params=params, timeout=10)
         response.raise_for_status()
         
         data = response.json()
@@ -150,18 +112,18 @@ def perform_web_search(query: str, pageno: int = 1) -> str:
 if __name__ == "__main__":
     print("--- Initializing Tool Server ---")
     
-    # 1. Discover the SearxNG service before starting the server.
-    found_address = find_searxng_service_at_startup()
+    # 1. Read the SearxNG service address from the config file.
+    ip, port = get_server_config()
     
-    # 2. Check if the discovery was successful.
-    if found_address:
+    # 2. Check if the address was found.
+    if ip:
         # 3. If found, set the global variable and run the MCP server.
-        searxng_service_address = found_address
-        print(f"\n✅ Service found. Configuring server to use: {searxng_service_address}")
+        searxng_service_address = f"http://{ip}:{port}"
+        print(f"\n✅ Service address found in config. Configuring server to use: {searxng_service_address}")
         print("The server is now ready to accept tool calls.")
         mcp.run()
     else:
         # 4. If not found, print an error and exit.
-        print("\n❌ Fatal Error: SearxNG service not found on the network.")
-        print("The tool server will not start. Please ensure the SearxNG service is running and discoverable.")
+        print("\n❌ Fatal Error: SearxNG server IP not found in server_config.ini.")
+        print("Please ensure the web UI has discovered the service and saved the IP.")
         sys.exit(1)

@@ -13,6 +13,7 @@ import { usePrompts } from '@/hooks/usePrompts';
 import { useModels } from '@/hooks/useModels';
 import { useExecution } from '@/hooks/useExecution';
 import { setCookie, getCookie } from '@/utils/cookieUtils';
+import ServerIpSettings from '@/components/ServerIpSettings';
 
 
 export default function Home() {
@@ -125,12 +126,12 @@ export default function Home() {
       },
       setInput: (value: string) => {
         setPhases(currentPhases =>
-            currentPhases.map(p => (p.id === phase.id ? { ...p, input: value } : p))
+          currentPhases.map(p => (p.id === phase.id ? { ...p, input: value } : p))
         );
       },
       setOutput: (value: string) => {
         setPhases(currentPhases =>
-            currentPhases.map(p => (p.id === phase.id ? { ...p, output: value } : p))
+          currentPhases.map(p => (p.id === phase.id ? { ...p, output: value } : p))
         );
       },
     };
@@ -143,6 +144,7 @@ export default function Home() {
         <h1 className="text-4xl font-extrabold mb-10 text-center text-indigo-700 dark:text-indigo-400 drop-shadow-md">
           CrewAI Studio
         </h1>
+        <ServerIpSettings />
         <ProjectSetup
           initialInput={initialInput}
           setInitialInput={setInitialInput}

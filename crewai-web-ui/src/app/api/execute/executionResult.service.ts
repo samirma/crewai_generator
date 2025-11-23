@@ -22,8 +22,12 @@ export async function processDockerStreamAndFinalize(
   };
 
   if (result.overallStatus === 'failure') {
-    result.preDockerRun!.status = 'skipped';
-    result.mainScript!.status = 'skipped';
+    if (result.preDockerRun) {
+      result.preDockerRun.status = 'skipped';
+    }
+    if (result.mainScript) {
+      result.mainScript.status = 'skipped';
+    }
     return result;
   }
 
@@ -43,62 +47,75 @@ export async function processDockerStreamAndFinalize(
   let mainScriptOutputCandidate = containerStdout;
 
   if (preDockerSkipIdx !== -1) {
-    result.preDockerRun.status = 'skipped';
+    if (result.preDockerRun) {
+      result.preDockerRun.status = 'skipped';
+    }
     mainScriptOutputCandidate = containerStdout.substring(preDockerSkipIdx + PRE_DOCKER_SKIP_MARKER.length);
   } else if (preDockerStartIdx !== -1) {
     if (preDockerEndIdx !== -1) {
-      result.preDockerRun.status = 'success';
-      result.preDockerRun.stdout = containerStdout.substring(preDockerStartIdx + PRE_DOCKER_START_MARKER.length, preDockerEndIdx).trim();
+      if (result.preDockerRun) {
+        result.preDockerRun.status = 'success';
+        result.preDockerRun.stdout = containerStdout.substring(preDockerStartIdx + PRE_DOCKER_START_MARKER.length, preDockerEndIdx).trim();
+      }
       mainScriptOutputCandidate = containerStdout.substring(preDockerEndIdx + PRE_DOCKER_END_MARKER.length);
     } else {
-      result.preDockerRun.status = 'failure';
-      result.preDockerRun.error = "pre_docker_run.sh started but did not finish successfully.";
+      if (result.preDockerRun) {
+        result.preDockerRun.status = 'failure';
+        result.preDockerRun.error = "pre_docker_run.sh started but did not finish successfully.";
+        result.preDockerRun.stdout = containerStdout.substring(preDockerStartIdx + PRE_DOCKER_START_MARKER.length);
+      }
+      if (result.mainScript) {
+        result.mainScript.status = 'skipped';
+      }
       mainScriptOutputCandidate = containerStdout.substring(preDockerStartIdx + PRE_DOCKER_START_MARKER.length);
-      result.preDockerRun.stdout = mainScriptOutputCandidate;
-      result.mainScript.status = 'skipped';
     }
   }
 
   // Main Script Parsing
-  if (result.preDockerRun.status !== 'failure') {
+  if (result.preDockerRun && result.preDockerRun.status !== 'failure') {
     const mainScriptStartIdx = mainScriptOutputCandidate.indexOf(MAIN_SCRIPT_START_MARKER);
     if (mainScriptStartIdx !== -1) {
-			result.mainScript.status = 'running';
-      const mainScriptContentStart = mainScriptStartIdx + MAIN_SCRIPT_START_MARKER.length;
-      const mainScriptEndIdx = mainScriptOutputCandidate.indexOf(MAIN_SCRIPT_END_MARKER, mainScriptContentStart);
-			result.mainScript.stdout = mainScriptOutputCandidate.substring(mainScriptContentStart).trim();
+      if (result.mainScript) {
+        result.mainScript.status = 'running';
+        const mainScriptContentStart = mainScriptStartIdx + MAIN_SCRIPT_START_MARKER.length;
+        const mainScriptEndIdx = mainScriptOutputCandidate.indexOf(MAIN_SCRIPT_END_MARKER, mainScriptContentStart);
+        result.mainScript.stdout = mainScriptOutputCandidate.substring(mainScriptContentStart).trim();
 
-      if (mainScriptEndIdx !== -1) {
-        result.mainScript.status = 'success';
-      } else if (containerStatusCode !== 0) {
-				result.mainScript.status = 'failure';
-			}
+        if (mainScriptEndIdx !== -1) {
+          result.mainScript.status = 'success';
+        } else if (containerStatusCode !== 0) {
+          result.mainScript.status = 'failure';
+        }
 
-			if (result.mainScript.stdout.includes(CREW_SUCCESS_MARKER)) {
-				result.mainScript.status = 'success';
-			}
+        if (result.mainScript.stdout.includes(CREW_SUCCESS_MARKER)) {
+          result.mainScript.status = 'success';
+        }
 
-			if (result.mainScript.stdout.includes(CREW_ERROR_MARKER)) {
-				result.mainScript.status = 'failure';
-			}
-
+        if (result.mainScript.stdout.includes(CREW_ERROR_MARKER)) {
+          result.mainScript.status = 'failure';
+        }
+      }
     } else {
-      result.mainScript.status = 'failure';
-      result.mainScript.error = "Main script start marker not found.";
-      result.mainScript.stdout = mainScriptOutputCandidate.trim();
+      if (result.mainScript) {
+        result.mainScript.status = 'failure';
+        result.mainScript.error = "Main script start marker not found.";
+        result.mainScript.stdout = mainScriptOutputCandidate.trim();
+      }
     }
   }
 
   // Final Status Determination
   if (containerStatusCode === 0) {
-    if (result.preHostRun.status === 'failure' || result.preDockerRun.status === 'failure' || result.mainScript.status === 'failure') {
+    if ((result.preHostRun && result.preHostRun.status === 'failure') ||
+        (result.preDockerRun && result.preDockerRun.status === 'failure') ||
+        (result.mainScript && result.mainScript.status === 'failure')) {
       result.overallStatus = 'failure';
     } else {
       result.overallStatus = 'success';
     }
   } else {
     result.overallStatus = 'failure';
-    if (result.mainScript.status !== 'failure') {
+    if (result.mainScript && result.mainScript.status !== 'failure') {
       result.mainScript.status = 'failure';
       if (!result.mainScript.error) {
         result.mainScript.error = `Script execution failed with container exit code ${containerStatusCode}.`;
@@ -107,12 +124,16 @@ export async function processDockerStreamAndFinalize(
   }
 
   if (result.overallStatus === 'failure' && !result.error) {
-    result.error = result.mainScript.error || result.preDockerRun.error || result.preHostRun.error || `Container exited with status code ${containerStatusCode}. Check logs for details.`;
+    result.error = (result.mainScript && result.mainScript.error) ||
+                   (result.preDockerRun && result.preDockerRun.error) ||
+                   (result.preHostRun && result.preHostRun.error) ||
+                   `Container exited with status code ${containerStatusCode}. Check logs for details.`;
   }
 	else if (result.overallStatus === 'success') {
-		result.mainScript.stdout += "\n\n✅ Crew run finished successfully!"
+    if (result.mainScript) {
+		  result.mainScript.stdout += "\n\n✅ Crew run finished successfully!"
+    }
 	}
-
 
   console.log("Final processed execution result (after parsing):", JSON.stringify(result, null, 2));
   return result;

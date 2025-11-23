@@ -3,61 +3,40 @@ import os
 import httpx
 import socket
 import time
+import configparser
 from mcp.server.fastmcp import FastMCP
-from zeroconf import Zeroconf, ServiceBrowser, ServiceStateChange
 
 # Initialize the MCP server
 mcp = FastMCP("Crawl4AI")
 
-class ServiceListener:
-    def __init__(self):
-        self.found_ip = None
-
-    def remove_service(self, zeroconf, type, name):
-        pass
-
-    def add_service(self, zeroconf, type, name):
-        info = zeroconf.get_service_info(type, name)
-        if info:
-            addresses = info.parsed_addresses()
-            if addresses:
-                self.found_ip = addresses[0]
-
-    def update_service(self, zeroconf, type, name):
-        pass
-
-def discover_host_ip(service_type="_searxng._tcp.local.", timeout=3):
+def get_server_ip_from_config() -> str | None:
     """
-    Attempts to discover the server IP via Zeroconf by looking for a specific service.
-    Since Crawl4AI runs on the same server as SearXNG, finding SearXNG finds the host IP.
+    Reads the server IP from the server_config.ini file using configparser.
     """
-    zeroconf = Zeroconf()
-    listener = ServiceListener()
-    browser = ServiceBrowser(zeroconf, service_type, listener)
-    
-    # Wait for discovery
-    start_time = time.time()
-    while time.time() - start_time < timeout:
-        if listener.found_ip:
-            break
-        time.sleep(0.1)
-    
-    zeroconf.close()
-    return listener.found_ip
+    config_path = os.path.join(os.path.dirname(__file__), 'server_config.ini')
+    try:
+        if os.path.exists(config_path):
+            config = configparser.ConfigParser()
+            config.read(config_path)
+            if 'DEFAULT' in config and 'server_ip' in config['DEFAULT']:
+                return config['DEFAULT']['server_ip'].strip()
+    except Exception as e:
+        print(f"Error reading server config file: {e}")
+    return None
 
 # Configuration
-# 1. Try to find the host IP via Zeroconf (looking for the companion SearXNG service)
-discovered_ip = discover_host_ip()
+# 1. Try to find the host IP via config file
+discovered_ip = get_server_ip_from_config()
 
 # 2. Determine the Base URL
 if discovered_ip:
-    # If discovered, use that IP with the default Crawl4AI port (11235)
+    # discovered_ip is just the IP now, e.g. "192.168.1.5"
     default_url = f"http://{discovered_ip}:11235"
-    print(f"Discovered Crawl4AI host via Zeroconf at: {default_url}")
+    print(f"Discovered Host IP from config: {discovered_ip}. Using Crawl4AI at: {default_url}")
 else:
     # Fallback to localhost or env var
     default_url = "http://localhost:11235"
-    print(f"Zeroconf discovery failed or timed out. Defaulting to: {default_url}")
+    print(f"Server IP config not found or empty. Defaulting to: {default_url}")
 
 CRAWL4AI_API_URL = os.getenv("CRAWL4AI_API_URL", default_url)
 
