@@ -67,8 +67,8 @@ async def _perform_crawl(
         payload["css_selector"] = css_selector
 
     try:
-        # Increased timeout to 120s because crawling multiple URLs can take longer
-        async with httpx.AsyncClient(timeout=120.0) as client: 
+        # Increased timeout to 60s because crawling multiple URLs can take longer
+        async with httpx.AsyncClient(timeout=60.0) as client: 
             response = await client.post(endpoint, json=payload)
             response.raise_for_status()
             
