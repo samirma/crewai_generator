@@ -1,7 +1,7 @@
 import Docker from 'dockerode';
 import fs from 'fs/promises';
 import path from 'path';
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 import { ExecutePythonScriptSetupResult, StageOutput } from './types';
 
 // Helper function to execute Python script in Docker
@@ -68,13 +68,12 @@ export async function executePythonScript(controller?: ReadableStreamDefaultCont
     console.log(`Attempting to build Docker image '${imageName}' from ${projectRoot}/python-runner`);
     try {
       await new Promise<void>((resolve, reject) => {
-        const command = 'docker';
         const args = ['build', '-t', imageName, './python-runner'];
-        const options = { cwd: projectRoot, stdio: 'pipe' as const }; // stdio: 'pipe' is important for capturing output
+        const options = { cwd: projectRoot };
 
-        const child = exec(command + ' ' + args.join(' '), options);
+        const child = spawn('docker', args, options);
 
-        child.stdout?.on('data', (data) => {
+        child.stdout.on('data', (data) => {
           process.stdout.write(data); // Stream stdout directly
           if (controller) {
             const dataStr = data.toString('utf-8');
@@ -82,7 +81,7 @@ export async function executePythonScript(controller?: ReadableStreamDefaultCont
           }
         });
 
-        child.stderr?.on('data', (data) => {
+        child.stderr.on('data', (data) => {
           process.stderr.write(data); // Stream stderr directly
           if (controller) {
             const dataStr = data.toString('utf-8');
