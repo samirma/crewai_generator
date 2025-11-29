@@ -5,7 +5,7 @@ import { exec } from 'child_process';
 import { ExecutePythonScriptSetupResult, StageOutput } from './types';
 
 // Helper function to execute Python script in Docker
-export async function executePythonScript(): Promise<ExecutePythonScriptSetupResult> { // Changed return type
+export async function executePythonScript(controller?: ReadableStreamDefaultController): Promise<ExecutePythonScriptSetupResult> { // Changed return type
   const docker = new Docker(); // Assumes Docker is accessible (e.g., /var/run/docker.sock)
   const projectRoot = path.resolve(process.cwd(), '..');
   const workspaceDir = path.join(projectRoot, 'workspace');
@@ -76,10 +76,18 @@ export async function executePythonScript(): Promise<ExecutePythonScriptSetupRes
 
         child.stdout?.on('data', (data) => {
           process.stdout.write(data); // Stream stdout directly
+          if (controller) {
+            const dataStr = data.toString('utf-8');
+            controller.enqueue(`LOG: ${dataStr}`);
+          }
         });
 
         child.stderr?.on('data', (data) => {
           process.stderr.write(data); // Stream stderr directly
+          if (controller) {
+            const dataStr = data.toString('utf-8');
+            controller.enqueue(`LOG: ${dataStr}`);
+          }
         });
 
         child.on('close', (code) => {
