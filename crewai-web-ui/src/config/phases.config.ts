@@ -189,7 +189,7 @@ const crewPyGenerationPhase: PhaseState = createPhaseState({
   promptFileName: "phase3_crew_prompt.md",
   filePath: "src/crewai_generated/crew.py",
   outputType: 'file',
-  dependencies: [workflow, llmSelectionPhase, detailedAgentAndTaskDefinitionPhase, toolSelectionPhase, customToolGenerationPhase],
+  dependencies: [workflow, llmSelectionPhase, detailedAgentAndTaskDefinitionPhase, toolSelectionPhase],
   generateInputPrompt: defaultGenerateInputPrompt
 });
 

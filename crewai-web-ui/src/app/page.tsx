@@ -113,6 +113,7 @@ export default function Home() {
 
     if (success && runScriptAfterGeneration) {
       handleExecuteScript();
+      setActiveTab('execution');
     }
   };
 
