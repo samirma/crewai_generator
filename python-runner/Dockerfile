@@ -23,12 +23,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     sqlite3 \
     pandoc texlive-xetex \
-    texlive-full \
     avahi-daemon \ 
     avahi-utils \
-    texlive-latex-extra \
-    texlive-fonts-recommended \
-    texlive-fonts-extra \
     ghostscript  \
     libsqlite3-dev && \
     rm -rf /var/lib/apt/lists/*
