@@ -22,7 +22,6 @@ Use the JSON object provided as the single source of truth. Your task is to gene
     "analyze_news_sentiment",
     "gather_historical_btc_data"
   ],
-  "async_execution": false
 }
 ```
 
@@ -38,6 +37,5 @@ generate_bitcoin_predictions:
   context:
     - analyze_news_sentiment
     - gather_historical_btc_data
-  async_execution: false
   verbose: true
 ```

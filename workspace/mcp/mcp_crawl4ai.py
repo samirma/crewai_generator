@@ -79,7 +79,15 @@ async def _perform_crawl(
                 results_text = []
                 for result in data["results"]:
                     url = result.get("url", "Unknown URL")
-                    content = result.get("markdown", result.get("html", "No content found."))
+                    
+                    # Check if 'markdown' is a dictionary (e.g. containing citations, raw_markdown, etc.)
+                    # and extract just the raw_markdown if so.
+                    markdown_data = result.get("markdown")
+                    if isinstance(markdown_data, dict) and "raw_markdown" in markdown_data:
+                        content = markdown_data["raw_markdown"]
+                    else:
+                        content = markdown_data or result.get("html", "No content found.")
+                    
                     entry = f"# Source: {url}\n\n{content}\n"
                     results_text.append(entry)
                 
@@ -89,7 +97,11 @@ async def _perform_crawl(
                 return "\n---\n".join(results_text)
                 
             elif "markdown" in data:
-                return data["markdown"]
+                # Handle single result fallback if structure is flat (older API versions)
+                md = data["markdown"]
+                if isinstance(md, dict) and "raw_markdown" in md:
+                    return md["raw_markdown"]
+                return md
             elif "html" in data:
                 return f"Markdown not returned, raw length: {len(data['html'])} chars. Status: {data.get('status')}"
             else:
@@ -104,52 +116,32 @@ async def _perform_crawl(
 
 @mcp.tool()
 async def crawl_webpage(
-    urls: list[str], 
-    js_code: str = None, 
-    wait_for: str = None, 
-    css_selector: str = None,
-    include_raw_html: bool = False,
-    bypass_cache: bool = True
+    urls: list[str]
 ) -> str:
     """
-    Reads and extracts the main content from a LIST of URLs.
+    Reads and extracts the main content in markdown format from a LIST of URLs.
     
     Use this tool when you need to crawl multiple pages in parallel.
 
     Args:
         urls: A list of full URLs to crawl (e.g., ["https://example.com", "https://another.com"]).
-        js_code: Optional JavaScript to execute on the pages before extraction (e.g., "window.scrollTo(0, document.body.scrollHeight);").
-        wait_for: Optional CSS selector to wait for (ensures dynamic content is loaded before scraping).
-        css_selector: Optional CSS selector to limit the result to a specific part of the page (e.g., 'main' or '.article-body').
-        include_raw_html: Whether to include raw HTML in the response (default: False).
-        bypass_cache: Whether to force a fresh crawl and ignore cached results (default: True).
     """
-    return await _perform_crawl(urls, js_code, wait_for, css_selector, include_raw_html, bypass_cache)
+    return await _perform_crawl(urls)
 
 @mcp.tool()
 async def crawl_single_url(
-    url: str, 
-    js_code: str = None, 
-    wait_for: str = None, 
-    css_selector: str = None,
-    include_raw_html: bool = False,
-    bypass_cache: bool = True
+    url: str
 ) -> str:
     """
-    Reads and extracts the main content from a SINGLE URL.
+    Reads and extracts the main content in markdown format  from a SINGLE URL.
     
     Use this tool when you only have one page to read.
     
     Args:
         url: The single full URL to crawl (e.g., "https://example.com").
-        js_code: Optional JavaScript to execute (e.g., "window.scrollTo(0, document.body.scrollHeight);").
-        wait_for: Optional CSS selector to wait for.
-        css_selector: Optional CSS selector to limit the result.
-        include_raw_html: Whether to include raw HTML (default: False).
-        bypass_cache: Whether to force a fresh crawl (default: True).
     """
     # Wrap the single URL in a list and call the shared logic
-    return await _perform_crawl([url], js_code, wait_for, css_selector, include_raw_html, bypass_cache)
+    return await _perform_crawl([url])
 
 if __name__ == "__main__":
     mcp.run()
