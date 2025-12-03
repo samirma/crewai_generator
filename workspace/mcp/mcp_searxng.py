@@ -83,7 +83,7 @@ def perform_web_search(query: str, pageno: int = 1) -> str:
         if not base_url.endswith('/'):
             base_url += '/'
             
-        response = requests.get(f"{base_url}search", params=params, timeout=10)
+        response = requests.get(f"{base_url}search", params=params, timeout=60)
         response.raise_for_status()
         
         data = response.json()
