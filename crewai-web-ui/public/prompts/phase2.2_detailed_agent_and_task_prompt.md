@@ -21,8 +21,9 @@
 *   `task_roster` (Array of Objects): Using CrewAI best practices, create a comprehensive list of tasks to fully execute the 'Project Blueprint', covering all its aspects, details, and specifications. A single step can be extrapolated into one or more tasks if it is too complex, considering the CrewAI recommended architecture.
     *   `design_metadata` (Object): Contains contextual information and justifications, not included in the final YAML configuration files.
         *   `detailed_description` (String): A detailed statement explanning the success criteria for this task and how to archive it.
+        *   `llm_limitations` (String): A detailed statement explaining the limitations that an LLM imposes. For instance, LLMs lack time awareness, meaning they require external access to the current time if it is needed for task completion.
     *   `yaml_definition` (Object): Contains only the parameters for the `config/tasks.yaml` file.
-        *   `description` (String): Detailed operational prompt for the agent, derived from 'Blueprint's Execution Outline'.
+        *   `description` (String): Detailed operational prompt for the agent, derived from 'Blueprint's Execution Outline' and 'detailed_description' and `llm_limitations`.
         *   `expected_output` (String): **CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed.
         *   `agent` (String): The `yaml_id` of the designated agent.
         *   `yaml_id` (String): Unique yaml_id to be used to identify this task. Must be unique, lowercase, and use snake_case.

@@ -110,36 +110,15 @@ export async function executePythonScript(controller?: ReadableStreamDefaultCont
       overallStatus = 'failure';
       topLevelError = `Docker image build failed: ${error.message}`;
       // Early exit for Docker build failure
-    return { preHostRunResult, overallStatus, error: topLevelError, dockerCommand: "" }; // Return empty dockerCommand on failure
+      return { preHostRunResult, overallStatus, error: topLevelError, dockerCommand: "" }; // Return empty dockerCommand on failure
     }
 
     // --- Docker Container Setup ---
-    const dockerCommand = `
-  set -e
-  if [ -f /workspace/pre_docker_run.sh ]; then
-    echo "--- Running pre_docker_run.sh ---";
-    /bin/sh /workspace/pre_docker_run.sh;
-    echo "--- pre_docker_run.sh finished with exit code 0 ---";
-  else
-    echo "--- /workspace/pre_docker_run.sh not found, skipping. ---";
-  fi
-  echo "--- Running main script ---"
-  cd /workspace/crewai_generated && \\
-  cp /workspace/.env /workspace/crewai_generated/ && \\
-  touch /workspace/crewai_generated/src/crewai_generated/__init__.py
-
-  if uv run run_crew; then
-    echo "Crew Execution successful"
-  else
-    echo "Crew Execution failed"
-    exit 1
-  fi
-  echo "--- Main script finished with exit code 0 ---"
-`;
+    const dockerCommand = '/bin/sh /workspace/run_crew.sh';
     try {
       const container = await docker.createContainer({
         Image: imageName,
-        Cmd: ['/bin/sh', '-c', dockerCommand], // dockerCommand is defined above
+        Cmd: ['/bin/sh', '-c', dockerCommand],
         WorkingDir: '/workspace/crewai_generated',
         HostConfig: {
           Mounts: [{ Type: 'bind', Source: workspaceDir, Target: '/workspace' }],

@@ -160,7 +160,7 @@ const toolSelectionPhase: PhaseState = createPhaseState({
 });
 
 const customToolGenerationPhase: PhaseState = createPhaseState({
-  title: "Custom Tool Generation",
+  title: "Custom Tool plan Generation",
   promptFileName: "phase2_detailed_plan_custom_tool_prompt.md",
   dependencies: [toolSelectionPhase],
   generateInputPrompt: defaultGenerateInputPrompt
@@ -189,7 +189,7 @@ const crewPyGenerationPhase: PhaseState = createPhaseState({
   promptFileName: "phase3_crew_prompt.md",
   filePath: "src/crewai_generated/crew.py",
   outputType: 'file',
-  dependencies: [workflow, llmSelectionPhase, detailedAgentAndTaskDefinitionPhase, toolSelectionPhase],
+  dependencies: [workflow, llmSelectionPhase, detailedAgentAndTaskDefinitionPhase, toolSelectionPhase, customToolGenerationPhase],
   generateInputPrompt: defaultGenerateInputPrompt
 });
 
