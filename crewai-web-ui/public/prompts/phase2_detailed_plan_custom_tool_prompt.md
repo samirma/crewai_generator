@@ -9,8 +9,9 @@
 **'Custom-Tool-Generation-Plan' - JSON Schema:**
 
 *   `custom_tools` (Array of Objects): A list of custom tool definitions, used only when `is_custom_tool` is `True`.
-    * `tool_id` (String): A unique, snake\_case identifier for the custom tool.
-    * `description` (String): A brief description of the tool's function.
+    *   `design_metadata` (Object):
+        * `tool_id` (String): The current design_metadata.tool_id.
+        * `description` (String): A detailed description of the tool's function to better orient its development in pyhton, including the output.
     * `class_definition` (Object): Defines the necessary arguments for generating the custom tool's class structure.
         * `class_name` (String): The Python class name.
         * `name_attribute` (String): The value for the tool's `name` attribute.

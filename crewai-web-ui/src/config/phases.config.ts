@@ -161,7 +161,7 @@ const toolSelectionPhase: PhaseState = createPhaseState({
 
 const customToolGenerationPhase: PhaseState = createPhaseState({
   title: "Custom Tool Generation",
-  promptFileName: "phase2.4_custom_tool_generation_prompt.md",
+  promptFileName: "phase2_detailed_plan_custom_tool_prompt.md",
   dependencies: [toolSelectionPhase],
   generateInputPrompt: defaultGenerateInputPrompt
 });
@@ -203,8 +203,8 @@ const mainPyGenerationPhase: PhaseState = createPhaseState({
 });
 
 const toolsGenerationPhase: PhaseState = createPhaseState({
-  title: "Tools Generation",
-  promptFileName: "phase3_tools_prompt.md",
+  title: "Custom Tools Generation",
+  promptFileName: "phase3_custom_tools_prompt.md",
   filePath: "src/crewai_generated/tools",
   outputType: 'directory',
   dependencies: [customToolGenerationPhase],

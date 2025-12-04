@@ -1,5 +1,5 @@
 * **Instruction:** Only use the document identified as 'Project Blueprint' within `{{{ }}}` as your sole source of truth.
-* **Objective:** Your task is to elaborate on the high-level architecture plan by providing detailed definitions for each agent and task.
+* **Objective:** Your task is to elaborate on the detailed architecture plan by providing detailed definitions for each agent and task.
 * **Final Output Format:** Your entire response must be a single, comprehensive JSON object following the schema below. Do not include any other text before or after the JSON.
 
 ---
@@ -20,7 +20,7 @@
 
 *   `task_roster` (Array of Objects): Using CrewAI best practices, create a comprehensive list of tasks to fully execute the 'Project Blueprint', covering all its aspects, details, and specifications. A single step can be extrapolated into one or more tasks if it is too complex, considering the CrewAI recommended architecture.
     *   `design_metadata` (Object): Contains contextual information and justifications, not included in the final YAML configuration files.
-        *   `quality_gate` (String): A high-level, human-readable statement of the success criteria for this task.
+        *   `detailed_description` (String): A detailed statement explanning the success criteria for this task and how to archive it.
     *   `yaml_definition` (Object): Contains only the parameters for the `config/tasks.yaml` file.
         *   `description` (String): Detailed operational prompt for the agent, derived from 'Blueprint's Execution Outline'.
         *   `expected_output` (String): **CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed.

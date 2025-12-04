@@ -51,6 +51,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
     *   `justification` (String): Considering the information of the current task available in the design_metadata and yaml_definition, you should determ if a tool is required or not, and why based on the capatiblites of a llm.
     *   `tools` (Array of Objects, Optional): Defines instances of tools selected exclusively from the provided 'Canonical Tool Library'.
         *   `design_metadata` (Object):
+            *   `tool_id` (String): A unique identifier for this specific tool instance.
             *   `required_functionality` (String): A clear, one-sentence description of the specific action the tool must perform.
             *   `crewai_tool_evaluation` (Array of Objects):
                 *   `tool_selection_justification` (String): Justify the choice of tool from the Canonical Tool Library.
@@ -62,7 +63,6 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
                 *   `llm_id` (String): The identifier for the tool's internal LLM.
                 *   `rationale` (String): Justification for this LLM choice.
         *   `canonical_tool` (Object): Contains only the parameters for the tool's class constructor only if `is_custom_tool` is `False`.
-            *   `tool_id` (String): A unique identifier for this specific tool instance.
             *   `class_name` (String): The exact Python class name to instantiate.
             *   `initialization_params` (Object, Optional): Constructor parameters for the tool.
             **CRITICAL RULE for MCP Servers:** If using an MCP Server, the `class_name` MUST be `MCPServerAdapter`. The `initialization_params` object MUST contain a single key: `serverparams`. This `serverparams` object must contain two keys: `command` (String) and `args` (Array of Strings), which define how to run the MCP server process.
