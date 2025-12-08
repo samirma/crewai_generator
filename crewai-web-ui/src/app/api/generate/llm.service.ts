@@ -29,9 +29,13 @@ export async function interactWithLLM(
   let generatedScript: string | undefined = undefined;
   let completion: any;
 
-  const apiKey = process.env[modelConfig.apiKey];
+  let apiKey = process.env[modelConfig.apiKey];
   if (!apiKey) {
-    throw new Error(`${modelConfig.apiKey} is not set for model: ${llmModel}`);
+    if (modelConfig.apiKey === 'OLLAMA_API_KEY') {
+      apiKey = 'ollama'; // Dummy key for local Ollama
+    } else {
+      throw new Error(`${modelConfig.apiKey} is not set for model: ${llmModel}`);
+    }
   }
 
   const openai = new OpenAI({

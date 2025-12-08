@@ -18,14 +18,6 @@ export const staticModels: ModelConfig[] = [
     baseURL: "https://generativelanguage.googleapis.com/v1beta",
   },
   {
-    id: "gemini-3-pro-preview",
-    name: "Gemini 3",
-    model: "gemini-3-pro-preview",
-    timeout: 600,
-    apiKey: "GEMINI_API_KEY",
-    baseURL: "https://generativelanguage.googleapis.com/v1beta",
-  },
-  {
     id: "qwen-3-235b-a22b-instruct",
     name: "Qwen 3 235B Instruct",
     model: "qwen-3-235b-a22b-instruct-2507",
@@ -41,16 +33,28 @@ export const staticModels: ModelConfig[] = [
     apiKey: "DEEPSEEK_API_KEY",
     baseURL: "https://api.deepseek.com/v1",
   },
-  {
-    id: "minimax-m2",
-    name: "Minimax M2",
-    model: "MiniMax-M2",
-    timeout: 600,
-    apiKey: "MINIMAX_API_KEY",
-    baseURL: "https://api.minimax.io/v1",
-  },
 ];
 
 export async function getAllModels(): Promise<ModelConfig[]> {
-  return [...staticModels];
+  let ollamaModels: ModelConfig[] = [];
+  try {
+    const response = await fetch('http://localhost:11434/api/tags');
+    if (response.ok) {
+      const data = await response.json();
+      ollamaModels = data.models.map((model: any) => ({
+        id: model.name, // Use the model name as the ID
+        name: `(Ollama) ${model.name}`,
+        model: model.name,
+        timeout: 600, // Default timeout
+        apiKey: 'OLLAMA_API_KEY', // Placeholder/convention
+        baseURL: 'http://localhost:11434/v1', // Ollama provides an OpenAI-compatible endpoint at /v1
+        maxOutputTokens: 4096, // Reasonable default for local models
+      }));
+    }
+  } catch (error) {
+    // Silently fail or log if Ollama is not running/reachable, so we don't break the app
+    console.warn('Failed to fetch Ollama models:', error);
+  }
+
+  return [...staticModels, ...ollamaModels];
 }
