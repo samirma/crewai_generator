@@ -48,7 +48,6 @@ export async function getAllModels(): Promise<ModelConfig[]> {
         timeout: 600, // Default timeout
         apiKey: 'OLLAMA_API_KEY', // Placeholder/convention
         baseURL: 'http://localhost:11434/v1', // Ollama provides an OpenAI-compatible endpoint at /v1
-        maxOutputTokens: 4096, // Reasonable default for local models
       }));
     }
   } catch (error) {
