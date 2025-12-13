@@ -31,7 +31,7 @@ Those area the mandadoty dependencies for the dependencies section:
 "crewai[google-genai,tools]>=1.3.0"
 "crewai-tools[mcp]"
 "fastmcp"
-"litellM"
+"litellm>=1.80.9"
 "zeroconf"
 "ollama"
 
