@@ -5,21 +5,116 @@
 
 **JSON Schema:**
 
-*   `llm_registry` (Array of Objects): A central list defining the complete set of approved LLM configurations for this crew. This list is **pre-defined** and must be populated exactly as specified. Each object separates metadata from instantiation parameters.
-    *   `design_metadata` (Object): Contains contextual information about the LLM configuration.
-        *   `llm_id` (String): A unique identifier for this configuration (e.g., "gemini_pro_reasoner", "deepseek_chat_basic"). This will be used to name the Python variable.
-        *   `reasoner` (Boolean): `True` if the model has strong reasoning capabilities.
-        *   `multimodal_support` (Boolean): `True` if the model can process images.
-        *   `description` (String): Justification for including this LLM in the registry, highlighting its key strengths for the crew.
-    *   `constructor_args` (Object): Contains only the parameters for the CrewAI `LLM` class constructor.
-        *   `model` (String): The model name string required by the provider.
-        *   `temperature` (Number): The sampling temperature.
-        *   `frequency_penalty` (Number)
-        *   `presence_penalty` (Number)
-        *   `timeout` (Number): The request timeout in seconds.
-        *   `max_tokens` (Number): The maximum number of tokens for the model's response.
-        *   `api_key` (String, Optional): Environment variable name for the API key.
-    *   **Pre-defined List to Use:**
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "llm_registry": {
+      "type": "array",
+      "description": "A central list defining the complete set of approved LLM configurations for this crew. This list is **pre-defined** and must be populated exactly as specified in the 'Pre-defined List' below. Each object separates metadata from instantiation parameters.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "design_metadata": {
+            "type": "object",
+            "description": "Contains contextual information about the LLM configuration.",
+            "properties": {
+              "llm_id": {
+                "type": "string",
+                "description": "A unique identifier for this configuration (e.g., \"gemini_pro_reasoner\", \"deepseek_chat_basic\"). This will be used to name the Python variable."
+              },
+              "reasoner": {
+                "type": "boolean",
+                "description": "`True` if the model has strong reasoning capabilities."
+              },
+              "multimodal_support": {
+                "type": "boolean",
+                "description": "`True` if the model can process images."
+              },
+              "description": {
+                "type": "string",
+                "description": "Justification for including this LLM in the registry, highlighting its key strengths for the crew."
+              }
+            },
+            "required": ["llm_id", "reasoner", "multimodal_support", "description"]
+          },
+          "constructor_args": {
+            "type": "object",
+            "description": "Contains only the parameters for the CrewAI `LLM` class constructor.",
+            "properties": {
+              "model": {
+                "type": "string",
+                "description": "The model name string required by the provider."
+              },
+              "temperature": {
+                "type": "number",
+                "description": "The sampling temperature."
+              },
+              "frequency_penalty": {
+                "type": "number"
+              },
+              "presence_penalty": {
+                "type": "number"
+              },
+              "timeout": {
+                "type": "number",
+                "description": "The request timeout in seconds."
+              },
+              "max_tokens": {
+                "type": "number",
+                "description": "The maximum number of tokens for the model's response."
+              },
+              "api_key": {
+                "type": "string",
+                "description": "Environment variable name for the API key."
+              }
+            },
+            "required": ["model"]
+          }
+        },
+        "required": ["design_metadata", "constructor_args"]
+      }
+    },
+    "agent_llm": {
+      "type": "array",
+      "description": "Each object agent from agent_cadre.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "design_metadata": {
+            "type": "object",
+            "description": "Contains contextual information and justifications to select a model for this agent.",
+            "properties": {
+              "multimodal": {
+                "type": "boolean",
+                "description": "`True` ONLY if this agent needs to process both text and images."
+              },
+              "llm_rationale": {
+                "type": "string",
+                "description": "Justification for the chosen `llm_id` also considering the tasks task_roster assigned to this agent, in the task_roster.yaml_definition.agent . This rationale should read the `description` of the model to better decide which model to select. If `multimodal` is `True`, this rationale MUST confirm the selected model has `multimodal_support=True`. It should also reference the model's 'reasoner' capability."
+              },
+              "yaml_id": {
+                "type": "string",
+                "description": "Unique yaml_id to be used to indendify this agent."
+              },
+              "llm_id": {
+                "type": "string",
+                "description": "The identifier of the LLM to be used by this agent, referencing an entry in the `llm_registry`."
+              }
+            },
+            "required": ["multimodal", "llm_rationale", "yaml_id", "llm_id"]
+          }
+        },
+        "required": ["design_metadata"]
+      }
+    }
+  },
+  "required": ["llm_registry", "agent_llm"]
+}
+```
+
+**Pre-defined List to Use for `llm_registry`:**
 ```json
 [
   {
@@ -64,10 +159,3 @@
   }
 ]
 ```
-
-*   `agent_llm` (Array of Objects): Each object agent from agent_cadre.
-    *   `design_metadata` (Object): Contains contextual information and justifications to select a model for this agent.
-        *   `multimodal` (Boolean): `True` ONLY if this agent needs to process both text and images.
-        *   `llm_rationale` (String): Justification for the chosen `llm_id` also considering the tasks task_roster assigned to this agent, in the task_roster.yaml_definition.agent . This rationale should read the `description` of the model to better decide which model to select. If `multimodal` is `True`, this rationale MUST confirm the selected model has `multimodal_support=True`. It should also reference the model's 'reasoner' capability.
-        *   `yaml_id` (String): Unique yaml_id to be used to indendify this agent.
-        *   `llm_id` (String): The identifier of the LLM to be used by this agent, referencing an entry in the `llm_registry`.

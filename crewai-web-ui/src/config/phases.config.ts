@@ -27,7 +27,7 @@ let phaseIdCounter = 0;
 const phases: PhaseState[] = [];
 
 // Define the properties that are common to all phases
-const defaultPhaseStateProperties: Omit<PhaseState, 
+const defaultPhaseStateProperties: Omit<PhaseState,
   'id' | 'title' | 'promptFileName' | 'generateInputPrompt' | 'dependencies' | 'filePath' | 'outputType'
 > = {
   prompt: "",
@@ -41,9 +41,9 @@ const defaultPhaseStateProperties: Omit<PhaseState,
 // Define the type for creating a new phase.
 // Required properties are 'title', 'promptFileName', 'generateInputPrompt', 'dependencies'.
 // Optional properties are 'filePath', 'outputType', and all from defaultPhaseStateProperties.
-type PhaseStateConfig = Pick<PhaseState, 
+type PhaseStateConfig = Pick<PhaseState,
   'title' | 'promptFileName' | 'generateInputPrompt' | 'dependencies'
-> & Partial<Omit<PhaseState, 
+> & Partial<Omit<PhaseState,
   'id' | 'title' | 'promptFileName' | 'generateInputPrompt' | 'dependencies'
 >>;
 
@@ -155,13 +155,13 @@ const llmSelectionPhase: PhaseState = createPhaseState({
 const toolSelectionPhase: PhaseState = createPhaseState({
   title: "Tool Selection",
   promptFileName: "phase2.3_tool_selection_prompt.md",
-  dependencies: [detailedAgentAndTaskDefinitionPhase],
+  dependencies: [detailedAgentAndTaskDefinitionPhase, llmSelectionPhase],
   generateInputPrompt: defaultGenerateInputPrompt
 });
 
 const customToolGenerationPhase: PhaseState = createPhaseState({
   title: "Custom Tool plan Generation",
-  promptFileName: "phase2_detailed_plan_custom_tool_prompt.md",
+  promptFileName: "phase2.4_plan_custom_tool_prompt.md",
   dependencies: [toolSelectionPhase],
   generateInputPrompt: defaultGenerateInputPrompt
 });

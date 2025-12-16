@@ -35,6 +35,8 @@ Those area the mandadoty dependencies for the dependencies section:
 "zeroconf"
 "ollama"
 
+In the Extra dependencies section, append dependencies from python code here, after evaluate them.
+
 Example pyproject.toml Output:
 
 ```toml
@@ -48,7 +50,6 @@ dependencies = [
     # Mandadory dependencies
 
     # Extra dependencies 
-    // Append dependencies from python code here, after evaluate them. For each depedency add include a justification comment explaining which python code this new depedency should contemplate.
 ]
 
 [project.scripts]

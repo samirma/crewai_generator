@@ -5,26 +5,132 @@
 ---
 
 **'Detailed-Architecture-Plan' - JSON Schema:**
-*   `agent_cadre` (Array of Objects): Using CrewAI best practices, create a comprehensive list of CrewAI agents to fully execute the 'Project Blueprint', covering all its aspects, details, and specifications. Refer to the CrewAI agent specifications at https://docs.crewai.com/en/concepts/agents and the guidelines to follow at https://docs.crewai.com/en/guides/agents/crafting-effective-agents.
-    *   `design_metadata` (Object): Contains contextual information and justifications, not included in the final YAML configuration files.
-        *   `multimodal` (Boolean): `True` ONLY if this agent needs to process both text and images.
-        *   `reasoning_rationale` (String): A justification for the `reasoning: True/False` setting, explaining why this specific agent needs (or doesn't need) a pre-execution planning step.
-        *   `llm_rationale` (String): Justification for the chosen `llm_id`. If `multimodal` is `True`, this rationale MUST confirm the selected model has `multimodal_support=True`. It should also reference the model's 'reasoner' capability.
-        *   `delegation_rationale` (String): Justification for the `allow_delegation` setting.
-    *   `yaml_definition` (Object): Contains only the parameters for the `config/agents.yaml` file.
-        *   `role` (String): From the high-level plan.
-        *   `goal` (String): From the high-level plan.
-        *   `backstory` (String): A narrative that reinforces the agent's expertise and persona, giving it context and personality. This should align with its role and goal.
-        *   `reasoning` (Boolean): `True` or `False`, only `True` when the justification in `reasoning_rationale` justifies it.
-        *   `yaml_id` (String): Unique identifier for this agent, used for task assignment. Must be lowercase and use snake_case (e.g., research_analyst).
 
-*   `task_roster` (Array of Objects): Using CrewAI best practices, create a comprehensive list of tasks to fully execute the 'Project Blueprint', covering all its aspects, details, and specifications. A single step can be extrapolated into one or more tasks if it is too complex, considering the CrewAI recommended architecture.
-    *   `design_metadata` (Object): Contains contextual information and justifications, not included in the final YAML configuration files.
-        *   `detailed_description` (String): A detailed statement explanning the success criteria for this task and how to archive it.
-        *   `llm_limitations` (String): A detailed statement explaining the limitations that an LLM imposes. For instance, LLMs lack time awareness, meaning they require external access to the current time if it is needed for task completion.
-    *   `yaml_definition` (Object): Contains only the parameters for the `config/tasks.yaml` file.
-        *   `description` (String): Detailed operational prompt for the agent, derived from 'Blueprint's Execution Outline' and 'detailed_description' and `llm_limitations`.
-        *   `expected_output` (String): **CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed.
-        *   `agent` (String): The `yaml_id` of the designated agent.
-        *   `yaml_id` (String): Unique yaml_id to be used to identify this task. Must be unique, lowercase, and use snake_case.
-        *   `context` (Array of Strings, Optional): A list of `yaml_id`s from prerequisite tasks. The output of these tasks will be provided as context to this task.
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "agent_cadre": {
+      "type": "array",
+      "description": "Using CrewAI best practices, create a comprehensive list of CrewAI agents to fully execute the 'Project Blueprint', covering all its aspects, details, and specifications. Adhere to CrewAI best practices: 1. Roles should be specific and narrow. 2. Goals must be actionable. 3. Backstories should provide context and expertise.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "design_metadata": {
+            "type": "object",
+            "description": "Contains contextual information and justifications, not included in the final YAML configuration files.",
+            "properties": {
+              "multimodal": {
+                "type": "boolean",
+                "description": "`True` ONLY if this agent needs to process both text and images."
+              },
+              "reasoning_rationale": {
+                "type": "string",
+                "description": "A justification for the `reasoning: True/False` setting, explaining why this specific agent needs (or doesn't need) a pre-execution planning step."
+              },
+              "llm_rationale": {
+                "type": "string",
+                "description": "Justification for the chosen `llm_id`. If `multimodal` is `True`, this rationale MUST confirm the selected model has `multimodal_support=True`. It should also reference the model's 'reasoner' capability."
+              },
+              "delegation_rationale": {
+                "type": "string",
+                "description": "Justification for the `allow_delegation` setting."
+              }
+            },
+            "required": ["multimodal", "reasoning_rationale", "llm_rationale", "delegation_rationale"]
+          },
+          "yaml_definition": {
+            "type": "object",
+            "description": "Contains only the parameters for the `config/agents.yaml` file.",
+            "properties": {
+              "yaml_id": {
+                "type": "string",
+                "description": "Unique identifier for this agent, used for task assignment. Must be lowercase and use snake_case (e.g., research_analyst)."
+              },
+              "role": {
+                "type": "string",
+                "description": "A well defined agent's role."
+              },
+              "goal": {
+                "type": "string",
+                "description": "A well defined and detailed agent's goal."
+              },
+              "backstory": {
+                "type": "string",
+                "description": "A narrative that reinforces the agent's expertise and persona, giving it context and personality. This should align with its role and goal."
+              },
+              "reasoning": {
+                "type": "boolean",
+                "description": "`True` or `False`, only `True` when the justification in `reasoning_rationale` justifies it."
+              },
+              "allow_delegation": {
+                "type": "boolean",
+                "description": "`True` or `False`, only `True` when the justification in `delegation_rationale` justifies it."
+              }
+            },
+            "required": ["role", "goal", "backstory", "reasoning", "allow_delegation"]
+          }
+        },
+        "required": ["design_metadata", "yaml_definition"]
+      }
+    },
+    "task_roster": {
+      "type": "array",
+      "description": "Using CrewAI best practices, create a comprehensive list of tasks to fully execute the 'Project Blueprint', covering all its aspects, details, and specifications. A single step can be extrapolated into one or more tasks if it is too complex, considering the CrewAI recommended architecture.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "design_metadata": {
+            "type": "object",
+            "description": "Contains contextual information and justifications, not included in the final YAML configuration files.",
+            "properties": {
+              "llm_limitations": {
+                "type": "string",
+                "description": "A detailed statement explaining the limitations that an LLM imposes. For instance, LLMs lack time awareness, meaning they require external access to the current time if it is needed for task completion."
+              },
+              "detailed_description": {
+                "type": "string",
+                "description": "A detailed statement explaining the success criteria for this task and how to archive it."
+              }
+            },
+            "required": ["llm_limitations", "detailed_description"]
+          },
+          "yaml_definition": {
+            "type": "object",
+            "description": "Contains only the parameters for the `config/tasks.yaml` file.",
+            "properties": {
+              "description": {
+                "type": "string",
+                "description": "Detailed operational prompt for the agent, derived from 'Blueprint's Execution Outline' and 'detailed_description' and `llm_limitations`."
+              },
+              "expected_output": {
+                "type": "string",
+                "description": "**CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed."
+              },
+              "agent": {
+                "type": "string",
+                "description": "The `yaml_id` of the designated agent."
+              },
+              "yaml_id": {
+                "type": "string",
+                "description": "Unique yaml_id to be used to identify this task. Must be unique, lowercase, and use snake_case."
+              },
+              "context": {
+                "type": "array",
+                "description": "A list of `yaml_id`s from prerequisite tasks. The output of these tasks will be provided as context to this task. Ensure all IDs effectively exist in the `task_roster`.",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["description", "expected_output", "agent", "yaml_id"]
+          }
+        },
+        "required": ["design_metadata", "yaml_definition"]
+      }
+    }
+  },
+  "required": ["agent_cadre", "task_roster"]
+}
+```

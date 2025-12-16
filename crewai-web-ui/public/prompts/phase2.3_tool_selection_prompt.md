@@ -46,24 +46,113 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
 
 **'Tool-Selection-Plan' - JSON Schema:**
 
-*   `tool_repository` (Array of Objects): Each object represents a task from task_roster to indendify and select tools requeried for the task.
-    *   `task_identifier` (String): From the detailed plan.
-    *   `justification` (String): Considering the information of the current task available in the design_metadata and yaml_definition, you should determ if a tool is required or not, and why based on the capatiblites of a llm.
-    *   `tools` (Array of Objects, Optional): Defines instances of tools selected exclusively from the provided 'Canonical Tool Library'.
-        *   `design_metadata` (Object):
-            *   `tool_id` (String): A unique identifier for this specific tool instance.
-            *   `required_functionality` (String): A clear, one-sentence description of the specific action the tool must perform.
-            *   `crewai_tool_evaluation` (Array of Objects):
-                *   `tool_selection_justification` (String): Justify the choice of tool from the Canonical Tool Library.
-                *   `is_valid_availiable_tool` (Boolean): `True` or `False`.
-                *   `tool_name` (String): The exact, importable CrewAI tool class.
-            *   `is_custom_tool` (Boolean): `True` if no available tool is sufficient.
-            *   `is_custom_embedding_supported` (Boolean): `True` if this selected tool supports embedding.
-            *   `tool_llm_specification` (Object, Optional): Required if `is_custom_embedding_supported` is `True` and `crew_memory.activation` is `True`.
-                *   `llm_id` (String): The identifier for the tool's internal LLM.
-                *   `rationale` (String): Justification for this LLM choice.
-        *   `canonical_tool` (Object): Contains only the parameters for the tool's class constructor only if `is_custom_tool` is `False`.
-            *   `class_name` (String): The exact Python class name to instantiate.
-            *   `initialization_params` (Object, Optional): Constructor parameters for the tool.
-            **CRITICAL RULE for MCP Servers:** If using an MCP Server, the `class_name` MUST be `MCPServerAdapter`. The `initialization_params` object MUST contain a single key: `serverparams`. This `serverparams` object must contain two keys: `command` (String) and `args` (Array of Strings), which define how to run the MCP server process.
-            **CRITICAL RULE for Embedding-Supported Tools:** If `design_metadata.is_custom_embedding_supported` is `true` and `crew_memory.activation` is `true`, the `initialization_params` object should be left empty (`{}`). The script generation phase will automatically use the global `rag_config`. For all other tools, specify parameters as needed.
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "tool_repository": {
+      "type": "array",
+      "description": "Each object represents a task from task_roster to identify and select tools required for the task.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "task_identifier": {
+            "type": "string",
+            "description": "From the detailed plan."
+          },
+          "justification": {
+            "type": "string",
+            "description": "Considering the information of the current task available in the design_metadata and yaml_definition, you should determine if a tool is required or not, and why based on the capabilities of a llm."
+          },
+          "tools": {
+            "type": "array",
+            "description": "Defines instances of tools selected exclusively from the provided 'Canonical Tool Library'.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "design_metadata": {
+                  "type": "object",
+                  "properties": {
+                    "tool_id": {
+                      "type": "string",
+                      "description": "A unique identifier for this specific tool instance."
+                    },
+                    "required_functionality": {
+                      "type": "string",
+                      "description": "A clear, one-sentence description of the specific action the tool must perform."
+                    },
+                    "crewai_tool_evaluation": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "tool_selection_justification": {
+                            "type": "string",
+                            "description": "Justify the choice of tool from the Canonical Tool Library."
+                          },
+                          "is_valid_availiable_tool": {
+                            "type": "boolean",
+                            "description": "`True` or `False`."
+                          },
+                          "tool_name": {
+                            "type": "string",
+                            "description": "The exact, importable CrewAI tool class."
+                          }
+                        },
+                        "required": ["tool_selection_justification", "is_valid_availiable_tool", "tool_name"]
+                      }
+                    },
+                    "is_custom_tool": {
+                      "type": "boolean",
+                      "description": "`True` if no available tool is sufficient."
+                    },
+                    "is_custom_embedding_supported": {
+                      "type": "boolean",
+                      "description": "`True` if this selected tool supports embedding."
+                    },
+                    "tool_llm_specification": {
+                      "type": "object",
+                      "description": "Required if `is_custom_embedding_supported` is `True` and `crew_memory.activation` is `True`.",
+                      "properties": {
+                        "llm_id": {
+                          "type": "string",
+                          "description": "The identifier for the tool's internal LLM."
+                        },
+                        "rationale": {
+                          "type": "string",
+                          "description": "Justification for this LLM choice."
+                        }
+                      },
+                      "required": ["llm_id", "rationale"]
+                    }
+                  },
+                  "required": ["tool_id", "required_functionality", "crewai_tool_evaluation", "is_custom_tool", "is_custom_embedding_supported"]
+                },
+                "canonical_tool": {
+                  "type": "object",
+                  "description": "Contains only the parameters for the tool's class constructor only if `is_custom_tool` is `False`. CRITICAL RULE for MCP Servers: If using an MCP Server, the `class_name` MUST be `MCPServerAdapter`. The `initialization_params` object MUST contain a single key: `serverparams`. This `serverparams` object must contain two keys: `command` (String) and `args` (Array of Strings), which define how to run the MCP server process. CRITICAL RULE for Embedding-Supported Tools: If `design_metadata.is_custom_embedding_supported` is `true` and `crew_memory.activation` is `true`, the `initialization_params` object should be left empty (`{}`). The script generation phase will automatically use the global `rag_config`. For all other tools, specify parameters as needed.",
+                  "properties": {
+                    "class_name": {
+                      "type": "string",
+                      "description": "The exact Python class name to instantiate."
+                    },
+                    "initialization_params": {
+                      "type": "object",
+                      "description": "Constructor parameters for the tool."
+                    }
+                  },
+                  "required": ["class_name"]
+                }
+              },
+              "required": ["design_metadata", "canonical_tool"]
+            }
+          }
+        },
+        "required": ["task_identifier", "justification"]
+      }
+    }
+  },
+  "required": ["tool_repository"]
+}
+```

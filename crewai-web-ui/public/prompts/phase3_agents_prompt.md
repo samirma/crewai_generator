@@ -1,11 +1,10 @@
-**`config/agents.yaml` Generation Logic:**
 
-Use the JSON object provided as the single source of truth. Your task is to generate the content for the `config/agents.yaml` file.
+Use the JSON object provided as the single source of truth.
 
 *   **Objective:** Iterate through the `agent_cadre` list from the JSON input.
-*   **Output Format:** For each agent object in the list, create a YAML entry.
-    *   The main key for each agent entry MUST be the `yaml_definition.yaml_id`.
-    *   The entry for each agent must include the following keys, with values derived from the corresponding fields in the agent's `yaml_definition` object.
+*   **Output Format:** For each task object in the list, create a YAML entry.
+    *   The main key for each task entry MUST be the `yaml_definition.yaml_id`.
+    *   The entry for each task must include the following keys of a valid CrewAi agent YAML file, with values derived from the corresponding fields in the task's `yaml_definition` object.
 *   **Formatting:**
     *   Ensure the output is a single, valid CrewAi agent YAML file.
     *   Use proper YAML syntax, especially for multi-line strings (`goal` and `backstory`), to ensure they are correctly parsed.
@@ -13,78 +12,64 @@ Use the JSON object provided as the single source of truth. Your task is to gene
 **Example Input JSON Snippet (`agent_cadre`):**
 
 ```json
+{
   "agent_cadre": [
     {
       "design_metadata": {
         "multimodal": false,
-        "llm_rationale": "The StreamlitAppArchitect requires strong code generation, logical structuring, and integration capabilities to build the Streamlit application and ensure all components are correctly displayed. A powerful reasoner like gpt-4o is suitable for ensuring the code is correct, efficient, and adheres to the blueprint's specified structure and UI requirements.",
-        "delegation_rationale": "This agent is responsible for the overall application structure and final presentation. While it performs specific coding tasks, it might delegate sub-components or complex UI elements if the application were more extensive. For this blueprint, it primarily orchestrates the UI and integrates outputs from other agents, making delegation a reasonable option for future scalability."
+        "reasoning_rationale": "The agent performs data extraction and analysis using textual inputs only; no image processing is required.",
+        "llm_rationale": "The 'research_analyst' model (e.g., gpt-4o) has strong reasoning capabilities for synthesizing news sentiment and financial metrics, making it suitable for structured prediction tasks.",
+        "delegation_rationale": "Delegation to the writer is appropriate after analysis is complete to ensure polished, formatted output without redundant processing."
       },
       "yaml_definition": {
-        "role": "Streamlit Application Architect",
-        "goal": "Design, implement, and populate the Streamlit application for Bitcoin news-driven price predictions, ensuring a clear and user-friendly interface.",
-        "backstory": "As a seasoned Streamlit developer, I specialize in creating intuitive and responsive web applications. My expertise lies in structuring Streamlit apps, integrating various data sources, and presenting complex information clearly and engagingly. I ensure the application adheres to the specified layout and delivers a seamless user experience, from initial setup to final content display.",
-        "yaml_id": "streamlit_architect"
-      },
-      "constructor_args": {
-        "allow_delegation": true
+        "role": "Research Analyst",
+        "goal": "Aggregate real-time news sentiment and macroeconomic indicators to generate a composite Bitcoin market sentiment score.",
+        "backstory": "A financial data specialist with expertise in cryptocurrency markets, experienced in parsing news outlets and translating qualitative sentiment into quantifiable metrics for predictive modeling.",
+        "reasoning": true,
+        "allow_delegation": false,
+        "yaml_id": "research_analyst"
       }
     },
     {
       "design_metadata": {
         "multimodal": false,
-        "llm_rationale": "The NewsDataFetcher needs to understand API documentation, construct HTTP requests, and parse JSON responses reliably. While not requiring deep reasoning for complex logic, it benefits from an LLM capable of accurate code generation for API interactions and robust error handling. gpt-4o provides the necessary reliability and precision for data extraction.",
-        "delegation_rationale": "This agent has a highly specialized and focused task of fetching data from external APIs. The process is largely self-contained and does not typically involve sub-tasks that would benefit from delegation to other agents. Its efficiency comes from direct execution of its core responsibility."
+        "reasoning_rationale": "The agent performs statistical modeling and confidence scoring using structured numerical outputs from prior steps; no image processing is involved.",
+        "llm_rationale": "The 'modeler' model (e.g., claude-3-sonnet) excels at mathematical reasoning, regression analysis, and probabilistic forecasting, supporting accurate prediction generation under defined constraints.",
+        "delegation_rationale": "Delegation to the writer follows modeling completion to transform raw forecasts into narrative form for final reporting."
       },
       "yaml_definition": {
-        "role": "News Data Fetcher",
-        "goal": "Reliably gather current Bitcoin-related news articles from specified sources or simulate data if external access is unavailable.",
-        "backstory": "I am an expert in web data extraction and API integration. My mission is to efficiently query news APIs, handle responses, and extract relevant information such as headlines, content, publication dates, and sources. I am meticulous about data quality and ensuring the freshest, most pertinent news is collected for analysis, or providing plausible dummy data when real-time access is constrained.",
-        "reasoning": "false",
-        "yaml_id": "news_fetcher"
-      },
-      "constructor_args": {
-        "allow_delegation": false
-      }
-    },
-    {
-      "design_metadata": {
-        "multimodal": false,
-        "llm_rationale": "The NewsDataFetcher needs to understand API documentation, construct HTTP requests, and parse JSON responses reliably. While not requiring deep reasoning for complex logic, it benefits from an LLM capable of accurate code generation for API interactions and robust error handling. gpt-4o provides the necessary reliability and precision for data extraction.",
-        "delegation_rationale": "This agent has a highly specialized and focused task of fetching data from external APIs. The process is largely self-contained and does not typically involve sub-tasks that would benefit from delegation to other agents. Its efficiency comes from direct execution of its core responsibility."
-      },
-      "yaml_definition": {
-        "role": "agent role",
-        "goal": "agent goal",
-        "backstory": "agent backstory",
-        "reasoning": "true",
-        "yaml_id": "this_agent_id"
-      },
-      "constructor_args": {
-        "allow_delegation": true
+        "role": "Predictive Modeler",
+        "goal": "Generate hourly and weekly Bitcoin price movement predictions with confidence scores using weighted regression on sentiment, volatility, and historical trends.",
+        "backstory": "A quantitative analyst skilled in time-series forecasting and econometric modeling, capable of integrating diverse data streams into statistically grounded projections with transparent uncertainty quantification.",
+        "reasoning": true,
+        "allow_delegation": false,
+        "yaml_id": "predictive_modeler"
       }
     }
 ]
+}
 ```
 
-**Expected `config/agents.yaml` Output:**
+**Expected YAML Output:**
 
 ```yaml
-streamlit_architect:
-  role: "Streamlit Application Architect"
-  goal: "Design, implement, and populate the Streamlit application for Bitcoin news-driven price predictions, ensuring a clear and user-friendly interface."
-  backstory: "As a seasoned Streamlit developer, I specialize in creating intuitive and responsive web applications. My expertise lies in structuring Streamlit apps, integrating various data sources, and presenting complex information clearly and engagingly. I ensure the application adheres to the specified layout and delivers a seamless user experience, from initial setup to final content display."
-  allow_delegation: true
-news_fetcher:
-  role: "News Data Fetcher"
-  goal: "Reliably gather current Bitcoin-related news articles from specified sources or simulate data if external access is unavailable."
-  backstory: "I am an expert in web data extraction and API integration. My mission is to efficiently query news APIs, handle responses, and extract relevant information such as headlines, content, publication dates, and sources. I am meticulous about data quality and ensuring the freshest, most pertinent news is collected for analysis, or providing plausible dummy data when real-time access is constrained."
-  reasoning: False
-  allow_delegation: false
-this_agent_id:
-  role: "agent role"
-  goal: "agent goal"
-  backstory: "agent backstory"
+research_analyst:
+  role: >
+    Research Analyst
+  goal: >
+    Aggregate real-time news sentiment and macroeconomic indicators to generate a composite Bitcoin market sentiment score.
+  backstory: >
+    A financial data specialist with expertise in cryptocurrency markets, experienced in parsing news outlets and translating qualitative sentiment into quantifiable metrics for predictive modeling.
   reasoning: True
-  allow_delegation: true
+  allow_delegation: True
+
+predictive_modeler:
+  role: >
+    Predictive Modeler
+  goal: >
+    Generate hourly and weekly Bitcoin price movement predictions with confidence scores using weighted regression on sentiment, volatility, and historical trends.
+  backstory: >
+    A quantitative analyst skilled in time-series forecasting and econometric modeling, capable of integrating diverse data streams into statistically grounded projections with transparent uncertainty quantification.
+  reasoning: True
+  allow_delegation: True
 ```

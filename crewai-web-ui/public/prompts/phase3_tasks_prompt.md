@@ -1,4 +1,3 @@
-**`config/tasks.yaml` Generation Logic:**
 
 Use the JSON object provided as the single source of truth. Your task is to generate the content for the `config/tasks.yaml` file.
 
@@ -25,7 +24,7 @@ Use the JSON object provided as the single source of truth. Your task is to gene
 }
 ```
 
-**Expected `config/tasks.yaml` Output:**
+**Expected Output:**
 
 ```yaml
 generate_bitcoin_predictions:
