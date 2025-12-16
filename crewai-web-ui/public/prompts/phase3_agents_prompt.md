@@ -1,13 +1,13 @@
 
-Use the JSON object provided as the single source of truth.
+Use the JSON object provided as the single source of truth. Your task is to generate the content for the `config/agents.yaml` file.
 
 *   **Objective:** Iterate through the `agent_cadre` list from the JSON input.
-*   **Output Format:** For each task object in the list, create a YAML entry.
-    *   The main key for each task entry MUST be the `yaml_definition.yaml_id`.
-    *   The entry for each task must include the following keys of a valid CrewAi agent YAML file, with values derived from the corresponding fields in the task's `yaml_definition` object.
+*   **Output Format:** For each agent object in the list, create a YAML entry.
+    *   The main key for each agent entry MUST be the `yaml_definition.yaml_id`.
+    *   The entry for each agent must include the following keys of a valid CrewAi agent YAML file, with values derived from the corresponding fields in the agent's `yaml_definition` object.
 *   **Formatting:**
-    *   Ensure the output is a single, valid CrewAi agent YAML file.
-    *   Use proper YAML syntax, especially for multi-line strings (`goal` and `backstory`), to ensure they are correctly parsed.
+    *   Ensure the output is a single, valid YAML file content.
+    *   Use proper YAML syntax, especially for multi-line strings (`description` and `expected_output`).
 
 **Example Input JSON Snippet (`agent_cadre`):**
 
