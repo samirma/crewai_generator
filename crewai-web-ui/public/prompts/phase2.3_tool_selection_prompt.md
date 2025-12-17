@@ -8,39 +8,8 @@
 
 To ensure a realistic and grounded design, all tool selections must be made **exclusively** from the following canonical list of available tools. The `tool_selection_justification` field within the `tool_repository` must reference this list for its evaluation.
 
-#### `crewai_tools`
 
-* `WebsiteSearchTool` (supports_embedding: `True`, **tool_id: `website_searcher`**)
-* `BrowserbaseTool` (supports_embedding: `False`, **tool_id: `browserbase_tool`**)
-* `CodeDocsSearchTool` (supports_embedding: `True`, **tool_id: `code_docs_searcher`**)
-* `PDFSearchTool` (supports_embedding: `True`, **tool_id: `pdf_searcher`**)
-* `FileReadTool` (supports_embedding: `False`, **tool_id: `file_reader`**)
-* `FileWriterTool` (supports_embedding: `False`, **tool_id: `file_writer`**)
-* `DirectoryReadTool` (supports_embedding: `False`, **tool_id: `directory_reader`**)
-* `CSVSearchTool` (supports_embedding: `True`, **tool_id: `csv_searcher`**)
-* `DOCXSearchTool` (supports_embedding: `True`, **tool_id: `docx_searcher`**)
-* `MDXSearchTool` (supports_embedding: `True`, **tool_id: `mdx_searcher`**)
-* `RagTool` (supports_embedding: `True`, **tool_id: `rag_tool`**)
-* `TXTSearchTool` (supports_embedding: `True`, **tool_id: `txt_searcher`**)
-* `XMLSearchTool` (supports_embedding: `True`, **tool_id: `xml_searcher`**)
 
-#### MCP Servers (Accessed via `MCPServerAdapter`)
-
-* **`mcp-crawl`**: (**tool_id: `mcp-crawl`**)
-    * `serverparams`: `{ "command": "python", "args": ["/workspace/mcp/mcp_crawl4ai.py"] }`
-    * **Description**: Reads and extracts the main content from a list of URLs or a single url.
-* **`mcp-local-seaxng`**: (**tool_id: `mcp_searxng_adapter`**)
-    * `serverparams`: `{ "command": "python", "args": ["/workspace/mcp/mcp_searxng.py"] }`
-    * **Description**: This tool performs a web search based on a text query and an optional pageno for pagination. It returns a JSON formatted list of search results, with each result containing its url, title, and a only a snippet of the content. A web scrape tool is required to recover the fully information of the web pages.
-* **`time-stdio`**: (**tool_id: `mcp_time_adapter`**)
-    * `serverparams`: `{   "command": "uvx",  "args": ["mcp-server-time"] }`
-    * **Description**: It should be used whenever there is a time component to the task allowing to now the current date and time. Must be used for all cases that are a time component in the task, for instance reference to 'current', days, hours, past, future dates, or all other kind of temporal references.
-* **`excel-stdio`**: (**tool_id: `mcp_excel_adapter`**)
-    * `serverparams`: `{ "command": "uvx", "args": ["excel-mcp-server", "stdio"] }`
-    * **Description**: This MCP server is designed to handle Excel files, allowing for reading and writing operations directly from standard input/output. It supports various Excel file formats and can be used to manipulate spreadsheet data programmatically.
-* **`mcp-pandoc`**: (**tool_id: `mcp_pandoc_adapter`**)
-    * `serverparams`: `{ "command": "python", "args": ["/workspace/mcp/mcp_pandadoc_converter.py"] }`
-    * **Description**: Converts a document from one format to another using Pandoc by taking a source `input_path` and a destination `output_path`, returning a string message indicating the result. The desired output format is automatically inferred from the output file's extension. Supported input formats include biblatex, bibtex, commonmark, creole, csljson, csv, docbook, docx, dokuwiki, endnotexml, epub, fb2, gfm, haddock, html, ipynb, jats, jira, json, latex, markdown, markdown_mmd, markdown_phpextra, markdown_strict, mediawiki, man, muse, native, odt, opml, org, ris, rst, rtf, t2t, textile, tikiwiki, tsv, twiki, and vimwiki. Supported output formats include asciidoc, beamer, commonmark, context, csljson, docbook, docx, dokuwiki, dzslides, epub, fb2, gfm, haddock, html, icml, ipynb, jats, jira, json, latex, man, markdown, markdown_mmd, markdown_phpextra, markdown_strict, mediawiki, ms, muse, native, odt, opml, opendocument, org, pdf, plain, pptx, revealjs, rst, rtf, s5, slidy, slideous, tei, texinfo, textile, xwiki, and zimwiki.
 
 ---
 
@@ -51,6 +20,140 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
+    "canonical_tool_library": {
+      "type": "array",
+      "description": "A central list defining the complete set of approved tool configurations for this crew. This list is **pre-defined** and must be populated exactly as specified.",
+      "const": [
+        {
+          "tool_name": "WebsiteSearchTool",
+          "tool_id": "website_searcher",
+          "supports_embedding": true,
+          "description": "A tool for searching websites."
+        },
+        {
+          "tool_name": "BrowserbaseTool",
+          "tool_id": "browserbase_tool",
+          "supports_embedding": false,
+          "description": "A tool for interacting with a headless browser."
+        },
+        {
+          "tool_name": "CodeDocsSearchTool",
+          "tool_id": "code_docs_searcher",
+          "supports_embedding": true,
+          "description": "A tool for searching code documentation."
+        },
+        {
+          "tool_name": "PDFSearchTool",
+          "tool_id": "pdf_searcher",
+          "supports_embedding": true,
+          "description": "A tool for searching PDF documents."
+        },
+        {
+          "tool_name": "FileReadTool",
+          "tool_id": "file_reader",
+          "supports_embedding": false,
+          "description": "A tool for reading files."
+        },
+        {
+          "tool_name": "FileWriterTool",
+          "tool_id": "file_writer",
+          "supports_embedding": false,
+          "description": "A tool for writing files."
+        },
+        {
+          "tool_name": "DirectoryReadTool",
+          "tool_id": "directory_reader",
+          "supports_embedding": false,
+          "description": "A tool for reading directory contents."
+        },
+        {
+          "tool_name": "CSVSearchTool",
+          "tool_id": "csv_searcher",
+          "supports_embedding": true,
+          "description": "A tool for searching CSV files."
+        },
+        {
+          "tool_name": "DOCXSearchTool",
+          "tool_id": "docx_searcher",
+          "supports_embedding": true,
+          "description": "A tool for searching DOCX files."
+        },
+        {
+          "tool_name": "MDXSearchTool",
+          "tool_id": "mdx_searcher",
+          "supports_embedding": true,
+          "description": "A tool for searching MDX files."
+        },
+        {
+          "tool_name": "RagTool",
+          "tool_id": "rag_tool",
+          "supports_embedding": true,
+          "description": "A general-purpose RAG tool."
+        },
+        {
+          "tool_name": "TXTSearchTool",
+          "tool_id": "txt_searcher",
+          "supports_embedding": true,
+          "description": "A tool for searching TXT files."
+        },
+        {
+          "tool_name": "XMLSearchTool",
+          "tool_id": "xml_searcher",
+          "supports_embedding": true,
+          "description": "A tool for searching XML files."
+        },
+        {
+          "tool_name": "mcp-crawl",
+          "tool_id": "mcp-crawl",
+          "supports_embedding": false,
+          "description": "Reads and extracts the main content from a list of URLs or a single url.",
+          "serverparams": {
+            "command": "python",
+            "args": ["/workspace/mcp/mcp_crawl4ai.py"]
+          }
+        },
+        {
+          "tool_name": "mcp-local-seaxng",
+          "tool_id": "mcp_searxng_adapter",
+          "supports_embedding": false,
+          "description": "This tool performs a web search based on a text query and an optional pageno for pagination. It returns a JSON formatted list of search results, with each result containing its url, title, and a only a snippet of the content. A web scrape tool is required to recover the fully information of the web pages.",
+          "serverparams": {
+            "command": "python",
+            "args": ["/workspace/mcp/mcp_searxng.py"]
+          }
+        },
+        {
+          "tool_name": "time-stdio",
+          "tool_id": "mcp_time_adapter",
+          "supports_embedding": false,
+          "description": "It should be used whenever there is a time component to the task allowing to now the current date and time. Must be used for all cases that are a time component in the task, for instance reference to 'current', days, hours, past, future dates, or all other kind of temporal references.",
+          "serverparams": {
+            "command": "uvx",
+            "args": ["mcp-server-time"]
+          }
+        },
+        {
+          "tool_name": "excel-stdio",
+          "tool_id": "mcp_excel_adapter",
+          "supports_embedding": false,
+          "description": "This MCP server is designed to handle Excel files, allowing for reading and writing operations directly from standard input/output. It supports various Excel file formats and can be used to manipulate spreadsheet data programmatically.",
+          "serverparams": {
+            "command": "uvx",
+            "args": ["excel-mcp-server", "stdio"]
+          }
+        },
+        {
+          "tool_name": "mcp-pandoc",
+          "tool_id": "mcp_pandoc_adapter",
+          "supports_embedding": false,
+          "description": "Converts a document from one format to another using Pandoc by taking a source `input_path` and a destination `output_path`, returning a string message indicating the result. The desired output format is automatically inferred from the output file's extension. Supported input formats include biblatex, bibtex, commonmark, creole, csljson, csv, docbook, docx, dokuwiki, endnotexml, epub, fb2, gfm, haddock, html, ipynb, jats, jira, json, latex, markdown, markdown_mmd, markdown_phpextra, markdown_strict, mediawiki, man, muse, native, odt, opml, org, ris, rst, rtf, t2t, textile, tikiwiki, tsv, twiki, and vimwiki. Supported output formats include asciidoc, beamer, commonmark, context, csljson, docbook, docx, dokuwiki, dzslides, epub, fb2, gfm, haddock, html, icml, ipynb, jats, jira, json, latex, man, markdown, markdown_mmd, markdown_phpextra, markdown_strict, mediawiki, ms, muse, native, odt, opml, opendocument, org, pdf, plain, pptx, revealjs, rst, rtf, s5, slidy, slideous, tei, texinfo, textile, xwiki, and zimwiki.",
+          "serverparams": {
+            "command": "python",
+            "args": ["/workspace/mcp/mcp_pandadoc_converter.py"]
+          }
+        }
+      ]
+    },
     "tool_repository": {
       "type": "array",
       "description": "Each object represents a task from task_roster to identify and select tools required for the task.",
@@ -153,6 +256,6 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
       }
     }
   },
-  "required": ["tool_repository"]
+  "required": ["canonical_tool_library", "tool_repository"]
 }
 ```
