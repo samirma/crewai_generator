@@ -1,28 +1,43 @@
-**Custom Tools Generation Logic:**
 
 Use the JSON object provided as the single source of truth. Your task is to generate the content for any custom tool files.
 
-*   **Objective:** Iterate through task_roster[*].design_metadata.tools[*].custom_tool.
-*   **File Naming:** File Naming: Derived from custom_tool.tool_id in lowcase
+*   **Objective:** Iterate through the `custom_tools` list in the provided JSON.
+*   **File Naming:** The file name should be the `design_metadata.tool_id` (ensure it is a valid filename, e.g., snake_case), located in `src/crewai_generated/tools/`.
 *   **File Content:**
-    *   Each file should contain the Python code for the custom tool, as defined in the `code` property of the custom tool definition.
-    *   The code should be a valid Python script, defining a class that inherits from `crewai.tools import BaseTool`.
+    *   **Imports:** Always import `from crewai.tools import BaseTool` and any necessary types from `typing`.
+    *   **Class Definition:**
+        *   Class name: Use `class_definition.class_name`.
+        *   Inheritance: Inherit from `BaseTool`.
+        *   Attributes:
+            *   `name`: Use `class_definition.name_attribute`.
+            *   `description`: Use `class_definition.description_attribute`.
+    *   **Method `_run`:**
+        *   Arguments: Generate from `class_definition.run_method_parameters`. Use `name` and `python_type` for the signature.
+        *   Return Type: Always `str`.
+        *   Body: Implement the logic described in `class_definition.run_method_logic`.
+    *   **Context:** Add a comment block inside the method or class documentation citing the `design_metadata.task_use_case` to clarify intent.
+
 *   **Output Format:**
-    *   The output should be a series of file blocks, each marked with `[START_FILE:FILE_PATH]` and `[END_FILE:FILE_PATH]`. The `FILE_PATH` should be `src/crewai_generated/tools/<file_name>.py`.
+    *   The output should be a series of file blocks, each marked with `[START_FILE:FILE_PATH]` and `[END_FILE:FILE_PATH]`.
     *   If there are no custom tools, the output should be empty.
-    *   Each file block should implement a fully working python code that follow run_method_logic and description of the current tool.
 
 **Expected Output:**
 
-
-[START_FILE:src/crewai_generated/tools/tool_id.py]
-# BaseTool should be alwys imported from crewai.tools
+[START_FILE:src/crewai_generated/tools/perform_sentiment_analysis.py]
+from typing import Any
 from crewai.tools import BaseTool
 
-class MyCustomTool(BaseTool):
-    name: str = "My Custom Tool"
-    description: str = "A custom tool that does something."
+class CustomSentimentAnalyzerTool(BaseTool):
+    name: str = "perform_sentiment_analysis"
+    description: str = "Analyzes the sentiment of a given text and returns a label (Positive, Negative, Neutral) with confidence score."
 
-    def _run(self, argument: str) -> str:
-        Insert the python code here
-[END_FILE:src/crewai_generated/tools/tool_id.py]
+    def _run(self, text: str) -> str:
+        """
+        Analyzes the sentiment of the input text.
+        """
+        # Task Use Case: Input: article summary text. Expected output: sentiment label and confidence score. This is critical for assessing market impact.
+        
+        # Implementation logic based on run_method_logic...
+        # ...
+        return "Sentiment: Positive, Confidence: 0.9"
+[END_FILE:src/crewai_generated/tools/perform_sentiment_analysis.py]

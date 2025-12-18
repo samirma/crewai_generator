@@ -2,6 +2,15 @@
 * **Instruction:** Only use the previouly generated document as a source of truth.
 * **Objective:** Your task is to generate the complete definition for any custom tools that were identified in the tool selection plan.
 * **Output Structure:** The output should be a JSON object with a single key: `custom_tools`.
+
+**Input Data Reference:**
+The input is a JSON object containing a `tool_repository` list. You must iterate through this list to find custom tools.
+Structure: `tool_repository` -> (list of tasks) -> `tools` -> (list of tools).
+For each tool in the `tools` list, check if it contains a `custom_tool` object with `"is_custom_tool": true`.
+If found, use the following mapping to generate the output:
+- `design_metadata.tool_id`: comes from input `design_metadata.tool_id`
+- `design_metadata.task_use_case`: comes from input `design_metadata.task_use_case`
+- `class_definition`: Derive the class name, description, and logic based on `design_metadata.required_functionality` and `design_metadata.task_use_case`.
 * **Final Output Format:** Your entire response must be a single, comprehensive JSON object. Do not include any other text before or after the JSON.
 
 ---
@@ -29,9 +38,13 @@
               "description": {
                 "type": "string",
                 "description": "A detailed description of the tool's function to better orient its development in pyhton, including the output."
+              },
+              "task_use_case": {
+                "type": "string",
+                "description": "The specific use case for this tool as defined in the input."
               }
             },
-            "required": ["tool_id", "description"]
+            "required": ["tool_id", "description", "task_use_case"]
           },
           "class_definition": {
             "type": "object",

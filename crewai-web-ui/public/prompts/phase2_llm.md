@@ -1,9 +1,56 @@
 * **Instruction:** Only use the previouly generated document as a source of truth.
 * **Final Output Format:** Your entire response must be a single, comprehensive JSON object. Do not include any other text before or after the JSON.
 
----
 
-**JSON Schema:**
+**Pre-defined List to Use for `llm_registry`:**
+```json
+{
+  "llm_list": [
+    {
+      "design_metadata": {
+        "llm_id": "gemini/gemini-2.5-flash",
+        "reasoner": true,
+        "multimodal_support": true,
+        "description": "A high-performance, cost-effective model from Google, excellent for complex reasoning, long-context understanding, and multimodal tasks. Ideal for manager agents or agents requiring deep analysis."
+      },
+      "constructor_args": {
+        "model": "gemini/gemini-2.5-flash",
+        "timeout": 600,
+        "api_key": "GEMINI_API_KEY"
+      }
+    },
+    {
+      "design_metadata": {
+        "llm_id": "qwen-3-235b-a22b-instruct",
+        "reasoner": false,
+        "multimodal_support": false,
+        "description": "A powerful non-thinking model with 235 billion parameters, excelling in instruction following, multilingual tasks, and efficient text generation at speeds exceeding 1,400 tokens per second. Ideal for worker agents handling high-volume, general-purpose tasks."
+      },
+      "constructor_args": {
+        "model": "cerebras/qwen-3-235b-a22b-instruct-2507",
+        "timeout": 600,
+        "api_key": "CEREBRAS_API_KEY",
+        "base_url": "https://api.cerebras.ai/v1"
+      }
+    },
+    {
+      "design_metadata": {
+        "llm_id": "deepseek_chat_worker",
+        "reasoner": false,
+        "multimodal_support": false,
+        "description": "A capable and efficient model for general-purpose tasks like writing, summarization, and data extraction. A good choice for worker agents that don't require advanced reasoning."
+      },
+      "constructor_args": {
+        "model": "deepseek/deepseek-chat",
+        "timeout": 600,
+        "api_key": "DEEPSEEK_API_KEY"
+      }
+    }
+  ]
+}
+```
+
+JSON Schema:
 
 ```json
 {

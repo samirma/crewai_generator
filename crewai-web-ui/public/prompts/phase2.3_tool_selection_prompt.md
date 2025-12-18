@@ -1,5 +1,5 @@
 
-* **Instruction:** Only use the previouly generated document as a source of truth.
+* **Instruction:** Only use the previouly json as a source of truth.
 * **Objective:** Your task is to select the appropriate tools for each task from the 'Canonical Tool Library'. If no suitable tool is available, you must identify that a custom tool is required.
 * **Output Structure:** The output should be a JSON object to serve as reference to build a crewai plan to be implmented.
 * **Final Output Format:** Your entire response must be a single, comprehensive JSON object. Do not include any other text before or after the JSON.
@@ -9,33 +9,11 @@
 To ensure a realistic and grounded design, all tool selections must be made **exclusively** from the following canonical list of available tools. The `tool_selection_justification` field within the `tool_repository` must reference this list for its evaluation.
 
 
-
-
----
-
-**'Tool-Selection-Plan' - JSON Schema:**
-
 ```json
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "properties": {
-    "canonical_tool_library": {
-      "type": "array",
+"canonical_tool_library": {
       "description": "A central list defining the complete set of approved tool configurations for this crew. This list is **pre-defined** and must be populated exactly as specified.",
-      "const": [
-        {
-          "tool_name": "WebsiteSearchTool",
-          "tool_id": "website_searcher",
-          "supports_embedding": true,
-          "description": "A tool for searching websites."
-        },
-        {
-          "tool_name": "BrowserbaseTool",
-          "tool_id": "browserbase_tool",
-          "supports_embedding": false,
-          "description": "A tool for interacting with a headless browser."
-        },
+      "tools_list": [
         {
           "tool_name": "CodeDocsSearchTool",
           "tool_id": "code_docs_searcher",
@@ -153,7 +131,17 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
           }
         }
       ]
-    },
+    }
+}
+```
+
+JSON Schema:
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
     "tool_repository": {
       "type": "array",
       "description": "Each object represents a task from task_roster to identify and select tools required for the task.",
@@ -170,7 +158,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
           },
           "tools": {
             "type": "array",
-            "description": "Defines instances of tools selected exclusively from the provided 'Canonical Tool Library'.",
+            "description": "Defines instances of tools selected exclusively from the provided 'canonical_tool_library'.",
             "items": {
               "type": "object",
               "properties": {
@@ -185,6 +173,10 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
                       "type": "string",
                       "description": "A clear, one-sentence description of the specific action the tool must perform."
                     },
+                    "task_use_case": {
+                      "type": "string",
+                      "description": "Including a use case of how this tool can be used to accomplish the task including example of the input and expected of this tool."
+                    },
                     "crewai_tool_evaluation": {
                       "type": "array",
                       "items": {
@@ -192,7 +184,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
                         "properties": {
                           "tool_selection_justification": {
                             "type": "string",
-                            "description": "Justify the choice of tool from the Canonical Tool Library."
+                            "description": "Justify the choice of tool from the 'canonical_tool_library' list."
                           },
                           "is_valid_availiable_tool": {
                             "type": "boolean",
@@ -205,10 +197,31 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
                         },
                         "required": ["tool_selection_justification", "is_valid_availiable_tool", "tool_name"]
                       }
-                    },
+                    }
+                  },
+                  "required": ["tool_id", "required_functionality", "task_use_case", "crewai_tool_evaluation", "is_custom_embedding_supported"]
+                },
+                "custom_tool": {
+                  "type": "object",
+                  "description": "Contains only the parameters for the tool's class constructor only if there is no tool available to perform the requirements and a custom crewai tool should be developed",
+                  "properties": {
                     "is_custom_tool": {
                       "type": "boolean",
                       "description": "`True` if no available tool is sufficient."
+                    },
+                    "class_name": {
+                      "type": "string",
+                      "description": "The exact Python class name to the custom tool that will developed"
+                    },
+                  }
+                }
+                "canonical_tool": {
+                  "type": "object",
+                  "description": "Contains only the parameters for the tool's class constructor only if `is_custom_tool` is `False`. CRITICAL RULE for MCP Servers: If using an MCP Server, the `class_name` MUST be `MCPServerAdapter`. The `initialization_params` object MUST contain a single key: `serverparams`. This `serverparams` object must contain two keys: `command` (String) and `args` (Array of Strings), which define how to run the MCP server process. CRITICAL RULE for Embedding-Supported Tools: If `design_metadata.is_custom_embedding_supported` is `true` and `crew_memory.activation` is `true`, the `initialization_params` object should be left empty (`{}`). The script generation phase will automatically use the global `rag_config`. For all other tools, specify parameters as needed.",
+                  "properties": {
+                    "class_name": {
+                      "type": "string",
+                      "description": "The exact Python class name to instantiate."
                     },
                     "is_custom_embedding_supported": {
                       "type": "boolean",
@@ -229,17 +242,6 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
                       },
                       "required": ["llm_id", "rationale"]
                     }
-                  },
-                  "required": ["tool_id", "required_functionality", "crewai_tool_evaluation", "is_custom_tool", "is_custom_embedding_supported"]
-                },
-                "canonical_tool": {
-                  "type": "object",
-                  "description": "Contains only the parameters for the tool's class constructor only if `is_custom_tool` is `False`. CRITICAL RULE for MCP Servers: If using an MCP Server, the `class_name` MUST be `MCPServerAdapter`. The `initialization_params` object MUST contain a single key: `serverparams`. This `serverparams` object must contain two keys: `command` (String) and `args` (Array of Strings), which define how to run the MCP server process. CRITICAL RULE for Embedding-Supported Tools: If `design_metadata.is_custom_embedding_supported` is `true` and `crew_memory.activation` is `true`, the `initialization_params` object should be left empty (`{}`). The script generation phase will automatically use the global `rag_config`. For all other tools, specify parameters as needed.",
-                  "properties": {
-                    "class_name": {
-                      "type": "string",
-                      "description": "The exact Python class name to instantiate."
-                    },
                     "initialization_params": {
                       "type": "object",
                       "description": "Constructor parameters for the tool."
@@ -248,7 +250,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
                   "required": ["class_name"]
                 }
               },
-              "required": ["design_metadata", "canonical_tool"]
+              "required": ["design_metadata"]
             }
           }
         },

@@ -1,121 +1,160 @@
 
-### 3. `crew.py` Generation Logic (Orchestration)
+Use the JSON objects provided as the single source of truth. Your task is to generate the content of the main Python file `crew.py` that defines all programmatic components and assembles the `CrewBase` class. This file must be valid, executable Python code following the structure of the CrewAI library recommendations.
 
-Use the JSON objects provided as the single source of truth. Your task is to generate the content the main Python file that defines all programmatic components and assembles the CrewBase class corresposndent to `crew.py` of the recommended project structure of CrewAi lib  https://docs.crewai.com/en/quickstart.
+No explanation should be provided, only the Python code.
 
-No explication shoudl be provided, just output the code.
-
-
-#### **Environment Setup (Order is CRITICAL):**
+#### **1. Environment Setup (Order is CRITICAL)**
 
 **Core Imports:**
-
-  * After the final code is done you should reevaluate the imports and add the ones tha might be missing with the goal to have a working code.
+Start with these imports. Add others only if strictly necessary.
 
 ```python
 import os
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv()) # MUST BE CALLED EARLY
 from crewai import Agent, Task, Crew, Process
-from crewai import LLM # For LLM section
+from crewai import LLM
 from pydantic import BaseModel, Field, RootModel
 from typing import List, Optional
 
 from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
 
-from crewai_tools import MCPServerAdapter
-
-from mcp import StdioServerParameters 
+from mcp import StdioServerParameters
 ```
 
-# Example for import for tools from crewai_tools
-For each task_roster[*].design_metadata.tools[*].canonical_tool.class_name you should import the class propely  
-from crewai_tools import <all task_roster[*].design_metadata.tools[*].canonical_tool.class_name>
+**Tool Imports:**
+*   **Identify Tools:** Iterate through the `tool_repository` list. For each entry, process the `tools` list.
+*   **Canonical Tools:** If a tool has `canonical_tool` defined, add its `class_name` to the `crewai_tools` import list (deduplicate these imports).
+    *   **Example:** `from crewai_tools import MCPServerAdapter, FileWriterTool`
+*   **Custom Tools:** If a tool has `custom_tool` defined:
+    *   **Module Name:** Use `design_metadata.tool_id` (ensure it is a valid filename).
+    *   **Class Name:** Use `custom_tool.class_name`.
+    *   **Pattern:** `from .tools.<design_metadata.tool_id> import <class_name>`
+    *   **Example:** `from .tools.perform_sentiment_analysis import CustomSentimentAnalyzerTool`
 
-# Import custom tools from classes in the tools directory
-For each  `custom_tool` in `tools` in `task_roster` of json you should import its class using this pattern: from .tools.tool_id import "class_definition"."class_name"
+#### **2. API Key Access**
+*   Use `os.getenv("VARIABLE_NAME")` for all secrets. Do NOT hardcode API keys.
 
+#### **3. LLM Instantiation**
+Use the `crewai.LLM` class. Iterate through the `llm_registry` list.
+*   **Variable Name**: `<llm_id>_llm`. Sanitize the ID (replace `/`, `-` with `_`).
+*   **Constructor**: Use `constructor_args` from the JSON.
+*   **Seed**: Always set `seed=2`.
 
+**Example:**
+```python
+# LLM Instantiation
+gemini_2_5_flash_llm = LLM(
+    model="gemini/gemini-2.5-flash",
+    timeout=600,
+    api_key=os.getenv("GEMINI_API_KEY"),
+    seed=2
+)
+```
 
-#### **API Key Access:**
+#### **4. Tool Instantiation**
 
-  * Retrieve `OLLAMA_HOST` using `os.getenv("OLLAMA_HOST", "localhost:11434")`.
-  * Use `os.getenv("YOUR_API_KEY_NAME")` for all keys. **NO HARDCODED SECRETS.**
+**Global Instantiation (Canonical/MCP):**
+Iterate through the `tool_repository`. For each task entry, iterate through its `tools`. If a tool is `canonical_tool` (including MCP adapters), instantiate it here.
+*   **Variable Naming:** Create a variable name using `design_metadata.tool_id` (e.g., `get_current_utc_time_tool`).
+*   **MCP Adapters:**
+    *   If `class_name` is `MCPServerAdapter`:
+        1.  Extract `command` and `args` from `initialization_params.serverparams`.
+        2.  Create `StdioServerParameters`.
+        3.  Instantiate `MCPServerAdapter` with these parameters.
+*   **Other Canonical Tools:**
+    *   Instantiate using `initialization_params` as constructor arguments.
 
-**LLM Instantiation:**
+**Example:**
+```python
+# Tool Instantiation
+# Tool ID: get_current_utc_time
+get_current_utc_time_params = StdioServerParameters(
+    command="uvx",
+    args=["mcp-server-time"]
+)
+get_current_utc_time_tool = MCPServerAdapter(get_current_utc_time_params)
 
-  * Generate Python code to initialize multiple LLM instances compatible with the `crewai.LLM` class.
-  * Iterate through the `llm_registry` list from the input JSON.
-  * For each LLM configuration object in the list:
-      * Create a Python variable. The variable name MUST be the `llm_id` from the `design_metadata` object, followed by `_llm` (e.g., `llm_id: "gemini_1_5_flash_reasoner"` becomes the variable `gemini_1_5_flash_reasoner_llm`).
-      * Instantiate the `LLM` class. The keyword arguments for the `LLM` constructor MUST be taken directly from the `constructor_args` object of the current LLM configuration.
-  * Set `seed=2` for all LLM instances.
+# Tool ID: html_file_writer
+html_file_writer_tool = FileWriterTool(file_path="/workspace/output/report.html")
+```
 
-#### **Reusable RAG and Embedder Configuration (if applicable):**
-
-
-  * **If `crew_memory.activation` is `true` or any tool in the `tool_repository` list in the JSON has `design_metadata.is_custom_embedding_supported` set to `true`:**
-    1.  **Create `embedder_config`:**
-          * Create a Python dictionary variable named `embedder_config`.
-          * Populate it using the `provider` and `config` from the `crew_memory.embedder_config` object in the JSON.
-          * **CRITICAL:** In the `config` sub-dictionary, replace the `base_url_env_var` key with a `base_url` key. Set its value to an f-string that constructs the URL using the OLLAMA\_HOST variable (e.g., `f"http://{OLLAMA_HOST}"`).
-    2.  **Create `rag_config`:**
-          * Create a Python dictionary variable named `rag_config`.
-          * This dictionary MUST have two keys: `llm` and `embedder`.
-          * The `llm` value must be a fixed dictionary for a local provider: `{ "provider": "ollama", "config": { "model": "llama3:instruct", "temperature": 0.0 } }`.
-          * The `embedder` value must be the `embedder_config` variable created in the previous step.
-
-
-#### **CrewBase Definition (Orchestration):**
-
-  * Generate a Python class named **`CrewaiGenerated`**  annoted with `@CrewBase`.
-
-  * Set the class variables: `agents_config = 'config/agents.yaml'` and `tasks_config = 'config/tasks.yaml'`.
-
-
-**Tool Instantiation exclusive for canonical_tool:**
-
-  *  **Objective:** Iterate through task_roster[*].design_metadata.tools[*].canonical_tool and generate Python code to instantiate each tool:
-      * The Python variable name for the tool instance MUST be the `tool_id` from the `constructor_args` object.
-      * The class to instantiate is specified in `class_name` within `constructor_args`.
-      * **If `design_metadata.is_custom_embedding_supported` is `true`:**
-          * Instantiate the tool by passing the pre-defined `rag_config` variable to its `config` parameter (e.g., `tool_instance = PDFSearchTool(config=rag_config)`).
-      * **If `class_name` is `MCPServerAdapter`:**
-          * First, instantiate `StdioServerParameters`. The variable name should be `<tool_id>_params`. The `command` and `args` are taken from `constructor_args.initialization_params.serverparams`.
-          * Then, instantiate `MCPServerAdapter`, passing the `_params` variable to its constructor without any keyword arguments. The variable name for the adapter MUST be the `tool_id`.
-      * **For all other tools:**
-          * If `initialization_params` exists and is non-empty, pass its contents as keyword arguments to the class constructor.
-
-
-  * The class should have the following vai:
-
+#### **5. CrewBase Definition**
+Define the class annotated with `@CrewBase`.
 
 ```python
+@CrewBase
+class CrewaiGenerated:
+    """Generated crew"""
+    agents_config = 'config/agents.yaml'
+    tasks_config = 'config/tasks.yaml'
+
     agents: List[BaseAgent]
     tasks: List[Task]
 ```
 
-  * **`@agent` Methods:**
-      * For each agent in `agent_cadre`, create a method decorated with `@agent`.
-      * The method name MUST be the agent's `yaml_definition.yaml_id`.
-      * The method returns an `Agent` instance, loading its config from YAML: `config=self.agents_config['<yaml_id>']`.
-      * Find inside the agent_llm using `yaml_definition.yaml_id` to assign the porper llm to the agent.
+#### **6. @agent Methods**
+Iterate through `agent_cadre`.
+*   **Name**: `yaml_definition.yaml_id`.
+*   **Return**: `Agent` instance.
+*   **Config**: `self.agents_config['<yaml_id>']`.
+*   **LLM**: Assign the matching pre-instantiated LLM variable.
 
+**Example:**
+```python
+    @agent
+    def news_researcher(self) -> Agent:
+        return Agent(
+            config=self.agents_config['news_researcher'],
+            llm=gemini_2_5_flash_llm
+        )
+```
 
-  * **`@task` Methods:**
-      * For each task in `task_roster`, create a method decorated with `@task`.
-      * The method name MUST be the task's `yaml_definition.yaml_id`.
-      * The method returns a `Task` instance, loading its config from YAML: `config=self.tasks_config['<yaml_id>']`.
-      * Assign the tool list to the `tools` parameter. For standard tools, use the tool instance variable. For MCP tools, **you MUST unpack the adapter's `.tools` property** (e.g., `tools=[*search_adapter.tools]`).
-      * This Task should have only `config` and `tools` parameters in its constructor.
-      
-  * **`@crew` Method:**
-  * Create the `Crew` instance based on the properties in the input JSON.
-  * `agents`: self.agents, # Automatically created by the @agent decorator
-  * `tasks`: self.tasks, # Automatically created by the @task decorator
-  * `process`: Set based on `workflow_process.selected_process`.
-  * `manager_llm`: If `process` is hierarchical, assign the correct pre-instantiated LLM object.
-  * `memory`: Set based on `crew_memory.activation`.
-  * `embedder`: If `crew_memory.activation` is `True`, assign the pre-defined `embedder_config` variable to this parameter.
-  * Set `verbose=True`.
+#### **7. @task Methods**
+Iterate through `task_roster`.
+*   **Name**: `yaml_definition.yaml_id`.
+*   **Return**: `Task` instance.
+*   **Config**: `self.tasks_config['<yaml_id>']`.
+*   **Tools**:
+    1.  Find the entry in `tool_repository` where `task_identifier` matches `yaml_definition.yaml_id`.
+    2.  If found, iterate through that entry's `tools` list.
+    3.  **For Custom Tools:**
+        *   Instantiate the tool class locally inside the task method. `tool_var = CustomToolClass()`
+        *   Add `tool_var` to the `tools` list.
+    4.  **For Canonical/MCP Tools:**
+        *   Reference the global variable created in **Section 4**. Match using `design_metadata.tool_id` (e.g., `get_current_utc_time_tool`).
+        *   **MCP Special Case:** If it's an `MCPServerAdapter`, you **MUST** unpack its tools property: `*<tool_variable>.tools`.
+        *   **Standard Canonical:** Add the variable directly.
+
+**Example:**
+```python
+    @task
+    def fetch_latest_news(self) -> Task:
+        # Instantiate custom tool locally
+        news_api_client = CustomHTTPTool() 
+        
+        return Task(
+            config=self.tasks_config['fetch_latest_news'],
+            tools=[news_api_client, *get_current_utc_time_tool.tools]
+        )
+```
+
+#### **8. @crew Method**
+Assemble the crew using the defined agents and tasks.
+*   **Process**: Use `workflow_process.selected_process` (e.g., `Process.sequential`).
+*   **Memory**: Use `crew_memory.activation`.
+*   **Embedder**: If memory is active, configure the embedder based on `crew_memory`.
+
+**Example:**
+```python
+    @crew
+    def crew(self) -> Crew:
+        return Crew(
+            agents=self.agents,
+            tasks=self.tasks,
+            process=Process.sequential,
+            memory=False,
+            verbose=True
+        )
+```
