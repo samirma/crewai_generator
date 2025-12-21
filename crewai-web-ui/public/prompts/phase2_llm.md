@@ -8,6 +8,19 @@
   "llm_list": [
     {
       "design_metadata": {
+        "llm_id": "ollama/glm-4.6:cloud",
+        "reasoner": true,
+        "multimodal_support": true,
+        "description": "A robust model combining strong reasoning capabilities with multimodal support. Excellent for handling complex, multi-step tasks and visual analysis. Ideal for manager agents that require a balance of performance and versatility."
+      },
+      "constructor_args": {
+        "model": "ollama/glm-4.6:cloud",
+        "timeout": 600,
+        "api_key": "OLLAMA_API_KEY"
+      }
+    },
+    {
+      "design_metadata": {
         "llm_id": "gemini/gemini-2.5-flash",
         "reasoner": true,
         "multimodal_support": true,
@@ -61,6 +74,19 @@ JSON Schema:
       "type": "array",
       "description": "A central list defining the complete set of approved LLM configurations for this crew. This list is **pre-defined** and must be populated exactly as specified.",
       "const": [
+        {
+          "design_metadata": {
+            "llm_id": "ollama/glm-4.6:cloud",
+            "reasoner": true,
+            "multimodal_support": true,
+            "description": "A robust model combining strong reasoning capabilities with multimodal support. Excellent for handling complex, multi-step tasks and visual analysis. Ideal for manager agents that require a balance of performance and versatility."
+          },
+          "constructor_args": {
+            "model": "ollama/glm-4.6:cloud",
+            "timeout": 600,
+            "api_key": "OLLAMA_API_KEY"
+          }
+        },
         {
           "design_metadata": {
             "llm_id": "gemini/gemini-2.5-flash",

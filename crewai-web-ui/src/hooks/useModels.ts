@@ -3,7 +3,7 @@ import { getCookie } from '@/utils/cookieUtils';
 
 export interface Model {
   id: string;
-  name:string;
+  name: string;
 }
 
 export const useModels = () => {
@@ -27,12 +27,9 @@ export const useModels = () => {
         if (models.length > 0) {
           const selectableModels = models.filter(model => model.id !== 'ollama/not-configured' && model.id !== 'ollama/error');
           if (selectableModels.length > 0) {
-            const newGeminiModel = selectableModels.find(model => model.id === "gemini-2.5-flash-preview-05-20");
             const llmModelCookie = getCookie('llmModelSelection');
             if (llmModelCookie && selectableModels.some(model => model.id === llmModelCookie)) {
               setLlmModel(llmModelCookie);
-            } else if (newGeminiModel) {
-              setLlmModel(newGeminiModel.id);
             } else {
               setLlmModel(selectableModels[0].id);
             }

@@ -1,0 +1,29 @@
+{
+   "mcpServers":{
+      "mcp-searxng":{
+         "command":"python",
+         "args":[
+            "./mcp_searxng.py"
+         ]
+      },
+      "excel-stdio":{
+         "command":"uvx",
+         "args":[
+            "excel-mcp-server",
+            "stdio"
+         ]
+      },
+      "mcp-pandoc":{
+         "command":"python",
+         "args":[
+            "./mcp_pandadoc_converter.py"
+         ]
+      },
+      "mcp-crawl":{
+         "command":"python",
+         "args":[
+            "./mcp_crawl4ai.py"
+         ]
+      }
+   }
+}

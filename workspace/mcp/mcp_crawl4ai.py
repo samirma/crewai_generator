@@ -88,7 +88,7 @@ async def _perform_crawl(
                     else:
                         content = markdown_data or result.get("html", "No content found.")
                     
-                    entry = f"# Source: {url}\n\n{content}\n"
+                    entry = f"{content}\n"
                     results_text.append(entry)
                 
                 if not results_text:
@@ -114,7 +114,7 @@ async def _perform_crawl(
     except Exception as e:
         return f"Error: An unexpected error occurred: {str(e)}"
 
-@mcp.tool()
+#@mcp.tool()
 async def crawl_webpage(
     urls: list[str]
 ) -> str:

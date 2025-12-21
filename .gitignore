@@ -201,6 +201,4 @@ llm_output_prompt.txt
 
 node_modules/
 prompts.json
-workspace/*
-!workspace/run_crew.sh
 .DS_Store

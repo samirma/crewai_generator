@@ -131,12 +131,9 @@ Iterate through `task_roster`.
 ```python
     @task
     def fetch_latest_news(self) -> Task:
-        # Instantiate custom tool locally
-        news_api_client = CustomHTTPTool() 
-        
         return Task(
             config=self.tasks_config['fetch_latest_news'],
-            tools=[news_api_client, *get_current_utc_time_tool.tools]
+            tools=[tool_var, *get_current_utc_time_tool.tools] # Add tools variables to the task
         )
 ```
 
