@@ -138,13 +138,6 @@ const detailedAgentAndTaskDefinitionPhase: PhaseState = createPhaseState({
   generateInputPrompt: defaultGenerateInputPrompt
 });
 
-const workflow: PhaseState = createPhaseState({
-  title: "Workflow",
-  promptFileName: "phase2_workflow_prompt.md",
-  dependencies: [detailedAgentAndTaskDefinitionPhase],
-  generateInputPrompt: defaultGenerateInputPrompt
-});
-
 const llmSelectionPhase: PhaseState = createPhaseState({
   title: "LLM Selection",
   promptFileName: "phase2_llm.md",
@@ -159,7 +152,21 @@ const toolSelectionPhase: PhaseState = createPhaseState({
   generateInputPrompt: defaultGenerateInputPrompt
 });
 
+const customToolGenerationPhase: PhaseState = createPhaseState({
+  title: "Custom Tool plan Generation",
+  promptFileName: "phase2.4_plan_custom_tool_prompt.md",
+  dependencies: [toolSelectionPhase],
+  generateInputPrompt: defaultGenerateInputPrompt
+});
 
+const toolsGenerationPhase: PhaseState = createPhaseState({
+  title: "Custom Tools Generation",
+  promptFileName: "phase3_custom_tools_prompt.md",
+  filePath: "src/crewai_generated/tools",
+  outputType: 'directory',
+  dependencies: [customToolGenerationPhase],
+  generateInputPrompt: jsonGenerateInputPrompt
+});
 
 const agentsYamlGenerationPhase: PhaseState = createPhaseState({
   title: "Agents.yaml Generation",
@@ -179,10 +186,10 @@ const tasksYamlGenerationPhase: PhaseState = createPhaseState({
   generateInputPrompt: defaultGenerateInputPrompt
 });
 
-const customToolGenerationPhase: PhaseState = createPhaseState({
-  title: "Custom Tool plan Generation",
-  promptFileName: "phase2.4_plan_custom_tool_prompt.md",
-  dependencies: [toolSelectionPhase],
+const workflow: PhaseState = createPhaseState({
+  title: "Workflow",
+  promptFileName: "phase2_workflow_prompt.md",
+  dependencies: [detailedAgentAndTaskDefinitionPhase],
   generateInputPrompt: defaultGenerateInputPrompt
 });
 
@@ -202,15 +209,6 @@ const mainPyGenerationPhase: PhaseState = createPhaseState({
   outputType: 'file',
   dependencies: [detailedAgentAndTaskDefinitionPhase],
   generateInputPrompt: defaultGenerateInputPrompt
-});
-
-const toolsGenerationPhase: PhaseState = createPhaseState({
-  title: "Custom Tools Generation",
-  promptFileName: "phase3_custom_tools_prompt.md",
-  filePath: "src/crewai_generated/tools",
-  outputType: 'directory',
-  dependencies: [customToolGenerationPhase],
-  generateInputPrompt: jsonGenerateInputPrompt
 });
 
 const pyProjectGenerationPhase: PhaseState = createPhaseState({

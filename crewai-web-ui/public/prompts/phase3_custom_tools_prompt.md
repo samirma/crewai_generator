@@ -1,6 +1,9 @@
 
 Use the JSON object provided as the single source of truth. Your task is to generate the content for any custom tool files.
 
+*   **Handling Empty Input:**
+    *   If the `custom_tools` list in the provided JSON is empty (e.g., ``), you **MUST NOT** generate any output. Return an empty string or simply no `[START_FILE]` blocks.
+
 *   **Objective:** Iterate through the `custom_tools` list in the provided JSON.
 *   **File Naming:** The file name should be the `design_metadata.tool_id` (ensure it is a valid filename, e.g., snake_case), located in `src/crewai_generated/tools/`.
 *   **File Content:**
@@ -19,25 +22,17 @@ Use the JSON object provided as the single source of truth. Your task is to gene
 
 *   **Output Format:**
     *   The output should be a series of file blocks, each marked with `[START_FILE:FILE_PATH]` and `[END_FILE:FILE_PATH]`.
-    *   If there are no custom tools, the output should be empty.
 
-**Expected Output:**
+**EXAMPLE of expected output format (Do NOT copy valid usage, structure ONLY):**
 
-[START_FILE:src/crewai_generated/tools/perform_sentiment_analysis.py]
-from typing import Any
+[START_FILE:src/crewai_generated/tools/design_metadata.tool_id.py]
 from crewai.tools import BaseTool
 
-class CustomSentimentAnalyzerTool(BaseTool):
-    name: str = "perform_sentiment_analysis"
-    description: str = "Analyzes the sentiment of a given text and returns a label (Positive, Negative, Neutral) with confidence score."
+class ClassName(BaseTool):
+    name: str = "Name Attribute"
+    description: str = "Description Attribute"
 
-    def _run(self, text: str) -> str:
-        """
-        Analyzes the sentiment of the input text.
-        """
-        # Task Use Case: Input: article summary text. Expected output: sentiment label and confidence score. This is critical for assessing market impact.
-        
-        # Implementation logic based on run_method_logic...
-        # ...
-        return "Sentiment: Positive, Confidence: 0.9"
-[END_FILE:src/crewai_generated/tools/perform_sentiment_analysis.py]
+    def _run(self, argument: str) -> str:
+        # Implementation logic
+        return "Result"
+[END_FILE:src/crewai_generated/tools/design_metadata.tool_id.py]

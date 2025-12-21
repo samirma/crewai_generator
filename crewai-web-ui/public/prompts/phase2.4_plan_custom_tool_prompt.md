@@ -7,6 +7,7 @@
 The input is a JSON object containing a `tool_repository` list. You must iterate through this list to find custom tools.
 Structure: `tool_repository` -> (list of tasks) -> `tools` -> (list of tools).
 For each tool in the `tools` list, check if it contains a `custom_tool` object with `"is_custom_tool": true`.
+- In case a dict python would be used it always include a description of the expected keys and defined types.
 If found, use the following mapping to generate the output:
 - `design_metadata.tool_id`: comes from input `design_metadata.tool_id`
 - `design_metadata.task_use_case`: comes from input `design_metadata.task_use_case`
@@ -37,7 +38,7 @@ If found, use the following mapping to generate the output:
               },
               "description": {
                 "type": "string",
-                "description": "A detailed description of the tool's function to better orient its development in pyhton, including the output."
+                "description": "A detailed description of the tool's function to better orient its development in pyhton, including the output. including all parameters(described in the 'run_method_parameters' section), and the expected output."
               },
               "task_use_case": {
                 "type": "string",
@@ -60,7 +61,7 @@ If found, use the following mapping to generate the output:
               },
               "description_attribute": {
                 "type": "string",
-                "description": "The value for the tool's `description` attribute."
+                "description": "The value for the tool's `description` attribute. It should include all parameters(described in the 'run_method_parameters' section, including all parameters' types, and keysand values, in case of a dict python would be used, the expected output)."
               },
               "run_method_parameters": {
                 "type": "array",
