@@ -55,5 +55,24 @@ export async function getAllModels(): Promise<ModelConfig[]> {
     console.warn('Failed to fetch Ollama models:', error);
   }
 
-  return [...staticModels, ...ollamaModels];
+  let localModels: ModelConfig[] = [];
+  try {
+    const response = await fetch('http://localhost:8080/v1/models');
+    if (response.ok) {
+      const data = await response.json();
+      // data.data is the standard OpenAI format list
+      localModels = (data.data || data).map((model: any) => ({
+        id: model.id,
+        name: `(Local) ${model.id}`,
+        model: model.id,
+        timeout: 600,
+        apiKey: 'LOCAL_API_KEY', // Placeholder
+        baseURL: 'http://localhost:8080/v1',
+      }));
+    }
+  } catch (error) {
+    console.warn('Failed to fetch Local models:', error);
+  }
+
+  return [...staticModels, ...ollamaModels, ...localModels];
 }

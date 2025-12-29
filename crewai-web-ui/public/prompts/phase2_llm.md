@@ -72,62 +72,7 @@ JSON Schema:
   "properties": {
     "llm_registry": {
       "type": "array",
-      "description": "A central list defining the complete set of approved LLM configurations for this crew. This list is **pre-defined** and must be populated exactly as specified.",
-      "const": [
-        {
-          "design_metadata": {
-            "llm_id": "ollama/glm-4.6:cloud",
-            "reasoner": true,
-            "multimodal_support": true,
-            "description": "A robust model combining strong reasoning capabilities with multimodal support. Excellent for handling complex, multi-step tasks and visual analysis. Ideal for manager agents that require a balance of performance and versatility."
-          },
-          "constructor_args": {
-            "model": "ollama/glm-4.6:cloud",
-            "timeout": 600,
-            "api_key": "OLLAMA_API_KEY"
-          }
-        },
-        {
-          "design_metadata": {
-            "llm_id": "gemini/gemini-2.5-flash",
-            "reasoner": true,
-            "multimodal_support": true,
-            "description": "A high-performance, cost-effective model from Google, excellent for complex reasoning, long-context understanding, and multimodal tasks. Ideal for manager agents or agents requiring deep analysis."
-          },
-          "constructor_args": {
-            "model": "gemini/gemini-2.5-flash",
-            "timeout": 600,
-            "api_key": "GEMINI_API_KEY"
-          }
-        },
-        {
-          "design_metadata": {
-            "llm_id": "qwen-3-235b-a22b-instruct",
-            "reasoner": false,
-            "multimodal_support": false,
-            "description": "A powerful non-thinking model with 235 billion parameters, excelling in instruction following, multilingual tasks, and efficient text generation at speeds exceeding 1,400 tokens per second. Ideal for worker agents handling high-volume, general-purpose tasks."
-          },
-          "constructor_args": {
-            "model": "cerebras/qwen-3-235b-a22b-instruct-2507",
-            "timeout": 600,
-            "api_key": "CEREBRAS_API_KEY",
-            "base_url": "https://api.cerebras.ai/v1"
-          }
-        },
-        {
-          "design_metadata": {
-            "llm_id": "deepseek_chat_worker",
-            "reasoner": false,
-            "multimodal_support": false,
-            "description": "A capable and efficient model for general-purpose tasks like writing, summarization, and data extraction. A good choice for worker agents that don't require advanced reasoning."
-          },
-          "constructor_args": {
-            "model": "deepseek/deepseek-chat",
-            "timeout": 600,
-            "api_key": "DEEPSEEK_API_KEY"
-          }
-        }
-      ],
+      "description": "A central list defining the complete set of approved LLM configurations for this crew. This list is **pre-defined** in the llm_list variable and must be populated exactly as specified.",
       "items": {
         "type": "object",
         "properties": {

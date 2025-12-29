@@ -31,8 +31,8 @@ export async function interactWithLLM(
 
   let apiKey = process.env[modelConfig.apiKey];
   if (!apiKey) {
-    if (modelConfig.apiKey === 'OLLAMA_API_KEY') {
-      apiKey = 'ollama'; // Dummy key for local Ollama
+    if (modelConfig.apiKey === 'OLLAMA_API_KEY' || modelConfig.apiKey === 'LOCAL_API_KEY') {
+      apiKey = 'dummy-key'; // Dummy key for local Ollama or Local OpenAI-compatible server
     } else {
       throw new Error(`${modelConfig.apiKey} is not set for model: ${llmModel}`);
     }
