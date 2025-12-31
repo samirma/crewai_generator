@@ -139,7 +139,8 @@ Iterate through `task_roster`.
 
 #### **8. @crew Method**
 Assemble the crew using the defined agents and tasks.
-*   **Process**: Use `workflow_process.selected_process` (e.g., `Process.sequential`).
+*   **Process**: Use `workflow_process.selected_process` (e.g., `Process.sequential` or `Process.hierarchical`).
+*   **Manager LLM**: If `workflow_process.selected_process` is hierarchical, assign the correct pre-instantiated LLM object.
 *   **Memory**: Use `crew_memory.activation`.
 *   **Embedder**: If memory is active, configure the embedder based on `crew_memory`.
 
@@ -151,6 +152,7 @@ Assemble the crew using the defined agents and tasks.
             agents=self.agents,
             tasks=self.tasks,
             process=Process.sequential,
+            manager_llm=<select_a_llm_from_llm_registry>, # If hierarchical, assign the correct pre-instantiated LLM object.
             memory=False,
             verbose=True
         )

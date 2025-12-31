@@ -14,22 +14,9 @@
         "description": "A robust model combining strong reasoning capabilities with multimodal support. Excellent for handling complex, multi-step tasks and visual analysis. Ideal for manager agents that require a balance of performance and versatility."
       },
       "constructor_args": {
-        "model": "ollama/glm-4.6:cloud",
+        "model": "ollama/glm-4.7:cloud",
         "timeout": 600,
         "api_key": "OLLAMA_API_KEY"
-      }
-    },
-    {
-      "design_metadata": {
-        "llm_id": "gemini/gemini-2.5-flash",
-        "reasoner": true,
-        "multimodal_support": true,
-        "description": "A high-performance, cost-effective model from Google, excellent for complex reasoning, long-context understanding, and multimodal tasks. Ideal for manager agents or agents requiring deep analysis."
-      },
-      "constructor_args": {
-        "model": "gemini/gemini-2.5-flash",
-        "timeout": 600,
-        "api_key": "GEMINI_API_KEY"
       }
     },
     {

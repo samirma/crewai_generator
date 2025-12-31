@@ -258,6 +258,6 @@ JSON Schema:
       }
     }
   },
-  "required": ["canonical_tool_library", "tool_repository"]
+  "required": ["tool_repository"]
 }
 ```

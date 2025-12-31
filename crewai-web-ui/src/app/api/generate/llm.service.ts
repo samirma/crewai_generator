@@ -62,6 +62,7 @@ export async function interactWithLLM(
   console.log(`Using model: ${modelConfig.model} for request via OpenAI SDK.`);
   const { messages, ...restParams } = params;
   console.log("Calling API with params:", {
+    url: modelConfig.baseURL,
     ...restParams,
     promptSummary: `${fullPrompt.substring(0, 100)}...`,
   });
