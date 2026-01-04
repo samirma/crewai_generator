@@ -111,7 +111,7 @@ const PhaseComponent = ({
             <div className="p-1 border rounded-md shadow-sm text-center bg-gray-50 dark:bg-gray-700">
               <Timer
                 isRunning={status === 'running'}
-                duration={duration}
+                duration={status === 'running' ? null : duration}
                 className="text-sm text-gray-600 dark:text-gray-300 font-semibold"
               />
             </div>
