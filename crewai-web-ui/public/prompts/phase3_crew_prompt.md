@@ -49,6 +49,7 @@ gemini_2_5_flash_llm = LLM(
     model="gemini/gemini-2.5-flash",
     timeout=600,
     api_key=os.getenv("GEMINI_API_KEY"),
+    max_tokens=8192,
     seed=2
 )
 ```

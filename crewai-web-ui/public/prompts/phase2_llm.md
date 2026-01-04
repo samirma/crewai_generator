@@ -43,7 +43,8 @@
       "constructor_args": {
         "model": "deepseek/deepseek-chat",
         "timeout": 600,
-        "api_key": "DEEPSEEK_API_KEY"
+        "api_key": "DEEPSEEK_API_KEY",
+        "max_tokens": 8000
       }
     }
   ]

@@ -32,6 +32,7 @@ export const staticModels: ModelConfig[] = [
     timeout: 600,
     apiKey: "DEEPSEEK_API_KEY",
     baseURL: "https://api.deepseek.com/v1",
+    maxOutputTokens: 8000,
   },
 ];
 
