@@ -129,27 +129,12 @@
                 "type": "string",
                 "description": "Unique yaml_id to be used to identify this task. Must be unique, lowercase, and use snake_case."
               },
-              "async_execution": {
-                 "type": "boolean",
-                 "description": "Whether this task should be executed asynchronously (parallel)."
-              },
               "context": {
                 "type": "array",
                 "description": "A list of `yaml_id`s from prerequisite tasks. The output of these tasks will be provided as context to this task. Ensure all IDs effectively exist in the `task_roster`.",
                 "items": {
                   "type": "string"
                 }
-              },
-              "conditional_task": {
-                  "type": "object",
-                  "description": "Configuration for conditional execution logic.",
-                  "properties": {
-                      "is_conditional": { "type": "boolean" },
-                      "condition_function_name": { "type": "string", "description": "Name of the function to evaluate (e.g. is_data_missing)" },
-                      "condition_description": { "type": "string", "description": "Logic description for the condition function." },
-                      "evaluated_task_output_description": { "type": "string", "description": "Description of the output from the task that will be evaluated effectively (e.g. 'A JSON object with a list of events'). This helps in writing the condition function to correctly interpret the 'output' argument." }
-                  },
-                  "required": ["is_conditional"]
               }
             },
             "required": ["description", "expected_output", "agent", "yaml_id"]

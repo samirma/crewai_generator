@@ -1,12 +1,12 @@
-**`main.py` Generation Logic:**
 
 Your task is to generate the content for the `main.py` file, which serves as the entry point for the CrewAI project and is compatible with the `crewai` CLI. Use the JSON object provided as the single source of truth.
 
 **Objective:**
 Generate a Python script based on the provided template. The script must dynamically create an `inputs` dictionary for the `run()`, `train()`, and `test()` functions.
-*   **User Inputs:** If `user_inputs` are defined in the JSON, generate code to accept these inputs. 
-    *   For `run()`, use `input()` to ask the user for values interactively, or placeholders.
-    *   Example: `inputs = {'topic': 'AI LLMs'}` or `inputs = {'topic': input('Enter topic: ')}`.
+*   **User Inputs:** If `user_inputs` are defined in the JSON, generate code to populate the `inputs` dictionary.
+    *   Iterate through the `user_inputs` list.
+    *   For each item, use `name` as the key and `value` as the default value.
+    *   Example: If `user_inputs` has `[{"name": "topic", "value": "AI"}]`, generate `inputs = {'topic': 'AI'}`.
 *   **Placeholders:** If no `user_inputs` are defined, leave `inputs = {}`.
 
 No explication shoudl be provided, just output the code.

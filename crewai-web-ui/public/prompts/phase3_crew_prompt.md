@@ -13,8 +13,6 @@ import os
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv()) # MUST BE CALLED EARLY
 from crewai import Agent, Task, Crew, Process
-from crewai.tasks.conditional_task import ConditionalTask
-from crewai.tasks.task_output import TaskOutput
 from crewai import LLM
 from pydantic import BaseModel, Field, RootModel
 from typing import List, Optional
@@ -116,23 +114,9 @@ Iterate through `agent_cadre`.
 
 #### **7. @task Methods**
 Iterate through `task_roster`.
-
-**Condition Functions:**
-If a task has `conditional_task` defined and `is_conditional` is `True`:
-1.  Define the condition function *inside* the class but *outside* the task method (or as a static method/helper).
-    *   **Name**: `conditional_task.condition_function_name`.
-    *   **Signature**: `def <function_name>(output: TaskOutput) -> bool:`
-    *   **Body**: Implement logic matching `condition_description`. Use `conditional_task.evaluated_task_output_description` to understand the structure of the `output` object (e.g. `output.pydantic`, `output.json`, or `output.raw`). If the structure implies a Pydantic model or JSON, treat `output` accordingly.
-
-**Method Generation:**
 *   **Name**: `yaml_definition.yaml_id`.
-*   **Return**: `Task` or `ConditionalTask` instance.
+*   **Return**: `Task` instance.
 *   **Config**: `self.tasks_config['<yaml_id>']`.
-*   **Async**: If `async_execution` is `True`, set `async_execution=True` in `Task` constructor.
-*   **Conditional**:
-    *   If `is_conditional` is `True`, return `ConditionalTask`.
-    *   Set `condition=<function_name>` (the function defined above).
-    *   Set `agent` explicitly if needed (ConditionalTask might require it).
 *   **Tools**:
     1.  Find the entry in `tool_repository` where `task_identifier` matches `yaml_definition.yaml_id`.
     2.  If found, iterate through that entry's `tools` list.
@@ -146,27 +130,13 @@ If a task has `conditional_task` defined and `is_conditional` is `True`:
 
 **Example:**
 ```python
-    def is_data_missing(output: TaskOutput) -> bool:
-        return len(output.pydantic.events) < 10
-
     @task
     def fetch_latest_news(self) -> Task:
         return Task(
             config=self.tasks_config['fetch_latest_news'],
-            tools=[tool_var, *get_current_utc_time_tool.tools], # Add tools variables to the task
-            async_execution=True # If async_execution is True
-        )
-
-    @task
-    def conditional_fetch_task(self) -> ConditionalTask:
-        return ConditionalTask(
-            config=self.tasks_config['conditional_fetch_task'],
-            condition=self.is_data_missing,
-            agent=self.news_researcher() # Reference agent instance
+            tools=[tool_var, *get_current_utc_time_tool.tools] # Add tools variables to the task
         )
 ```
-
-
 
 #### **8. @crew Method**
 Assemble the crew using the defined agents and tasks.
@@ -188,9 +158,3 @@ Assemble the crew using the defined agents and tasks.
             verbose=True
         )
 ```
-
-#### **9. Verification**
-*   **Imports:** Ensure `ConditionalTask` and `TaskOutput` are imported if conditional tasks are used.
-*   **Format:** Ensure the generated code is valid Python and compatible with the evaluated task format.
-*   **Condition Logic:** Verify `Condition` functions interpret `TaskOutput` correctly.
-*   **Strictness:** Do NOT add placeholders for inputs manually unless strictly necessary; prefer standard CrewAI interpolation.
