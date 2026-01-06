@@ -3,7 +3,11 @@
 Your task is to generate the content for the `main.py` file, which serves as the entry point for the CrewAI project and is compatible with the `crewai` CLI. Use the JSON object provided as the single source of truth.
 
 **Objective:**
-Generate a Python script based on the provided template. The script must dynamically create an `inputs` dictionary for the `run()`, `train()`, and `test()` functions based on the placeholders found in the task descriptions from the input JSON.
+Generate a Python script based on the provided template. The script must dynamically create an `inputs` dictionary for the `run()`, `train()`, and `test()` functions.
+*   **User Inputs:** If `user_inputs` are defined in the JSON, generate code to accept these inputs. 
+    *   For `run()`, use `input()` to ask the user for values interactively, or placeholders.
+    *   Example: `inputs = {'topic': 'AI LLMs'}` or `inputs = {'topic': input('Enter topic: ')}`.
+*   **Placeholders:** If no `user_inputs` are defined, leave `inputs = {}`.
 
 No explication shoudl be provided, just output the code.
 
@@ -31,7 +35,14 @@ def run():
     Run the crew.
     """
     # Dynamically generated inputs will be placed here
-    inputs = {}
+    # If `user_inputs` are present in the JSON, populate this dictionary.
+    # Example:
+    # inputs = {
+    #    'topic': 'AI LLMs'
+    # }
+    inputs = {
+        # ... generate input fields here based on user_inputs ...
+    }
     try:
         CrewaiGenerated().crew().kickoff(inputs=inputs)
     except Exception as e:
@@ -42,7 +53,9 @@ def train():
     Train the crew for a given number of iterations.
     """
     # Dynamically generated inputs will be placed here
-    inputs = {}
+    inputs = {
+        # ... generate input fields here based on user_inputs ...
+    }
     try:
         CrewaiGenerated().crew().train(n_iterations=int(sys.argv[1]), filename=sys.argv[2], inputs=inputs)
     except Exception as e:
@@ -62,7 +75,9 @@ def test():
     Test the crew execution and returns the results.
     """
     # Dynamically generated inputs will be placed here
-    inputs = {}
+    inputs = {
+        # ... generate input fields here based on user_inputs ...
+    }
     try:
         CrewaiGenerated().crew().test(n_iterations=int(sys.argv[1]), eval_llm=sys.argv[2], inputs=inputs)
     except Exception as e:

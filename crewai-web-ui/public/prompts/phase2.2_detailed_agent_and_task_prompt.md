@@ -11,6 +11,19 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
+    "user_inputs": {
+      "type": "array",
+      "description": "Based on the 'Project Blueprint', identify variables that will be input of the crewai project. These variables will be used in the main.py kickoff function inputs json (crew().kickoff(inputs=inputs)) and the agents and tasks description files.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "description": "Variable name" },
+          "description": { "type": "string", "description": "What this variable represents" },
+          "value": { "type": "string", "description": "Default value for this variable based on the 'Project Blueprint'" }
+        },
+        "required": ["name", "description", "value"]
+      }
+    },
     "agent_cadre": {
       "type": "array",
       "description": "Using CrewAI best practices, create a comprehensive list of CrewAI agents to fully execute the 'Project Blueprint', covering all its aspects, details, and specifications. Adhere to CrewAI best practices: 1. Roles should be specific and narrow. 2. Goals must be actionable. 3. Backstories should provide context and expertise.",
@@ -50,15 +63,15 @@
               },
               "role": {
                 "type": "string",
-                "description": "A well defined agent's role."
+                "description": "A well defined agent's role. Can include variables from `user_inputs` using `{variable_name}` syntax."
               },
               "goal": {
                 "type": "string",
-                "description": "A well defined and detailed agent's goal."
+                "description": "A well defined and detailed agent's goal. Can include variables from `user_inputs` using `{variable_name}` syntax."
               },
               "backstory": {
                 "type": "string",
-                "description": "A narrative that reinforces the agent's expertise and persona, giving it context and personality. This should align with its role and goal."
+                "description": "A narrative that reinforces the agent's expertise and persona. Can include variables from `user_inputs` using `{variable_name}` syntax."
               },
               "reasoning": {
                 "type": "boolean",
@@ -102,7 +115,7 @@
             "properties": {
               "description": {
                 "type": "string",
-                "description": "Detailed operational prompt for the agent, derived from 'Blueprint's Execution Outline' and 'detailed_description' and `llm_limitations`."
+                "description": "Detailed operational prompt for the agent, derived from 'Blueprint's Execution Outline'. MUST include variables from `user_inputs` using `{variable_name}` syntax where relevant."
               },
               "expected_output": {
                 "type": "string",
@@ -116,12 +129,27 @@
                 "type": "string",
                 "description": "Unique yaml_id to be used to identify this task. Must be unique, lowercase, and use snake_case."
               },
+              "async_execution": {
+                 "type": "boolean",
+                 "description": "Whether this task should be executed asynchronously (parallel)."
+              },
               "context": {
                 "type": "array",
                 "description": "A list of `yaml_id`s from prerequisite tasks. The output of these tasks will be provided as context to this task. Ensure all IDs effectively exist in the `task_roster`.",
                 "items": {
                   "type": "string"
                 }
+              },
+              "conditional_task": {
+                  "type": "object",
+                  "description": "Configuration for conditional execution logic.",
+                  "properties": {
+                      "is_conditional": { "type": "boolean" },
+                      "condition_function_name": { "type": "string", "description": "Name of the function to evaluate (e.g. is_data_missing)" },
+                      "condition_description": { "type": "string", "description": "Logic description for the condition function." },
+                      "evaluated_task_output_description": { "type": "string", "description": "Description of the output from the task that will be evaluated effectively (e.g. 'A JSON object with a list of events'). This helps in writing the condition function to correctly interpret the 'output' argument." }
+                  },
+                  "required": ["is_conditional"]
               }
             },
             "required": ["description", "expected_output", "agent", "yaml_id"]

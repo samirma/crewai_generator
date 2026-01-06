@@ -23,9 +23,11 @@
     *   **Step Name:** A descriptive name for the logical step.
     *   **Purpose:** What does this step achieve?
     *   **Inputs:** What information is needed to start this step? (e.g., 'Raw Resume Data', 'Search Query').
+    *   **Execution Flow:** Is this step sequential, parallel (async), or conditional?
+    *   **Logic Conditions:** If conditional, what is the criteria? (e.g. "If step A output is empty, do B").
     *   **High-Level Logic:** Describe the transformation or action (e.g., 'Analyze text for keywords', 'Generate improvement suggestions').
-    *   **Outputs:** What is the result of this step? (e.g., 'Structured Analysis', 'Refined Text').
-*   **Note:** Keep this high-level. Do not assign Agents yet. Focus on the *flow of information*.
+    *   **Outputs:** What is the result of this step? (e.g., 'Structured Analysis', 'Refined Text'). **refer to a proper Deliverable from Section C if applicable.**
+*   **Note:** Focus on the *flow of information* and *decision points*.
 
 **C. Deliverables & Success Criteria:**
 *   **Deliverables:** Precise specification of ALL final outputs (filenames, formats, structure).
