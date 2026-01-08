@@ -26,6 +26,14 @@ export const staticModels: ModelConfig[] = [
     baseURL: "https://api.cerebras.ai/v1",
   },
   {
+    id: "zai-glm-4.7",
+    name: "Zai GLM 4.7",
+    model: "zai-glm-4.7",
+    timeout: 600,
+    apiKey: "CEREBRAS_API_KEY",
+    baseURL: "https://api.cerebras.ai/v1",
+  },
+  {
     id: "deepseek_chat_worker",
     name: "Deepseek Chat Worker",
     model: "deepseek-chat",

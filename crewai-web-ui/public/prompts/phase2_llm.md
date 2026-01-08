@@ -8,13 +8,13 @@
   "llm_list": [
     {
       "design_metadata": {
-        "llm_id": "ollama/glm-4.6:cloud",
+        "llm_id": "ollama/minimax-m2.1:cloud",
         "reasoner": true,
         "multimodal_support": true,
-        "description": "A robust model combining strong reasoning capabilities with multimodal support. Excellent for handling complex, multi-step tasks and visual analysis. Ideal for manager agents that require a balance of performance and versatility."
+        "description": "An advanced 230B parameter MoE model optimized for complex agentic workflows and multilingual programming. Features 'Interleaved Thinking' for robust multi-step reasoning and supports multimodal inputs."
       },
       "constructor_args": {
-        "model": "ollama/glm-4.7:cloud",
+        "model": "ollama/minimax-m2.1:cloud",
         "timeout": 600,
         "api_key": "OLLAMA_API_KEY"
       }
@@ -24,10 +24,24 @@
         "llm_id": "qwen-3-235b-a22b-instruct",
         "reasoner": false,
         "multimodal_support": false,
-        "description": "A powerful non-thinking model with 235 billion parameters, excelling in instruction following, multilingual tasks, and efficient text generation at speeds exceeding 1,400 tokens per second. Ideal for worker agents handling high-volume, general-purpose tasks."
+        "description": "A high-speed, cost-efficient frontier model by Alibaba on Cerebras. Offers exceptional inference capabilities (1,500+ t/s) and large context (131K), excelling in coding, math, and general instruction following."
       },
       "constructor_args": {
         "model": "cerebras/qwen-3-235b-a22b-instruct-2507",
+        "timeout": 600,
+        "api_key": "CEREBRAS_API_KEY",
+        "base_url": "https://api.cerebras.ai/v1"
+      }
+    },
+    {
+      "design_metadata": {
+        "llm_id": "zai-glm-4.7",
+        "reasoner": true,
+        "multimodal_support": true,
+        "description": "ZhipuAI's flagship 358B MoE model. specialized for complex reasoning with 'Interleaved Thinking', advanced coding agent capabilities, and native multimodal understanding for high-quality UI/visual outputs."
+      },
+      "constructor_args": {
+        "model": "cerebras/zai-glm-4.7",
         "timeout": 600,
         "api_key": "CEREBRAS_API_KEY",
         "base_url": "https://api.cerebras.ai/v1"
