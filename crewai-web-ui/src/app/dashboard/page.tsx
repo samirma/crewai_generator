@@ -1,10 +1,9 @@
-
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import ExecutionTab from '../components/ExecutionTab';
-import { useExecution } from '@/hooks/useExecution';
+import { useExecutionContext } from '@/context/ExecutionContext';
 
 export default function Dashboard() {
     const [projects, setProjects] = useState<{ name: string; path: string }[]>([]);
@@ -13,41 +12,20 @@ export default function Dashboard() {
     const [selectedProject, setSelectedProject] = useState<string | null>(null);
 
     const {
-        isExecutingScript,
-        scriptExecutionError,
-        scriptLogOutput,
-        dockerCommandToDisplay,
-        phasedOutputs,
-        scriptExecutionDuration,
-        hasExecutionAttempted,
-        scriptTimerKey,
-        finalExecutionStatus,
-        finalExecutionResult,
+        executionStates,
         handleExecuteScript,
-        resetExecutionState,
         stopExecution
-    } = useExecution();
+    } = useExecutionContext();
 
 
-    // Determine if we are on the client to safely access window/Audio?
-    // useExecution uses useRef for audio, which is fine.
-
-    // Custom execution handler that passes projectName
+    // Custom execution handler
     const handleRunProject = async (projectName: string) => {
-        // If we are already executing this project, do nothing
-        if (isExecutingScript && selectedProject === projectName) return;
-
-        // If executing another project, return
-        if (isExecutingScript) {
-            alert("A script is already running. Please stop it or wait for it to finish.");
-            return;
-        }
+        // If this specific project is already running, do nothing (or we could focus it)
+        const projectState = executionStates[projectName];
+        if (projectState?.isExecutingScript) return;
 
         setSelectedProject(projectName);
-        // We probably want to scroll to the execution tab if it was already selected but user clicked run?
-        // For now, React updates will show the tab.
-
-        await handleExecuteScript({ projectName });
+        await handleExecuteScript(projectName);
     };
 
     const handleDeleteProject = async (projectName: string) => {
@@ -93,6 +71,9 @@ export default function Dashboard() {
             .finally(() => setLoading(false));
     }, []);
 
+    // Get state for the selected project to pass to ExecutionTab
+    const activeProjectState = selectedProject ? executionStates[selectedProject] : null;
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-inter p-8">
             <div className="max-w-7xl mx-auto">
@@ -123,18 +104,18 @@ export default function Dashboard() {
                         ) : (
                             projects.map(project => {
                                 const isSelected = selectedProject === project.name;
-                                const isRunningThis = isExecutingScript && selectedProject === project.name;
+                                // Check global state for execution status
+                                const isRunningThis = executionStates[project.name]?.isExecutingScript;
 
                                 return (
                                     <div
                                         key={project.name}
-                                        onClick={() => !isExecutingScript && setSelectedProject(project.name)}
+                                        onClick={() => setSelectedProject(project.name)}
                                         className={`p-6 rounded-lg shadow-md transition-all border flex flex-col cursor-pointer
                                             ${isSelected
                                                 ? 'bg-indigo-50 dark:bg-slate-800 border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-900'
                                                 : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:shadow-lg'
                                             }
-                                            ${isExecutingScript && !isSelected ? 'opacity-50 cursor-not-allowed' : ''}
                                         `}
                                     >
                                         <div className="flex justify-between items-start mb-2">
@@ -152,7 +133,7 @@ export default function Dashboard() {
                                                     e.stopPropagation();
                                                     handleRunProject(project.name);
                                                 }}
-                                                disabled={isExecutingScript && !isRunningThis}
+                                                disabled={isRunningThis}
                                                 className={`flex-1 px-4 py-2 rounded-md transition-colors font-medium text-white
                                                     ${isRunningThis
                                                         ? 'bg-green-600 hover:bg-green-700'
@@ -167,7 +148,8 @@ export default function Dashboard() {
                                                     e.stopPropagation();
                                                     handleDeleteProject(project.name);
                                                 }}
-                                                disabled={isExecutingScript}
+                                                // Disable delete if running
+                                                disabled={isRunningThis}
                                                 className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-300 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                 title="Delete Project"
                                             >
@@ -184,23 +166,24 @@ export default function Dashboard() {
                 )}
 
                 {/* Execution Output Area - Only show if we selected a project and started running */}
-                {(selectedProject || hasExecutionAttempted) && (
+                {(selectedProject) && (
                     <div className="mt-8 border-t border-slate-200 dark:border-slate-700 pt-8">
                         <h2 className="text-2xl font-bold mb-4">Execution Output: {selectedProject}</h2>
                         <ExecutionTab
-                            isExecutingScript={isExecutingScript}
+                            isExecutingScript={activeProjectState?.isExecutingScript || false}
                             isLlmTimerRunning={false}
                             handleExecuteScript={() => selectedProject && handleRunProject(selectedProject)}
-                            stopExecution={stopExecution}
-                            finalExecutionStatus={finalExecutionStatus}
-                            hasExecutionAttempted={hasExecutionAttempted}
-                            scriptExecutionDuration={scriptExecutionDuration}
-                            scriptTimerKey={scriptTimerKey}
-                            dockerCommandToDisplay={dockerCommandToDisplay}
-                            scriptLogOutput={scriptLogOutput}
-                            phasedOutputs={phasedOutputs}
-                            scriptExecutionError={scriptExecutionError}
-                            finalExecutionResult={finalExecutionResult}
+                            stopExecution={() => selectedProject && stopExecution(selectedProject)}
+                            finalExecutionStatus={activeProjectState?.finalExecutionStatus || null}
+                            hasExecutionAttempted={activeProjectState?.hasExecutionAttempted || false}
+                            scriptExecutionDuration={activeProjectState?.scriptExecutionDuration || null}
+                            scriptTimerKey={activeProjectState?.scriptTimerKey || 0}
+                            executionStartTime={activeProjectState?.executionStartTime || null}
+                            dockerCommandToDisplay={activeProjectState?.dockerCommandToDisplay || ""}
+                            scriptLogOutput={activeProjectState?.scriptLogOutput || []}
+                            phasedOutputs={activeProjectState?.phasedOutputs || []}
+                            scriptExecutionError={activeProjectState?.scriptExecutionError || ""}
+                            finalExecutionResult={activeProjectState?.finalExecutionResult || null}
                             projectName={selectedProject} // Pass projectName to context-aware file explorer
                         />
                     </div>

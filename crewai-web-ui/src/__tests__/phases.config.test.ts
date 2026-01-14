@@ -13,9 +13,9 @@ const basePhaseState: Omit<PhaseState, 'id' | 'dependencies'> = {
   defaultPrompt: "Default Prompt",
   input: "",
   output: "Test Output",
-  isLoading: false,
+  status: 'pending',
   duration: null,
-  isTimerRunning: false,
+
   generateInputPrompt: jest.fn(),
 };
 

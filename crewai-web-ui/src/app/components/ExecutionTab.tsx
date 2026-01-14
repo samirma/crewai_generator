@@ -18,6 +18,7 @@ interface ExecutionTabProps {
   hasExecutionAttempted: boolean;
   scriptExecutionDuration: number | null;
   scriptTimerKey: number;
+  executionStartTime?: number | null;
   dockerCommandToDisplay: string;
   scriptLogOutput: string[];
   phasedOutputs: PhasedOutput[];
@@ -88,6 +89,7 @@ const ExecutionTab = ({
   hasExecutionAttempted,
   scriptExecutionDuration,
   scriptTimerKey,
+  executionStartTime,
   dockerCommandToDisplay,
   scriptLogOutput,
   phasedOutputs,
@@ -239,7 +241,11 @@ const ExecutionTab = ({
 
             {finalExecutionStatus && (
               <div className={`mb-4 p-3 rounded-md text-center font-semibold text-lg
-                ${finalExecutionStatus === 'success' ? 'bg-green-200 text-green-800 dark:bg-green-900/50 dark:text-green-300' : 'bg-red-200 text-red-800 dark:bg-red-900/50 dark:text-red-300'}`}>
+                ${finalExecutionStatus === 'success'
+                  ? 'bg-green-200 text-green-800 dark:bg-green-900/50 dark:text-green-300'
+                  : finalExecutionStatus === 'stopped'
+                    ? 'bg-yellow-200 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300'
+                    : 'bg-red-200 text-red-800 dark:bg-red-900/50 dark:text-red-300'}`}>
                 Status: {finalExecutionStatus.charAt(0).toUpperCase() + finalExecutionStatus.slice(1)}
               </div>
             )}
@@ -247,7 +253,7 @@ const ExecutionTab = ({
             {(isExecutingScript || (hasExecutionAttempted && scriptExecutionDuration !== null)) && (
               <div className="mb-4 p-3 border border-green-300 dark:border-green-700 rounded-md bg-green-50 dark:bg-green-900/30 shadow-sm text-center">
                 <p className="text-sm text-green-700 dark:text-green-300">
-                  Execution Timer: <Timer key={scriptTimerKey} isRunning={isExecutingScript} className="inline font-semibold" />
+                  Execution Timer: <Timer key={scriptTimerKey} isRunning={isExecutingScript} startTime={executionStartTime} className="inline font-semibold" />
                 </p>
               </div>
             )}

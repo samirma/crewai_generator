@@ -41,11 +41,10 @@ export default function Home() {
     scriptExecutionDuration,
     hasExecutionAttempted,
     scriptTimerKey,
+    executionStartTime,
     finalExecutionStatus,
     finalExecutionResult,
     handleExecuteScript,
-    scriptSuccessSoundRef,
-    scriptErrorSoundRef,
     stopExecution
   } = useExecution();
 
@@ -65,8 +64,6 @@ export default function Home() {
 
   useEffect(() => {
     llmRequestFinishSoundRef.current = new Audio('/sounds/llm_finish.mp3');
-    scriptSuccessSoundRef.current = new Audio('/sounds/script_success.mp3');
-    scriptErrorSoundRef.current = new Audio('/sounds/script_error.mp3');
     const initialInstructionCookie = getCookie('initialInstruction');
     if (initialInstructionCookie) {
       setInitialInput(initialInstructionCookie);
@@ -232,6 +229,7 @@ export default function Home() {
                 hasExecutionAttempted={hasExecutionAttempted}
                 scriptExecutionDuration={scriptExecutionDuration}
                 scriptTimerKey={scriptTimerKey}
+                executionStartTime={executionStartTime}
                 dockerCommandToDisplay={dockerCommandToDisplay}
                 scriptLogOutput={scriptLogOutput}
                 phasedOutputs={phasedOutputs}

@@ -97,8 +97,8 @@ export const usePhases = (
 
     let currentPhases: PhaseState[] = phases.map((p) => ({ ...p, status: 'pending' as const }));
     setPhases(currentPhases);
-    
-    let runAllSuccess = true; 
+
+    let runAllSuccess = true;
 
     for (const phase of phases) {
       const { newPhases, success } = await handlePhaseExecution(phase.id, currentPhases);
@@ -174,7 +174,7 @@ export const usePhases = (
         if (finishedPhase) {
           currentPhases = currentPhases.map((p: PhaseState) => (p.id === phaseId ? finishedPhase : p));
         }
-        
+
         setPhases(currentPhases);
 
         pendingPromises.delete(phaseId);
@@ -207,8 +207,10 @@ export const usePhases = (
   return {
     phases,
     setPhases,
-    handlePhaseExecution: (phaseId: number, phasesForExecution?: PhaseState[]) =>
-      handlePhaseExecution(phaseId, phasesForExecution).then(result => result.newPhases),
+    handlePhaseExecution: (phaseId: number, phasesForExecution?: PhaseState[]) => {
+      setError(null);
+      return handlePhaseExecution(phaseId, phasesForExecution).then(result => result.newPhases);
+    },
     handleRunAllPhases,
     handleRunAllPhasesInParallel,
     isRunAllLoading,
