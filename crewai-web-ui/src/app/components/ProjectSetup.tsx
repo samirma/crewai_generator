@@ -25,6 +25,9 @@ interface ProjectSetupProps {
   activeExecutionMode: 'sequential' | 'parallel' | null;
 }
 
+import SaveProjectModal from './SaveProjectModal';
+import { useState } from 'react';
+
 const ProjectSetup = ({
   initialInput,
   setInitialInput,
@@ -44,10 +47,77 @@ const ProjectSetup = ({
   isTimerRunning,
   activeExecutionMode,
 }: ProjectSetupProps) => {
+
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [saveMessage, setSaveMessage] = useState('');
+
+  const handleOpenSaveModal = () => {
+    setSaveStatus('idle');
+    setSaveMessage('');
+    setIsSaveModalOpen(true);
+  };
+
+  const handleSaveProject = async (name: string) => {
+    setSaveStatus('saving');
+    try {
+      const response = await fetch('/api/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to save project');
+      }
+
+      const data = await response.json();
+      setSaveStatus('success');
+      setSaveMessage(`Project saved as "${data.name}"`);
+      setTimeout(() => {
+        setIsSaveModalOpen(false);
+        setSaveStatus('idle');
+        setSaveMessage('');
+      }, 2000);
+    } catch (error) {
+      console.error(error);
+      setSaveStatus('error');
+      if (error instanceof Error) {
+        setSaveMessage(error.message);
+      } else {
+        setSaveMessage("An unknown error occurred");
+      }
+    }
+  };
+
   return (
     <section data-testid="project-setup" className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg mb-8 border border-slate-200 dark:border-slate-700">
-      <h2 className="text-2xl font-semibold mb-6 text-slate-700 dark:text-slate-200">
-        Project Setup
+      <SaveProjectModal
+        isOpen={isSaveModalOpen}
+        onCancel={() => setIsSaveModalOpen(false)}
+        onSave={handleSaveProject}
+        onCheckName={async () => true}
+      />
+      {saveStatus === 'success' && (
+        <div className="fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative z-50">
+          <span className="block sm:inline">{saveMessage}</span>
+        </div>
+      )}
+      {saveStatus === 'error' && (
+        <div className="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative z-50">
+          <span className="block sm:inline">{saveMessage}</span>
+        </div>
+      )}
+
+      <h2 className="text-2xl font-semibold mb-6 text-slate-700 dark:text-slate-200 flex justify-between items-center">
+        <span>Project Setup</span>
+        <button
+          onClick={handleOpenSaveModal}
+          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors shadow-sm"
+        >
+          Save Project
+        </button>
       </h2>
       <div className="mb-6">
         <label htmlFor="initialInstruction" className="block text-lg font-medium mb-2 text-slate-700 dark:text-slate-300">
@@ -70,7 +140,7 @@ const ProjectSetup = ({
               className="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 transition duration-150 ease-in-out text-sm font-medium disabled:opacity-50"
               disabled={isLlmTimerRunning || isExecutingScript}
             >
-              Save
+              Save Prompt
             </button>
             <CopyButton textToCopy={initialInput} />
           </div>
@@ -104,7 +174,7 @@ const ProjectSetup = ({
             ))}
           </select>
           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-700 dark:text-slate-300">
-            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
           </div>
         </div>
         {modelsError && <p className="text-sm text-red-600 dark:text-red-400 mt-2">{modelsError}</p>}

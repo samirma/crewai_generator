@@ -16,6 +16,7 @@ export const useExecution = () => {
   const [scriptExecutionDuration, setScriptExecutionDuration] = useState<number | null>(null);
   const [hasExecutionAttempted, setHasExecutionAttempted] = useState<boolean>(false);
   const [scriptTimerKey, setScriptTimerKey] = useState<number>(0);
+  const [containerId, setContainerId] = useState<string | null>(null);
   const [finalExecutionStatus, setFinalExecutionStatus] = useState<string | null>(null);
   const [finalExecutionResult, setFinalExecutionResult] = useState<ExecutionResultType | null>(null);
   const scriptSuccessSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -29,7 +30,29 @@ export const useExecution = () => {
     scriptErrorSoundRef.current?.play().catch(e => console.error("Error playing error sound:", e));
   };
 
-  const handleExecuteScript = async () => {
+  const stopExecution = async () => {
+    if (!containerId) return;
+
+    try {
+      setScriptLogOutput(prev => [...prev, "LOG: Requesting container stop..."]);
+      const response = await fetch('/api/stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ containerId }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setScriptLogOutput(prev => [...prev, "LOG: Container stopped by user request."]);
+      } else {
+        setScriptLogOutput(prev => [...prev, `LOG_ERROR: Failed to stop container: ${data.error}`]);
+      }
+    } catch (error) {
+      console.error("Error stopping execution:", error);
+      setScriptLogOutput(prev => [...prev, "LOG_ERROR: Failed to send stop request."]);
+    }
+  };
+
+  const handleExecuteScript = async (config?: { projectName?: string }) => {
     setHasExecutionAttempted(true);
     setIsExecutingScript(true);
     setScriptTimerKey(prevKey => prevKey + 1);
@@ -40,6 +63,7 @@ export const useExecution = () => {
     setScriptExecutionDuration(null);
     setFinalExecutionStatus(null);
     setFinalExecutionResult(null);
+    setContainerId(null);
 
     try {
       const response = await fetch('/api/execute', {
@@ -47,13 +71,14 @@ export const useExecution = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ projectName: config?.projectName }),
       });
       if (!response.ok) {
         let errorText = `API request failed with status ${response.status}`;
         try {
           const errorData = await response.json();
           errorText = errorData.error || errorText;
-        } catch {}
+        } catch { }
         playErrorSound();
         throw new Error(errorText);
       }
@@ -86,7 +111,9 @@ export const useExecution = () => {
         const lines = buffer.split('\n');
         buffer = lines.pop() || "";
         for (const line of lines) {
-          if (line.startsWith("DOCKER_COMMAND: ")) {
+          if (line.startsWith("CONTAINER_ID: ")) {
+            setContainerId(line.substring("CONTAINER_ID: ".length));
+          } else if (line.startsWith("DOCKER_COMMAND: ")) {
             setDockerCommandToDisplay(line.substring("DOCKER_COMMAND: ".length));
           } else if (line.startsWith("PRE_DOCKER_LOG: ")) {
             setScriptLogOutput(prev => [...prev, "PRE_DOCKER_RUN: " + line.substring("PRE_DOCKER_LOG: ".length)]);
@@ -119,6 +146,7 @@ export const useExecution = () => {
               } else if (finalResult.overallStatus === 'success') {
                 playSuccessSound();
               }
+              setContainerId(null); // Clear container ID on finish
             } catch (e) {
               console.error("Error parsing final result JSON:", e);
               setScriptExecutionError("Error parsing final result from script execution.");
@@ -130,7 +158,9 @@ export const useExecution = () => {
           }
         }
       }
-      if (buffer.startsWith("DOCKER_COMMAND: ")) {
+      if (buffer.startsWith("CONTAINER_ID: ")) {
+        setContainerId(buffer.substring("CONTAINER_ID: ".length));
+      } else if (buffer.startsWith("DOCKER_COMMAND: ")) {
         setDockerCommandToDisplay(buffer.substring("DOCKER_COMMAND: ".length));
       } else if (buffer.startsWith("PRE_DOCKER_LOG: ")) {
         setScriptLogOutput(prev => [...prev, "PRE_DOCKER_RUN: " + buffer.substring("PRE_DOCKER_LOG: ".length)]);
@@ -182,7 +212,21 @@ export const useExecution = () => {
       playErrorSound();
     } finally {
       setIsExecutingScript(false);
+      setContainerId(null);
     }
+  };
+
+  const resetExecutionState = () => {
+    setHasExecutionAttempted(false);
+    setIsExecutingScript(false);
+    setScriptExecutionError("");
+    setScriptLogOutput([]);
+    setDockerCommandToDisplay("");
+    setPhasedOutputs([]);
+    setScriptExecutionDuration(null);
+    setFinalExecutionStatus(null);
+    setFinalExecutionResult(null);
+    setContainerId(null);
   };
 
   return {
@@ -197,7 +241,10 @@ export const useExecution = () => {
     finalExecutionStatus,
     finalExecutionResult,
     handleExecuteScript,
+    resetExecutionState,
     scriptSuccessSoundRef,
     scriptErrorSoundRef,
+    stopExecution, // Export this
+    containerId,   // Export this if needed
   };
 };

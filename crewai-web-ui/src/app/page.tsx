@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import SavedPrompts from './components/SavedPrompts';
 import Timer from './components/Timer';
 import ProjectSetup from './components/ProjectSetup';
@@ -45,6 +46,7 @@ export default function Home() {
     handleExecuteScript,
     scriptSuccessSoundRef,
     scriptErrorSoundRef,
+    stopExecution
   } = useExecution();
 
   const playLlmSound = () => {
@@ -142,8 +144,11 @@ export default function Home() {
     <div className="flex flex-col md:flex-row h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-inter">
       <SavedPrompts prompts={savedPrompts} onSelectPrompt={setInitialInput} onDeletePrompt={handleDeletePrompt} />
       <main className="flex-1 overflow-y-auto p-6 md:p-8">
-        <h1 className="text-4xl font-extrabold mb-10 text-center text-indigo-700 dark:text-indigo-400 drop-shadow-md">
-          CrewAI Studio
+        <h1 className="text-4xl font-extrabold mb-10 text-center text-indigo-700 dark:text-indigo-400 drop-shadow-md flex flex-col gap-2 relative">
+          <span>CrewAI Studio</span>
+          <Link href="/dashboard" className="text-sm font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-300 absolute right-0 top-1/2 -translate-y-1/2">
+            Go to Dashboard &rarr;
+          </Link>
         </h1>
         <ServerIpSettings />
         <ProjectSetup
@@ -222,6 +227,7 @@ export default function Home() {
                 isExecutingScript={isExecutingScript}
                 isLlmTimerRunning={isLlmLoading}
                 handleExecuteScript={handleExecuteScript}
+                stopExecution={stopExecution} // Pass stopExecution
                 finalExecutionStatus={finalExecutionStatus}
                 hasExecutionAttempted={hasExecutionAttempted}
                 scriptExecutionDuration={scriptExecutionDuration}

@@ -25,4 +25,5 @@ export interface ExecutePythonScriptSetupResult {
   overallStatus: 'success' | 'failure';
   error?: string;
   dockerCommand?: string;
+  containerId?: string; // Added containerId
 }

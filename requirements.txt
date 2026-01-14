@@ -1,0 +1,13 @@
+Add e new page/feature following the requirements below:
+
+The current web page is for create a crewai project by generating its files and running it.
+The entire generated project is in the 'workspace/' folder.
+E new feature for this page is to be able to save the current project with a name inputed by the user.
+The saving process consist in copying the 'workspace/' folder to a new folder in the 'projects/{name}' folder.
+
+
+The new page for dashboard should be created to list all the projects in the 'projects/' folder.
+In this page once this proejct is selected, the user should be able to run the project.
+To run this project you should mount the 'projects/{name}' folder to the 'workspace/' docker volume and run the project.
+
+

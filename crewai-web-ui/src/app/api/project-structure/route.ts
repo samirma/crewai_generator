@@ -40,10 +40,22 @@ async function getFileTree(dir: string, relativePath: string = ''): Promise<File
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const file = searchParams.get('file');
+  const projectName = searchParams.get('project');
+
+  let baseDir = GENERATED_DIR; // Default to workspace/crewai_generated
+  if (projectName) {
+    // If project is specified, root is projects/{name}/crewai_generated
+    baseDir = path.join(process.cwd(), '..', 'projects', projectName, 'crewai_generated');
+  }
 
   if (file) {
     try {
-      const filePath = path.join(GENERATED_DIR, file);
+      const filePath = path.join(baseDir, file);
+      // Ensure we don't traverse out of baseDir
+      if (!filePath.startsWith(baseDir)) {
+        return new Response('Invalid file path', { status: 400 });
+      }
+
       const content = await fs.readFile(filePath, 'utf-8');
       return new Response(content, { headers: { 'Content-Type': 'text/plain' } });
     } catch (error) {
@@ -56,7 +68,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const fileTree = await getFileTree(GENERATED_DIR);
+    const fileTree = await getFileTree(baseDir);
     return NextResponse.json(fileTree);
   } catch (error) {
     if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {

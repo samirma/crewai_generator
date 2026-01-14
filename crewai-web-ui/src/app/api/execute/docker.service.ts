@@ -5,10 +5,15 @@ import { exec } from 'child_process';
 import { ExecutePythonScriptSetupResult, StageOutput } from './types';
 
 // Helper function to execute Python script in Docker
-export async function executePythonScript(controller?: ReadableStreamDefaultController): Promise<ExecutePythonScriptSetupResult> { // Changed return type
+export async function executePythonScript(controller?: ReadableStreamDefaultController, projectName?: string): Promise<ExecutePythonScriptSetupResult> { // Changed return type
   const docker = new Docker(); // Assumes Docker is accessible (e.g., /var/run/docker.sock)
   const projectRoot = path.resolve(process.cwd(), '..');
-  const workspaceDir = path.join(projectRoot, 'workspace');
+
+  // Determine workspace directory based on projectName
+  let workspaceDir = path.join(projectRoot, 'workspace');
+  if (projectName) {
+    workspaceDir = path.join(projectRoot, 'projects', projectName);
+  }
 
   // Initialize preHostRunResult for the return value
   const preHostRunResult: StageOutput = { stdout: '', stderr: '', status: 'not_run' };
@@ -133,15 +138,20 @@ export async function executePythonScript(controller?: ReadableStreamDefaultCont
 
       // Start the container before returning the stream
       await container.start();
-      console.log(`Container for ${imageName} started.`);
+      console.log(`Container for ${imageName} started. ID: ${container.id}`);
 
-      return { container, stream, preHostRunResult, overallStatus, dockerCommand }; // Return dockerCommand
+      // Construct a representation of the docker run command for display purposes
+      const fullDockerCommand = `docker run --rm --network host -v "${workspaceDir}:/workspace" ${imageName} ${dockerCommand}`;
+
+      return { container, stream, preHostRunResult, overallStatus, dockerCommand: fullDockerCommand, containerId: container.id }; // Return full command and ID
 
     } catch (dockerErr) {
       const error = dockerErr as Error;
       console.error("Error setting up or starting Docker container:", error);
       overallStatus = 'failure';
       topLevelError = `Docker container setup/start error: ${error.message}`;
+      // Try to get ID if container was created but failed to start/attach?? 
+      // types declare containerId as optional, so it's fine if undefined.
       return { preHostRunResult, overallStatus, error: topLevelError, dockerCommand }; // Return dockerCommand even on error
     }
 

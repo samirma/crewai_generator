@@ -3,15 +3,31 @@ import { executePythonScript } from './docker.service';
 import { streamDockerLogsToController } from './stream.service';
 import { ExecutionResult } from './types';
 
-export async function POST() {
+export async function POST(req: Request) {
   const scriptStartTime = Date.now(); // Record start time before execution setup
+
+  let projectName: string | undefined;
+  try {
+    // Clone the request to read the body, as it might be consumed by Next.js or other middleware if we are not careful.
+    // However, req.json() consumes the body. 
+    // The issue is that we are returning a stream, and we can't easily read the body AND stream response in standard Next.js App Router 
+    // if we were just proxying, but here we are initiating logic.
+    // BUT, checking the existing code, it didn't read the body at all! 
+    // It just started execution assuming default workspace. 
+    // To support passing projectName, we MUST read the body.
+    const body = await req.json();
+    projectName = body.projectName;
+  } catch (e) {
+    // If parsing fails (e.g. empty body), just proceed with default (undefined projectName)
+    // console.warn("Could not parse request body for projectName:", e);
+  }
 
   const readableStream = new ReadableStream({
     async start(controller) {
       try {
-        console.log("Received script for execution. Setting up Docker container and stream...");
+        console.log(`Received script for execution. Project: ${projectName || 'default (workspace)'}. Setting up Docker container and stream...`);
         // Pass controller to executePythonScript to stream build logs
-        const setupResult = await executePythonScript(controller);
+        const setupResult = await executePythonScript(controller, projectName);
 
         // If setup failed (e.g., pre-host, docker build, container creation failed)
         if (setupResult.overallStatus === 'failure' || !setupResult.container || !setupResult.stream) {
@@ -41,8 +57,13 @@ export async function POST() {
           preHostRunResult,
           overallStatus: setupOverallStatus,
           error: setupError,
-          dockerCommand: retrievedDockerCommand
+          dockerCommand: retrievedDockerCommand,
+          containerId
         } = setupResult;
+
+        if (containerId) {
+          controller.enqueue(`CONTAINER_ID: ${containerId}\n`);
+        }
 
         // dockerStream is asserted non-null by the check above
         // container is also asserted non-null by the check above

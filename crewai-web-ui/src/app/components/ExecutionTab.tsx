@@ -13,6 +13,7 @@ interface ExecutionTabProps {
   isExecutingScript: boolean;
   isLlmTimerRunning: boolean;
   handleExecuteScript: () => void;
+  stopExecution?: () => void; // Optional for now until passed
   finalExecutionStatus: string | null;
   hasExecutionAttempted: boolean;
   scriptExecutionDuration: number | null;
@@ -22,6 +23,7 @@ interface ExecutionTabProps {
   phasedOutputs: PhasedOutput[];
   scriptExecutionError: string;
   finalExecutionResult: ExecutionResultType | null;
+  projectName?: string | null;
 }
 
 interface FileTreeNode {
@@ -36,15 +38,21 @@ const FileTree = ({ tree, activeFile, setActiveFile }: { tree: FileTreeNode[], a
     <div key={node.path} style={{ paddingLeft: `${level * 20}px` }}>
       <button
         onClick={() => node.type === 'file' && setActiveFile(node.path)}
-        className={`w-full text-left px-2 py-1 rounded-md transition-colors ${
-          activeFile === node.path
-            ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
-            : 'hover:bg-slate-200 dark:hover:bg-slate-700'
-        }`}
+        className={`w-full text-left px-2 py-1 rounded-md transition-colors ${activeFile === node.path
+          ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
+          : 'hover:bg-slate-200 dark:hover:bg-slate-700'
+          }`}
       >
         {node.type === 'folder' ? '📁' : '📄'} {node.name}
       </button>
-      {node.children && node.children.map(child => renderNode(child, level + 1))}
+      {node.children &&
+        node.children
+          .sort((a, b) => {
+            if (a.type === b.type) return a.name.localeCompare(b.name);
+            return a.type === 'folder' ? -1 : 1;
+          })
+          .map(child => renderNode(child, level + 1))
+      }
     </div>
   );
 
@@ -75,6 +83,7 @@ const ExecutionTab = ({
   isExecutingScript,
   isLlmTimerRunning,
   handleExecuteScript,
+  stopExecution,
   finalExecutionStatus,
   hasExecutionAttempted,
   scriptExecutionDuration,
@@ -84,6 +93,7 @@ const ExecutionTab = ({
   phasedOutputs,
   scriptExecutionError,
   finalExecutionResult,
+  projectName
 }: ExecutionTabProps) => {
   const [fileTree, setFileTree] = useState<FileTreeNode[]>([]);
   const [activeFile, setActiveFile] = useState<string | null>(null);
@@ -92,7 +102,11 @@ const ExecutionTab = ({
   useEffect(() => {
     const fetchProjectStructure = async () => {
       try {
-        const response = await fetch('/api/project-structure');
+        let url = '/api/project-structure';
+        if (projectName) {
+          url += `?project=${encodeURIComponent(projectName)}`;
+        }
+        const response = await fetch(url);
         if (!response.ok) {
           throw new Error('Failed to fetch project structure');
         }
@@ -103,6 +117,10 @@ const ExecutionTab = ({
           if (firstFile) {
             setActiveFile(firstFile.path);
           }
+        } else {
+          setFileTree([]);
+          setActiveFile(null);
+          setActiveFileContent(null);
         }
       } catch (error) {
         console.error(error);
@@ -110,13 +128,17 @@ const ExecutionTab = ({
     };
 
     fetchProjectStructure();
-  }, []);
+  }, [projectName]); // Re-fetch when projectName changes
 
   useEffect(() => {
     const fetchFileContent = async () => {
       if (activeFile) {
         try {
-          const response = await fetch(`/api/project-structure?file=${encodeURIComponent(activeFile)}`);
+          let url = `/api/project-structure?file=${encodeURIComponent(activeFile)}`;
+          if (projectName) {
+            url += `&project=${encodeURIComponent(projectName)}`;
+          }
+          const response = await fetch(url);
           if (!response.ok) {
             throw new Error('Failed to fetch file content');
           }
@@ -130,7 +152,7 @@ const ExecutionTab = ({
     };
 
     fetchFileContent();
-  }, [activeFile]);
+  }, [activeFile, projectName]);
 
   const findFirstFile = (nodes: FileTreeNode[]): FileTreeNode | null => {
     for (const node of nodes) {
@@ -147,34 +169,45 @@ const ExecutionTab = ({
     return null;
   };
 
-  const scriptIsEmpty = fileTree.length === 0;
+  const scriptIsEmpty = fileTree.length === 0 && !projectName; // If in project mode, it might be empty but valid to run if pre-built? usually not.
 
   return (
     <section className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
       <h2 className="text-2xl font-semibold mb-6 text-slate-700 dark:text-slate-200">
-        Script Execution
+        Script Execution {projectName ? `(${projectName})` : ''}
       </h2>
 
-      <button
-        type="button"
-        onClick={handleExecuteScript}
-        disabled={
-          isExecutingScript ||
-          scriptIsEmpty ||
-          isLlmTimerRunning
-        }
-        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg px-6 py-3 rounded-xl shadow-lg transition duration-200 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:bg-gray-400 focus:ring-4 focus:ring-indigo-300 focus:outline-none dark:focus:ring-indigo-800 flex items-center justify-center gap-2 mb-6"
-      >
-        {isExecutingScript ? (
-          <span className="flex items-center justify-center">
-            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Executing Script...
-          </span>
-        ) : 'Run This Script (Locally via API)'}
-      </button>
+      <div className="flex gap-4">
+        <button
+          type="button"
+          onClick={handleExecuteScript}
+          disabled={
+            isExecutingScript ||
+            isLlmTimerRunning
+          }
+          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg px-6 py-3 rounded-xl shadow-lg transition duration-200 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:bg-gray-400 focus:ring-4 focus:ring-indigo-300 focus:outline-none dark:focus:ring-indigo-800 flex items-center justify-center gap-2 mb-6"
+        >
+          {isExecutingScript ? (
+            <span className="flex items-center justify-center">
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Executing...
+            </span>
+          ) : 'Run'}
+        </button>
+
+        {isExecutingScript && stopExecution && (
+          <button
+            type="button"
+            onClick={stopExecution}
+            className="bg-red-500 hover:bg-red-600 text-white font-bold text-lg px-6 py-3 rounded-xl shadow-lg transition duration-200 ease-in-out transform hover:scale-105 focus:ring-4 focus:ring-red-300 focus:outline-none dark:focus:ring-red-800 mb-6"
+          >
+            Stop
+          </button>
+        )}
+      </div>
 
       <div className="grid md:grid-cols-2 gap-6">
         <div className="border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm p-4 bg-slate-50 dark:bg-slate-700">
