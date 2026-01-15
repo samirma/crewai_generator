@@ -10,6 +10,7 @@ Start with these imports. Add others only if strictly necessary.
 
 ```python
 import os
+import json
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv()) # MUST BE CALLED EARLY
 from crewai import Agent, Task, Crew, Process
@@ -138,12 +139,40 @@ Iterate through `task_roster`.
         )
 ```
 
-#### **8. @crew Method**
+#### **8. Callbacks**
+Define the following methods to track execution state in real-time.
+
+```python
+    def step_callback(self, step_output):
+        try:
+            log_entry = {
+                "type": "step",
+                "content": str(step_output)
+            }
+            with open('execution_log.json', 'a') as f:
+                f.write(json.dumps(log_entry) + '\n')
+        except Exception:
+            pass
+
+    def task_callback(self, task_output):
+        try:
+            log_entry = {
+                "type": "task",
+                "content": str(task_output)
+            }
+            with open('execution_log.json', 'a') as f:
+                f.write(json.dumps(log_entry) + '\n')
+        except Exception:
+            pass
+```
+
+#### **9. @crew Method**
 Assemble the crew using the defined agents and tasks.
 *   **Process**: Use `workflow_process.selected_process` (e.g., `Process.sequential` or `Process.hierarchical`).
 *   **Manager LLM**: If `workflow_process.selected_process` is hierarchical, assign the correct pre-instantiated LLM object.
 *   **Memory**: Use `crew_memory.activation`.
 *   **Embedder**: If memory is active, configure the embedder based on `crew_memory`.
+*   **Callbacks**: ALWAYS register `self.step_callback` and `self.task_callback`.
 
 **Example:**
 ```python
@@ -155,6 +184,8 @@ Assemble the crew using the defined agents and tasks.
             process=Process.sequential,
             manager_llm=<select_a_llm_from_llm_registry>, # If hierarchical, assign the correct pre-instantiated LLM object.
             memory=False,
-            verbose=True
+            verbose=True,
+            step_callback=self.step_callback,
+            task_callback=self.task_callback
         )
 ```
