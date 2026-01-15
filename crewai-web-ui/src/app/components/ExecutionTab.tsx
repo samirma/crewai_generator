@@ -273,7 +273,7 @@ const ExecutionTab = ({
               </h4>
               {completedTasks.length > 0 ? (
                 <ul className="space-y-3 overflow-auto max-h-[200px] pr-2">
-                  {completedTasks.map((task, i) => (
+                  {completedTasks.reverse().map((task, i) => (
                     <li key={i} className="text-sm text-slate-700 dark:text-slate-300 bg-green-50 dark:bg-green-900/20 p-2 rounded border border-green-100 dark:border-green-800/50">
                       <div className="flex items-start gap-2">
                         <span className="text-green-500 mt-0.5">✓</span>
