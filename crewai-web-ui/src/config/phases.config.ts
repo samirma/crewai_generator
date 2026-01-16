@@ -216,7 +216,7 @@ const pyProjectGenerationPhase: PhaseState = createPhaseState({
   promptFileName: "phase3_pyproject_prompt.md",
   filePath: "pyproject.toml",
   outputType: 'file',
-  dependencies: [blueprintDefinitionPhase, crewPyGenerationPhase, mainPyGenerationPhase, toolsGenerationPhase],
+  dependencies: [crewPyGenerationPhase, toolsGenerationPhase],
   generateInputPrompt: pyProjectGenerateInputPrompt
 });
 

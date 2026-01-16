@@ -36,5 +36,5 @@ generate_bitcoin_predictions:
   context:
     - analyze_news_sentiment
     - gather_historical_btc_data
-  verbose: true
+  verbose: false
 ```

@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo } from 'react';
+import LiveCrewActivity from './LiveCrewActivity';
 import CopyButton from './CopyButton';
 import Timer from './Timer';
 import type { ExecutionResult as ExecutionResultType } from '../api/execute/types';
@@ -100,7 +101,6 @@ const ExecutionTab = ({
   const [fileTree, setFileTree] = useState<FileTreeNode[]>([]);
   const [activeFile, setActiveFile] = useState<string | null>(null);
   const [activeFileContent, setActiveFileContent] = useState<string | null>(null);
-  const [executionEvents, setExecutionEvents] = useState<{ type: string, content: string }[]>([]);
 
   useEffect(() => {
     const fetchProjectStructure = async () => {
@@ -157,34 +157,7 @@ const ExecutionTab = ({
     fetchFileContent();
   }, [activeFile, projectName]);
 
-  useEffect(() => {
-    if (!isExecutingScript) return;
 
-    const fetchExecutionLog = async () => {
-      try {
-        let url = `/api/project-structure?file=execution_log.json`;
-        if (projectName) url += `&project=${encodeURIComponent(projectName)}`;
-
-        const res = await fetch(url);
-        if (res.ok) {
-          const text = await res.text();
-          const lines = text.trim().split('\n');
-          const events = lines.map(line => {
-            try { return JSON.parse(line); } catch (e) { return null; }
-          }).filter(x => x !== null);
-          setExecutionEvents(events);
-        }
-      } catch (e) {
-        // ignore errors during poll
-      }
-    };
-
-    const interval = setInterval(fetchExecutionLog, 1000);
-    return () => clearInterval(interval);
-  }, [isExecutingScript, projectName]);
-
-  const latestStep = executionEvents.filter(e => e.type === 'step').pop();
-  const completedTasks = executionEvents.filter(e => e.type === 'task');
 
   const findFirstFile = (nodes: FileTreeNode[]): FileTreeNode | null => {
     for (const node of nodes) {
@@ -241,56 +214,11 @@ const ExecutionTab = ({
         )}
       </div>
 
-      {executionEvents.length > 0 && (
-        <div className="mb-6 p-4 border border-indigo-200 dark:border-indigo-800 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 shadow-sm animate-fade-in">
-          <h3 className="text-lg font-semibold text-indigo-800 dark:text-indigo-300 mb-4 flex items-center gap-2">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
-            </span>
-            Live Crew Activity
-          </h3>
-
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-indigo-100 dark:border-indigo-900 shadow-sm flex flex-col">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-500 mb-3 border-b border-indigo-50 dark:border-indigo-900 pb-2">
-                Current Agent Activity
-              </h4>
-              {latestStep ? (
-                <div className="flex-1 overflow-auto max-h-[200px]">
-                  <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap font-mono leading-relaxed">
-                    {latestStep.content}
-                  </p>
-                </div>
-              ) : (
-                <p className="text-sm text-slate-500 italic">Initializing agents...</p>
-              )}
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-green-100 dark:border-green-900 shadow-sm flex flex-col">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-green-600 mb-3 border-b border-green-50 dark:border-green-900 pb-2">
-                Completed Tasks ({completedTasks.length})
-              </h4>
-              {completedTasks.length > 0 ? (
-                <ul className="space-y-3 overflow-auto max-h-[200px] pr-2">
-                  {completedTasks.reverse().map((task, i) => (
-                    <li key={i} className="text-sm text-slate-700 dark:text-slate-300 bg-green-50 dark:bg-green-900/20 p-2 rounded border border-green-100 dark:border-green-800/50">
-                      <div className="flex items-start gap-2">
-                        <span className="text-green-500 mt-0.5">✓</span>
-                        <div className="line-clamp-3 hover:line-clamp-none transition-all">
-                          {task.content}
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-slate-500 italic">No tasks completed yet.</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <LiveCrewActivity
+        key={scriptTimerKey}
+        isExecutingScript={isExecutingScript}
+        projectName={projectName}
+      />
 
       <div className="grid md:grid-cols-2 gap-6">
         <div className="border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm p-4 bg-slate-50 dark:bg-slate-700">
