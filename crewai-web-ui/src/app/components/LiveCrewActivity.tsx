@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
+import CopyButton from './CopyButton';
 
 interface LiveCrewActivityProps {
     isExecutingScript: boolean;
@@ -93,10 +94,13 @@ const LiveCrewActivity = ({
 
                 {/* Latest Step Column */}
                 <div className="lg:col-span-2 flex flex-col gap-4">
-                    <h3 className="text-sm font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                        Current Step
-                    </h3>
-                    <div className={`flex-1 p-6 rounded-xl border border-indigo-100 dark:border-indigo-900/50 bg-white dark:bg-slate-800 shadow-sm min-h-[160px] flex flex-col relative overflow-hidden transition-all
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-sm font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                            Current Step
+                        </h3>
+                        <CopyButton textToCopy={latestStep?.content || ""} />
+                    </div>
+                    <div className={`flex-1 p-6 rounded-xl border border-indigo-100 dark:border-indigo-900/50 bg-white dark:bg-slate-800 shadow-sm min-h-[160px] max-h-[400px] overflow-y-auto flex flex-col relative transition-all
               ${isExecutingScript ? 'ring-2 ring-indigo-500/10' : ''}`}>
 
                         {latestStep ? (
@@ -133,6 +137,9 @@ const LiveCrewActivity = ({
                             {completedTasks.length}
                         </span>
                     </h3>
+                    <div className="flex justify-end mb-2">
+                        <CopyButton textToCopy={completedTasks.map(t => t.content).join('\n\n')} />
+                    </div>
                     <div className="flex-1 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-2 overflow-hidden flex flex-col max-h-[400px]">
                         {completedTasks.length > 0 ? (
                             <ul className="overflow-y-auto space-y-2 p-2 scroll-smooth">
