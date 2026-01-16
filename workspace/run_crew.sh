@@ -13,7 +13,7 @@ echo "--- Running main script ---"
 cd /workspace/crewai_generated && \
 cp /workspace/.env /workspace/crewai_generated/ && \
 touch /workspace/crewai_generated/src/crewai_generated/__init__.py
-
+rm -rf /workspace/crewai_generated/execution_log.json
 if uv run run_crew; then
   echo "Crew Execution successful"
 else
