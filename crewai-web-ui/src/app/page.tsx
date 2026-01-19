@@ -14,7 +14,7 @@ import { usePrompts } from '@/hooks/usePrompts';
 import { useModels } from '@/hooks/useModels';
 import { useExecution } from '@/hooks/useExecution';
 import { setCookie, getCookie } from '@/utils/cookieUtils';
-import ServerIpSettings from '@/components/ServerIpSettings';
+import ServerIpSettings from '@/app/components/ServerIpSettings';
 
 
 export default function Home() {
