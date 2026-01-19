@@ -131,6 +131,15 @@ const blueprintDefinitionPhase: PhaseState = createPhaseState({
   generateInputPrompt: blueprintGenerateInputPrompt
 });
 
+const projectConfigurationPhase: PhaseState = createPhaseState({
+  title: "Project Configuration",
+  promptFileName: "phase2_project_config_prompt.md",
+  filePath: "project_config.yaml",
+  outputType: 'file',
+  dependencies: [blueprintDefinitionPhase],
+  generateInputPrompt: defaultGenerateInputPrompt
+});
+
 const detailedAgentAndTaskDefinitionPhase: PhaseState = createPhaseState({
   title: "Detailed Agent and Task Definition",
   promptFileName: "phase2.2_detailed_agent_and_task_prompt.md",
