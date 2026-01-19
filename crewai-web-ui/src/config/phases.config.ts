@@ -229,6 +229,15 @@ const pyProjectGenerationPhase: PhaseState = createPhaseState({
   generateInputPrompt: pyProjectGenerateInputPrompt
 });
 
+const streamitPhase: PhaseState = createPhaseState({
+  title: "Streamit Generation",
+  promptFileName: "phase3_streamit_prompt.md",
+  filePath: "src/crewai_generated/streamit.py",
+  outputType: 'file',
+  dependencies: [pyProjectGenerationPhase, projectConfigurationPhase, detailedAgentAndTaskDefinitionPhase],
+  generateInputPrompt: defaultGenerateInputPrompt
+});
+
 export const getPhases = () => {
   return phases;
 }

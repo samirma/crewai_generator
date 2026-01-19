@@ -33,6 +33,7 @@ The `dependencies` array inside `[project]` must include:
 *   "litellm>=1.80.9"
 *   "zeroconf"
 *   "ollama"
+*   "streamlit"
 
 **Extra Dependencies**:
 *   You should evaluate the imports and identify any other and only the external python libraries you need to run the code.
