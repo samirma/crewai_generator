@@ -49,6 +49,20 @@
     },
     {
       "design_metadata": {
+        "llm_id": "glm-4.7-flash",
+        "reasoner": false,
+        "multimodal_support": false,
+        "description": "ZhipuAI's GLM-4.7 Flash model. High speed and low cost, suitable for high-concurrency tasks."
+      },
+      "constructor_args": {
+        "model": "glm-4.7-flash",
+        "timeout": 600,
+        "api_key": "ZAI_API_KEY",
+        "base_url": "https://api.z.ai/api/paas/v4"
+      }
+    },
+    {
+      "design_metadata": {
         "llm_id": "deepseek_chat_worker",
         "reasoner": false,
         "multimodal_support": false,

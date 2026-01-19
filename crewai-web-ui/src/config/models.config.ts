@@ -42,6 +42,14 @@ export const staticModels: ModelConfig[] = [
     baseURL: "https://api.deepseek.com/v1",
     maxOutputTokens: 8000,
   },
+  {
+    id: "glm-4.7-flash",
+    name: "Zai GLM 4.7 Flash",
+    model: "glm-4.7-flash",
+    timeout: 600,
+    apiKey: "ZAI_API_KEY",
+    baseURL: "https://api.z.ai/api/paas/v4",
+  },
 ];
 
 export async function getAllModels(): Promise<ModelConfig[]> {
