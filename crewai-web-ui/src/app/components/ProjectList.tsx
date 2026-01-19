@@ -3,7 +3,7 @@ import React from 'react';
 interface Project {
     name: string;
     path: string;
-    description?: string;
+    description: string;
 }
 
 interface ProjectListProps {

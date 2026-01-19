@@ -7,7 +7,7 @@ import ProjectList from '../components/ProjectList';
 import { useExecutionContext } from '@/context/ExecutionContext';
 
 export default function Dashboard() {
-    const [projects, setProjects] = useState<{ name: string; path: string; description?: string }[]>([]);
+    const [projects, setProjects] = useState<{ name: string; path: string; description: string }[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [selectedProject, setSelectedProject] = useState<string | null>(null);

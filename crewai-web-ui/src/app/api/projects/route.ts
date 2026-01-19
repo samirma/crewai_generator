@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 import toml from '@iarna/toml';
+import yaml from 'js-yaml';
 
 export async function GET() {
   const projectsDir = path.resolve(process.cwd(), '..', 'projects');
@@ -22,37 +23,22 @@ export async function GET() {
       .map(async (dirent) => {
         const projectPath = path.join(projectsDir, dirent.name);
 
-        // Try to read description from pyproject.toml
+        // Try to read description from crewai_generated/project_config.yaml
         let description = '';
         try {
-          // Check potential locations for pyproject.toml
-          const possiblePaths = [
-            path.join(projectPath, 'pyproject.toml'),
-            path.join(projectPath, 'crewai_generated', 'pyproject.toml')
-          ];
-
-          for (const p of possiblePaths) {
-            try {
-              const content = await fs.readFile(p, 'utf-8');
-              const parsed = toml.parse(content) as any;
-
-              // Check standard pyproject.toml location: [project] description
-              if (parsed.project && parsed.project.description) {
-                description = parsed.project.description;
-                break;
-              }
-              // Fallback check for [tool.poetry] description if needed
-              if (parsed.tool && parsed.tool.poetry && parsed.tool.poetry.description) {
-                description = parsed.tool.poetry.description;
-                break;
-              }
-            } catch (e) {
-              // File doesn't exist or can't be read/parsed, continue to next possibility
-              continue;
+          const configPath = path.join(projectPath, 'crewai_generated', 'project_config.yaml');
+          try {
+            const content = await fs.readFile(configPath, 'utf-8');
+            const parsed = yaml.load(content) as any;
+            if (parsed && parsed.description) {
+              description = parsed.description;
             }
+          } catch (e) {
+            // File doesn't exist or can't be read/parsed
+            console.warn(`Could not read description from ${configPath}:`, e);
           }
         } catch (e) {
-          console.error(`Error reading description for ${dirent.name}:`, e);
+          console.error(`Error processing project config for ${dirent.name}:`, e);
         }
 
         return {
