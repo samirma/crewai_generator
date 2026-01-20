@@ -8,19 +8,34 @@ Generate a Python script that uses Streamlit to create a user interface. The scr
 *   **Output ONLY Python code.** No markdown formatting, no explanation, no prologue, no epilogue.
 *   The file must be valid, executable Python code.
 
-**Logic:**
-1.  **Inputs**: Check the provided JSON for a `user_inputs` list.
-    *   For each item in `user_inputs`, generate a Streamlit input widget (e.g., `st.text_input`).
-    *   Use the `name` of the input as the label and key.
-    *   Store the values in a dictionary named `inputs`.
-2.  **Execution**:
-    *   Import `CrewaiGenerated` from `crewai_generated.crew`.
-    *   When the user clicks a "Run Crew" button:
-        *   Instantiate the crew: `crew_instance = CrewaiGenerated().crew()`
-        *   Run the crew: `result = crew_instance.kickoff(inputs=inputs)`
-        *   Display `result` using `st.markdown` or `st.write`.
-3.  **Docker/Path Handling**:
-    *   Include the fallback import logic for local development vs installed package.
+### 1. UI Design
+* **Layout Definition**: Parse the YAML `description` attribute to define the basic UI layout.
+* **Input Generation**: Scan the provided JSON for the `user_inputs` list.
+* For each item in `user_inputs`, generate a corresponding Streamlit input widget (e.g., `st.text_input`).
+* Use the `name` field as the widget label and unique key.
+* Store all collected values in a dictionary named `inputs`.
+* **Output Management**:
+* For every output defined in the YAML file, display its file path in the UI.
+* Implement a **background monitoring process** to check for file availability in real-time.
+* Provide a direct link or interface to open/access files through the Streamlit server once they exist.
+* Include a **status indicator** (Available/Pending) for each file and a **Delete** button that appears once the file is generated.
+
+### 2. Execution Logic
+* **Initialization**: Import `CrewaiGenerated` from `crewai_generated.crew`.
+* **Trigger**: Upon clicking the **"Run Crew"** button:
+* **Instantiation**: Initialize the crew using `crew_instance = CrewaiGenerated().crew()`.
+* **State Persistence**: Save the `inputs` dictionary to `inputs.json`. On subsequent loads, the UI should read this file to pre-populate input fields with previous values.
+* **Execution**: Invoke the crew using `result = crew_instance.kickoff(inputs=inputs)` exclude the current `./execution_log.json`.
+* **Runtime Monitoring**:
+* Display a loading spinner during execution.
+* Continuously poll and read `./execution_log.json` to provide real-time status updates within the UI.
+* Provide an **Interrupt** button to allow users to stop the crew execution mid-process.
+* **Completion**:
+* Upon successful completion, display a success message.
+* Render the final `result` using `st.markdown` or `st.write`.
+
+### 3. Environment & Path Handling
+* **Compatibility**: Implement fallback import logic to ensure the application runs seamlessly in both local development environments and as an installed Docker package.
 
 **Template:**
 
@@ -37,32 +52,12 @@ except ImportError:
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     from crewai_generated.crew import CrewaiGenerated
 
+crew = CrewaiGenerated().crew()
+
 def main():
-    st.set_page_config(page_title="CrewAI Runner", layout="wide")
-    st.title("🤖 CrewAI Agent Runner")
-
-    with st.sidebar:
-        st.header("Configuration")
-        st.info("Configure your agents and tasks settings here.")
-
-    st.subheader("Run Execution")
 
     inputs = {}
-    
-    # GENERATE INPUT WIDGETS HERE BASED ON JSON 'user_inputs'
-    # Example logic (DO NOT COPY LINK, IMPLEMENT DYNAMICALLY):
-    # inputs['topic'] = st.text_input("topic", "AI LLMs")
-    
-    if st.button("🚀 Run Crew"):
-        with st.spinner("Agents are working..."):
-            try:
-                crew = CrewaiGenerated().crew()
-                result = crew.kickoff(inputs=inputs)
-                st.success("Execution Complete!")
-                st.markdown("### Results:")
-                st.markdown(result)
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
+
 
 if __name__ == "__main__":
     main()
