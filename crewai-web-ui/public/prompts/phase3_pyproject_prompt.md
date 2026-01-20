@@ -1,4 +1,3 @@
-pyproject.toml Generation Logic:
 
 You will be provided with one or more Python code files. Your task is to analyze these files and generate the content for a single `pyproject.toml` file that defines the project's dependencies and scripts.
 
@@ -41,7 +40,7 @@ The `dependencies` array inside `[project]` must include:
 Formatting:
 The entire output must be a single, valid TOML file content inside a markdown block. Do not include any other text before or after.
 
-Example `pyproject.toml` Output:
+Reference `pyproject.toml` content the dependencies should be the only one updated:
 
 ```toml
 [project]

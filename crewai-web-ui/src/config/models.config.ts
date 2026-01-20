@@ -88,7 +88,7 @@ export async function getAllModels(): Promise<ModelConfig[]> {
       }));
     }
   } catch (error) {
-    console.warn('Failed to fetch Local models:', error);
+    console.warn('Failed to fetch Local models');
   }
 
   return [...staticModels, ...ollamaModels, ...localModels];
