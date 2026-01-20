@@ -56,7 +56,7 @@ export const usePhases = (
     const fullPromptValue = currentPhase.generateInputPrompt(currentPhase, phasesForExecution, initialInput);
 
     const updatedPhasesWithInput = phasesForExecution.map(p =>
-      p.id === phaseId ? { ...p, output: '', input: fullPromptValue, status: 'running' as const } : p
+      p.id === phaseId ? { ...p, output: '', input: fullPromptValue, status: 'running' as const, tokensPerSecond: null, duration: null } : p
     );
     setPhases(updatedPhasesWithInput);
 
@@ -74,7 +74,7 @@ export const usePhases = (
     if (response.isSuccess) {
       const result = response.result;
       finalPhases = updatedPhasesWithInput.map(p =>
-        p.id === phaseId ? { ...p, output: result.output, duration: result.duration, status: 'completed' as const } : p
+        p.id === phaseId ? { ...p, output: result.output, duration: result.duration, tokensPerSecond: result.tokensPerSecond, status: 'completed' as const } : p
       );
       setPhases(finalPhases);
       playLlmSound();

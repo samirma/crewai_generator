@@ -11,6 +11,7 @@ export interface PhaseState {
   output: string;
   status: PhaseStatus;
   duration: number | null;
+  tokensPerSecond: number | null;
   filePath?: string;
   outputType?: 'file' | 'directory';
   promptFileName?: string;
@@ -36,6 +37,7 @@ const defaultPhaseStateProperties: Omit<PhaseState,
   output: "",
   status: 'pending',
   duration: null,
+  tokensPerSecond: null,
 };
 
 // Define the type for creating a new phase.

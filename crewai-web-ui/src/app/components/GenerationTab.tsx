@@ -13,6 +13,7 @@ interface PhaseData {
   setInput: (value: string) => void;
   output: string;
   setOutput: (value: string) => void;
+  tokensPerSecond: number | null;
 }
 
 interface GenerationTabProps {
@@ -58,6 +59,7 @@ const GenerationTab = ({
               output={data.output}
               setOutput={data.setOutput}
               isInitiallyOpen={isInitiallyOpen}
+              tokensPerSecond={data.tokensPerSecond}
             />
           );
         })}

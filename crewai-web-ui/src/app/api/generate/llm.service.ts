@@ -7,7 +7,7 @@ export async function interactWithLLM(
   fullPrompt: string,
   llmModel: string,
   runPhase: number | null
-): Promise<{ llmResponseText: string; generatedScript?: string; duration: number }> {
+): Promise<{ llmResponseText: string; generatedScript?: string; duration: number; tokensPerSecond: number }> {
   const startTime = Date.now();
 
   const allModels = await getAllModels();
@@ -27,7 +27,7 @@ export async function interactWithLLM(
 
   let llmResponseText = "";
   let generatedScript: string | undefined = undefined;
-  let completion: any;
+  let completion: OpenAI.Chat.Completions.ChatCompletion | any;
 
   let apiKey = process.env[modelConfig.apiKey];
   if (!apiKey) {
@@ -97,6 +97,10 @@ export async function interactWithLLM(
   const endTime = Date.now();
   const duration = parseFloat(((endTime - startTime) / 1000).toFixed(2));
 
+  const completionTokens = completion?.usage?.completion_tokens || 0;
+  const tokensPerSecond = duration > 0 ? parseFloat((completionTokens / duration).toFixed(2)) : 0;
+
+
   try {
     const outputPath = path.join(process.cwd(), 'llm_output_prompt.txt');
     await fs.writeFile(outputPath, llmResponseText);
@@ -105,5 +109,5 @@ export async function interactWithLLM(
     console.error('Failed to write LLM output to llm_output_prompt.txt:', error);
   }
 
-  return { llmResponseText, generatedScript, duration };
+  return { llmResponseText, generatedScript, duration, tokensPerSecond };
 }

@@ -15,6 +15,7 @@ interface PhaseComponentProps {
   isExecutingScript: boolean;
   onRunPhase: () => void;
   duration: number | null;
+  tokensPerSecond: number | null;
   input: string;
   setInput: (value: string) => void;
   output: string;
@@ -80,6 +81,7 @@ const PhaseComponent = ({
   output,
   setOutput,
   isInitiallyOpen = false,
+  tokensPerSecond,
 }: PhaseComponentProps) => {
   const [isOpen, setIsOpen] = useState(isInitiallyOpen);
 
@@ -114,6 +116,11 @@ const PhaseComponent = ({
                 duration={status === 'running' ? null : duration}
                 className="text-sm text-gray-600 dark:text-gray-300 font-semibold"
               />
+              {tokensPerSecond !== undefined && tokensPerSecond !== null && (
+                <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                  ({tokensPerSecond} t/s)
+                </span>
+              )}
             </div>
           )}
         </summary>

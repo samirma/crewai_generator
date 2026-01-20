@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     console.log(`Advanced mode phase: ${runPhase}`);
 
     try {
-      const { llmResponseText, generatedScript: llmGeneratedScript, duration } = await interactWithLLM(fullPrompt, llmModel, runPhase);
+      const { llmResponseText, generatedScript: llmGeneratedScript, duration, tokensPerSecond } = await interactWithLLM(fullPrompt, llmModel, runPhase);
       const generatedScript = llmGeneratedScript;
 
       const inputFilePath = path.join(process.cwd(), 'llm_input_prompt.txt');
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
         }
       }
 
-      return NextResponse.json({ phase: runPhase, output: llmResponseText, generatedScript, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent, duration });
+      return NextResponse.json({ phase: runPhase, output: llmResponseText, generatedScript, fullPrompt: fullPrompt, llmInputPromptContent, llmOutputPromptContent, duration, tokensPerSecond });
 
     } catch (apiError) {
       console.error(`Error interacting with LLM for model ${llmModel}:`, apiError);
