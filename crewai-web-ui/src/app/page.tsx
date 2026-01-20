@@ -34,6 +34,7 @@ export default function Home() {
   const { availableModels, modelsLoading, modelsError, llmModel, setLlmModel } = useModels();
   const {
     isExecutingScript,
+    isExecutingStreamlit,
     scriptExecutionError,
     scriptLogOutput,
     dockerCommandToDisplay,
@@ -45,6 +46,7 @@ export default function Home() {
     finalExecutionStatus,
     finalExecutionResult,
     handleExecuteScript,
+    handleExecuteStreamlit,
     stopExecution
   } = useExecution();
 
@@ -222,8 +224,10 @@ export default function Home() {
             {activeTab === 'execution' && (
               <ExecutionTab
                 isExecutingScript={isExecutingScript}
+                isExecutingStreamlit={isExecutingStreamlit}
                 isLlmTimerRunning={isLlmLoading}
                 handleExecuteScript={handleExecuteScript}
+                handleExecuteStreamlit={handleExecuteStreamlit}
                 stopExecution={stopExecution} // Pass stopExecution
                 finalExecutionStatus={finalExecutionStatus}
                 hasExecutionAttempted={hasExecutionAttempted}

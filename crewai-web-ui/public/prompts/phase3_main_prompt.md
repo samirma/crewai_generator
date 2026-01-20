@@ -88,23 +88,13 @@ def test():
     except Exception as e:
         raise Exception(f"An error occurred while testing the crew: {e}")
 
-def run_streamai():
+def run_streamlit():
     """
-    Run the streamlit app.
+    Run the streamlit app triggered by run_streamlit.sh script which was triggered by ExecutionTab component.
     """
-    import os
     import sys
     from streamlit.web import cli as stcli
     
-    # Get the directory of the current file
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    # The streamit.py file is expected to be in the same directory
-    streamit_path = os.path.join(current_dir, 'streamit.py')
-    
-    if not os.path.exists(streamit_path):
-         raise Exception(f"streamit.py not found at {streamit_path}")
-    
-    # Run streamlit programmatically
-    sys.argv = ["streamlit", "run", streamit_path]
+    sys.argv = ["streamlit", "run", "src/crewai_generated/streamit.py"]
     sys.exit(stcli.main())
 ```

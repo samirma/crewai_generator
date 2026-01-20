@@ -9,15 +9,17 @@ else
   echo "--- /workspace/pre_docker_run.sh not found, skipping. ---";
 fi
 
-echo "--- Running main script ---"
+echo "--- Running Streamlit app ---"
 cd /workspace/crewai_generated && \
 cp /workspace/.env /workspace/crewai_generated/ && \
 touch /workspace/crewai_generated/src/crewai_generated/__init__.py
+rm -rf /workspace/crewai_generated/execution_log.json
 
-if uv run run_streamai; then
-  echo "StreamAI Execution successful"
+# Using uv run to execute the entry point defined in pyproject.toml
+if uv run run_streamlit; then
+  echo "Streamlit App stopped"
 else
-  echo "StreamAI Execution failed"
+  echo "Streamlit App stopped with error"
   exit 1
 fi
-echo "--- Main script finished with exit code 0 ---"
+echo "--- Streamlit script finished with exit code 0 ---"

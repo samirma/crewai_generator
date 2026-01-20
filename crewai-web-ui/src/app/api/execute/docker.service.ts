@@ -5,7 +5,7 @@ import { exec } from 'child_process';
 import { ExecutePythonScriptSetupResult, StageOutput } from './types';
 
 // Helper function to execute Python script in Docker
-export async function executePythonScript(controller?: ReadableStreamDefaultController, projectName?: string): Promise<ExecutePythonScriptSetupResult> { // Changed return type
+export async function executePythonScript(controller?: ReadableStreamDefaultController, projectName?: string, scriptName?: string): Promise<ExecutePythonScriptSetupResult> { // Changed return type
   const docker = new Docker(); // Assumes Docker is accessible (e.g., /var/run/docker.sock)
   const projectRoot = path.resolve(process.cwd(), '..');
 
@@ -119,7 +119,8 @@ export async function executePythonScript(controller?: ReadableStreamDefaultCont
     }
 
     // --- Docker Container Setup ---
-    const dockerCommand = '/bin/sh /workspace/run_crew.sh';
+    const scriptToRun = scriptName || 'run_crew.sh';
+    const dockerCommand = `/bin/sh /workspace/${scriptToRun}`;
     try {
       const container = await docker.createContainer({
         Image: imageName,

@@ -12,8 +12,10 @@ interface PhasedOutput {
 
 interface ExecutionTabProps {
   isExecutingScript: boolean;
+  isExecutingStreamlit: boolean;
   isLlmTimerRunning: boolean;
   handleExecuteScript: () => void;
+  handleExecuteStreamlit: () => void;
   stopExecution?: () => void; // Optional for now until passed
   finalExecutionStatus: string | null;
   hasExecutionAttempted: boolean;
@@ -83,8 +85,10 @@ const FileTree = ({ tree, activeFile, setActiveFile }: { tree: FileTreeNode[], a
 
 const ExecutionTab = ({
   isExecutingScript,
+  isExecutingStreamlit,
   isLlmTimerRunning,
   handleExecuteScript,
+  handleExecuteStreamlit,
   stopExecution,
   finalExecutionStatus,
   hasExecutionAttempted,
@@ -202,6 +206,24 @@ const ExecutionTab = ({
             </span>
           ) : 'Run'}
         </button>
+        <button
+          type="button"
+          onClick={handleExecuteStreamlit}
+          disabled={
+            isExecutingStreamlit
+          }
+          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg px-6 py-3 rounded-xl shadow-lg transition duration-200 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:bg-gray-400 focus:ring-4 focus:ring-indigo-300 focus:outline-none dark:focus:ring-indigo-800 flex items-center justify-center gap-2 mb-6"
+        >
+          {isExecutingStreamlit ? (
+            <span className="flex items-center justify-center">
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Executing...
+            </span>
+          ) : 'Run Streamlit'}
+        </button>
 
         {isExecutingScript && stopExecution && (
           <button
@@ -210,6 +232,16 @@ const ExecutionTab = ({
             className="bg-red-500 hover:bg-red-600 text-white font-bold text-lg px-6 py-3 rounded-xl shadow-lg transition duration-200 ease-in-out transform hover:scale-105 focus:ring-4 focus:ring-red-300 focus:outline-none dark:focus:ring-red-800 mb-6"
           >
             Stop
+          </button>
+        )}
+
+        {isExecutingStreamlit && (
+          <button
+            type="button"
+            onClick={stopExecution}
+            className="bg-red-500 hover:bg-red-600 text-white font-bold text-lg px-6 py-3 rounded-xl shadow-lg transition duration-200 ease-in-out transform hover:scale-105 focus:ring-4 focus:ring-red-300 focus:outline-none dark:focus:ring-red-800 mb-6"
+          >
+            Stop Streamlit
           </button>
         )}
       </div>

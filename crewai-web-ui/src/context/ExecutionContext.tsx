@@ -43,7 +43,7 @@ const initialProjectState: ProjectExecutionState = {
 
 interface ExecutionContextType {
     executionStates: Record<string, ProjectExecutionState>; // Key is projectName or 'default'
-    handleExecuteScript: (projectName?: string) => Promise<void>;
+    handleExecuteScript: (projectName?: string, scriptName?: string) => Promise<void>;
     stopExecution: (projectName?: string) => Promise<void>;
     resetExecutionState: (projectName?: string) => void;
     playSuccessSound: () => void;
@@ -136,11 +136,13 @@ export const ExecutionProvider = ({ children }: { children: ReactNode }) => {
         }));
     }, []);
 
-    const handleExecuteScript = useCallback(async (projectName: string = 'default') => {
+    const handleExecuteScript = useCallback(async (projectName: string = 'default', scriptName?: string) => {
         // Reset state for this project
         updateProjectState(projectName, {
             ...initialProjectState,
             hasExecutionAttempted: true,
+            // If scriptName is provided and includes streamlit, we might want to flag that?
+            // But useExecution handles the specific flag for the UI. here we just execute.
             isExecutingScript: true,
             scriptTimerKey: (executionStates[projectName]?.scriptTimerKey || 0) + 1,
             executionStartTime: Date.now()
@@ -148,7 +150,10 @@ export const ExecutionProvider = ({ children }: { children: ReactNode }) => {
 
         try {
             // Pass projectName (if it's not 'default')
-            const bodyPayload = projectName === 'default' ? {} : { projectName };
+            const bodyPayload: any = projectName === 'default' ? {} : { projectName };
+            if (scriptName) {
+                bodyPayload.scriptName = scriptName;
+            }
 
             const response = await fetch('/api/execute', {
                 method: 'POST',
