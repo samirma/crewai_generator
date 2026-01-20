@@ -66,6 +66,7 @@ run_crew = "crewai_generated.main:run"
 train = "crewai_generated.main:train"
 replay = "crewai_generated.main:replay"
 test = "crewai_generated.main:test"
+run_streamai = "crewai_generated.main:run_streamai"
 
 [build-system]
 requires = ["hatchling"]

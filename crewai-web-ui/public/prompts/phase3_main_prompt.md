@@ -82,4 +82,29 @@ def test():
         CrewaiGenerated().crew().test(n_iterations=int(sys.argv[1]), eval_llm=sys.argv[2], inputs=inputs)
     except Exception as e:
         raise Exception(f"An error occurred while testing the crew: {e}")
+
+    try:
+        CrewaiGenerated().crew().test(n_iterations=int(sys.argv[1]), eval_llm=sys.argv[2], inputs=inputs)
+    except Exception as e:
+        raise Exception(f"An error occurred while testing the crew: {e}")
+
+def run_streamai():
+    """
+    Run the streamlit app.
+    """
+    import os
+    import sys
+    from streamlit.web import cli as stcli
+    
+    # Get the directory of the current file
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # The streamit.py file is expected to be in the same directory
+    streamit_path = os.path.join(current_dir, 'streamit.py')
+    
+    if not os.path.exists(streamit_path):
+         raise Exception(f"streamit.py not found at {streamit_path}")
+    
+    # Run streamlit programmatically
+    sys.argv = ["streamlit", "run", streamit_path]
+    sys.exit(stcli.main())
 ```

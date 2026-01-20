@@ -1,10 +1,5 @@
 * **Instruction:** Only use the document identified as 'Project Blueprint' within `{{{ }}}` as your sole source of truth.
 * **Objective:** Your task is to elaborate on the detailed architecture plan by providing detailed definitions for each agent and task.
-* **Final Output Format:** Your entire response must be a single, comprehensive JSON object following the schema below. Do not include any other text before or after the JSON.
-
----
-
-**'Detailed-Architecture-Plan' - JSON Schema:**
 
 ```json
 {
@@ -147,3 +142,5 @@
   "required": ["agent_cadre", "task_roster"]
 }
 ```
+
+Your entire response must be a single, valid JSON object derived from the json schema below without include the schema itself. Do not include any other text before or after the JSON.
