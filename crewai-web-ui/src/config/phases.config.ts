@@ -70,6 +70,7 @@ const createPhaseState = (config: PhaseStateConfig): PhaseState => {
 
 // Helper function to clean JSON string from markdown
 const cleanJsonString = (jsonString: string): string => {
+  if (!jsonString) return "{}";
   const match = jsonString.match(/```json\n([\s\S]*?)\n```/);
   if (match && match[1]) {
     return match[1];
@@ -82,10 +83,13 @@ const mergeOutputs = (outputs: string[]): string => {
   const merged = outputs.reduce((acc, output) => {
     try {
       const cleanedOutput = cleanJsonString(output);
+      if (!cleanedOutput || cleanedOutput.trim() === "") {
+        return acc;
+      }
       const parsed = JSON.parse(cleanedOutput);
       return { ...acc, ...parsed };
     } catch (e) {
-      console.error("Failed to parse phase output:", e);
+      console.warn("Failed to parse phase output, skipping:", e);
       return acc;
     }
   }, {});

@@ -12,11 +12,6 @@ If found, use the following mapping to generate the output:
 - `design_metadata.tool_id`: comes from input `design_metadata.tool_id`
 - `design_metadata.task_use_case`: comes from input `design_metadata.task_use_case`
 - `class_definition`: Derive the class name, description, and logic based on `design_metadata.required_functionality` and `design_metadata.task_use_case`.
-* **Final Output Format:** Your entire response must be a single, comprehensive JSON object. Do not include any other text before or after the JSON.
-
----
-
-**'Custom-Tool-Generation-Plan' - JSON Schema:**
 
 ```json
 {
@@ -100,3 +95,6 @@ If found, use the following mapping to generate the output:
   "required": ["custom_tools"]
 }
 ```
+
+
+Your entire response must be a single, valid JSON object derived from the json schema below without include the schema itself. Do not include any other text before or after the JSON.

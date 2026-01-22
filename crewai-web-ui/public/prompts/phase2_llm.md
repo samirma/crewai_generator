@@ -1,6 +1,4 @@
 * **Instruction:** Only use the previouly generated document as a source of truth.
-* **Final Output Format:** Your entire response must be a single, comprehensive JSON object. Do not include any other text before or after the JSON.
-
 
 **Pre-defined List to Use for `llm_registry`:**
 ```json
@@ -189,3 +187,5 @@ JSON Schema:
   "required": ["llm_registry", "agent_llm"]
 }
 ```
+
+Your entire response must be a single, valid JSON object derived from the json schema below without include the schema itself. Do not include any other text before or after the JSON.

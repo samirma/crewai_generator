@@ -1,10 +1,6 @@
 
 * **Instruction:** Only use the previouly json as a source of truth.
 * **Objective:** Your task is to select the appropriate tools for each task from the 'Canonical Tool Library'. If no suitable tool is available, you must identify that a custom tool is required.
-* **Output Structure:** The output should be a JSON object to serve as reference to build a crewai plan to be implmented.
-* **Final Output Format:** Your entire response must be a single, comprehensive JSON object. Do not include any other text before or after the JSON.
-
-### **Canonical Tool Library for Evaluation**
 
 To ensure a realistic and grounded design, all tool selections must be made **exclusively** from the following canonical list of available tools. The `tool_selection_justification` field within the `tool_repository` must reference this list for its evaluation.
 
@@ -251,3 +247,5 @@ JSON Schema:
   "required": ["tool_repository"]
 }
 ```
+
+Your entire response must be a single, valid JSON object derived from the json schema below without include the schema itself. Do not include any other text before or after the JSON.

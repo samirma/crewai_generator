@@ -1,9 +1,7 @@
 
 * **Instruction:** Only use the previouly generated document as a source of truth.
 * **Objective:** Your task is to design a high-level CrewAI configuration. This design must fully implement the goals from the 'Project Blueprint'. Your role is strictly that of an architect; you are not to write code or execute the plan.
-* **Final Output Format:** Your entire response must be a single, comprehensive JSON object. Do not include any other text before or after the JSON.
 
----
 
 **JSON Schema:**
 
@@ -75,3 +73,6 @@
   "required": ["workflow_process", "crew_memory"]
 }
 ```
+
+
+Your entire response must be a single, valid JSON object derived from the json schema below without include the schema itself. Do not include any other text before or after the JSON.
