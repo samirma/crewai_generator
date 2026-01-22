@@ -184,7 +184,7 @@ Assemble the crew using the defined agents and tasks.
             process=Process.sequential,
             manager_llm=<select_a_llm_from_llm_registry>, # If hierarchical, assign the correct pre-instantiated LLM object.
             memory=False,
-            verbose=False,
+            verbose=True,
             step_callback=self.step_callback,
             task_callback=self.task_callback
         )

@@ -81,23 +81,13 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
           "description": "A tool for searching XML files."
         },
         {
-          "tool_name": "mcp-crawl",
-          "tool_id": "mcp-crawl",
+          "tool_name": "mcp-search-crawl",
+          "tool_id": "mcp-search-crawl",
           "supports_embedding": false,
-          "description": "Reads and extracts the main content from a list of URLs or a single url.",
+          "description": "A combined tool that allows both searching the web and crawling/scraping content from URLs. It provides 'perform_web_search' for finding information and 'crawl_single_url'/'crawl_webpage' for extracting content.",
           "serverparams": {
             "command": "python",
-            "args": ["/workspace/mcp/mcp_crawl4ai.py"]
-          }
-        },
-        {
-          "tool_name": "mcp-local-seaxng",
-          "tool_id": "mcp_searxng_adapter",
-          "supports_embedding": false,
-          "description": "This tool performs a web search based on a text query and an optional pageno for pagination. It returns a JSON formatted list of search results, with each result containing its url, title, and a only a snippet of the content. A web scrape tool is required to recover the fully information of the web pages.",
-          "serverparams": {
-            "command": "python",
-            "args": ["/workspace/mcp/mcp_searxng.py"]
+            "args": ["/workspace/mcp/mcp_search_crawl.py"]
           }
         },
         {
