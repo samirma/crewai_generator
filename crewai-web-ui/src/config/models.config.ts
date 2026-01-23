@@ -79,7 +79,7 @@ export async function getAllModels(): Promise<ModelConfig[]> {
       const data = await response.json();
       // data.data is the standard OpenAI format list
       localModels = (data.data || data).map((model: any) => ({
-        id: model.id,
+        id: `local_${model.id}`,
         name: `(Local) ${model.id}`,
         model: model.id,
         timeout: 600,
