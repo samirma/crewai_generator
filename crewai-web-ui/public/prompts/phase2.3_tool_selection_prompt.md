@@ -185,7 +185,7 @@ JSON Schema:
                       }
                     }
                   },
-                  "required": ["tool_id", "required_functionality", "task_use_case", "crewai_tool_evaluation", "is_custom_embedding_supported"]
+                  "required": ["tool_id", "required_functionality", "task_use_case", "crewai_tool_evaluation"]
                 },
                 "custom_tool": {
                   "type": "object",
@@ -203,31 +203,12 @@ JSON Schema:
                 }
                 "canonical_tool": {
                   "type": "object",
-                  "description": "Contains only the parameters for the tool's class constructor only if `is_custom_tool` is `False`. CRITICAL RULE for MCP Servers: If using an MCP Server, the `class_name` MUST be `MCPServerAdapter`. The `initialization_params` object MUST contain a single key: `serverparams`. This `serverparams` object must contain two keys: `command` (String) and `args` (Array of Strings), which define how to run the MCP server process. CRITICAL RULE for Embedding-Supported Tools: If `design_metadata.is_custom_embedding_supported` is `true` and `crew_memory.activation` is `true`, the `initialization_params` object should be left empty (`{}`). The script generation phase will automatically use the global `rag_config`. For all other tools, specify parameters as needed.",
+                  "description": "Contains only the parameters for the tool's class constructor only if `is_custom_tool` is `False`. CRITICAL RULE for MCP Servers: If using an MCP Server, the `class_name` MUST be `MCPServerAdapter`. The `initialization_params` object MUST contain a single key: `serverparams`. This `serverparams` object must contain two keys: `command` (String) and `args` (Array of Strings), which define how to run the MCP server process.",
                   "properties": {
                     "class_name": {
                       "type": "string",
                       "description": "The exact Python class name to instantiate."
                     },
-                    "is_custom_embedding_supported": {
-                      "type": "boolean",
-                      "description": "`True` if this selected tool supports embedding."
-                    },
-                    "tool_llm_specification": {
-                      "type": "object",
-                      "description": "Required if `is_custom_embedding_supported` is `True` and `crew_memory.activation` is `True`.",
-                      "properties": {
-                        "llm_id": {
-                          "type": "string",
-                          "description": "The identifier for the tool's internal LLM."
-                        },
-                        "rationale": {
-                          "type": "string",
-                          "description": "Justification for this LLM choice."
-                        }
-                      },
-                      "required": ["llm_id", "rationale"]
-                    }
                     "initialization_params": {
                       "type": "object",
                       "description": "Constructor parameters for the tool."

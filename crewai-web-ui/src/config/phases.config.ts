@@ -163,7 +163,7 @@ const llmSelectionPhase: PhaseState = createPhaseState({
 const toolSelectionPhase: PhaseState = createPhaseState({
   title: "Tool Selection",
   promptFileName: "phase2.3_tool_selection_prompt.md",
-  dependencies: [detailedAgentAndTaskDefinitionPhase, llmSelectionPhase],
+  dependencies: [detailedAgentAndTaskDefinitionPhase],
   generateInputPrompt: defaultGenerateInputPrompt
 });
 
