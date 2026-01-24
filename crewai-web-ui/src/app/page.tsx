@@ -149,52 +149,7 @@ export default function Home() {
             Go to Dashboard &rarr;
           </Link>
         </h1>
-        <ServerIpSettings />
-        <ProjectSetup
-          initialInput={initialInput}
-          setInitialInput={setInitialInput}
-          handleSavePrompt={() => handleSavePrompt(initialInput)}
-          llmModel={llmModel}
-          setLlmModel={setLlmModel}
-          availableModels={availableModels}
-          modelsLoading={modelsLoading}
-          modelsError={modelsError}
-          isLlmTimerRunning={isLlmLoading}
-          isExecutingScript={isExecutingScript}
-          handleRunAllPhases={handleRunScript}
-          isRunAllLoading={isRunAllLoading}
-          runScriptAfterGeneration={runScriptAfterGeneration}
-          setRunScriptAfterGeneration={setRunScriptAfterGeneration}
-          runDuration={runDuration}
-          isTimerRunning={isTimerRunning}
-          activeExecutionMode={activeExecutionMode}
-        />
-        {(error || phasesError) && (
-          <div className="mt-8 p-4 border border-red-400 bg-red-100 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-500/50 dark:text-red-400 shadow-md">
-            <p className="font-bold text-lg mb-2">Error:</p>
-            <p className="text-base">{error || phasesError}</p>
-          </div>
-        )}
-        {isRunAllLoading && (
-          <div className="my-8">
-            <PhaseSummary phases={phases} />
-          </div>
-        )}
-        {(isLlmLoading || llmRequestDuration !== null) && (
-          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg mb-8 border border-slate-200 dark:border-slate-700 text-center">
-            {isLlmLoading ? (
-              <p className="text-lg text-blue-700 dark:text-blue-300 font-medium">
-                LLM Request Timer: <Timer isRunning={isLlmLoading} className="inline font-bold text-xl" />
-              </p>
-            ) : (
-              llmRequestDuration !== null && (
-                <p className="text-lg text-slate-700 dark:text-slate-300 font-medium">
-                  Last LLM request took: <span className="font-bold text-xl">{llmRequestDuration.toFixed(2)}</span> seconds
-                </p>
-              )
-            )}
-          </div>
-        )}
+
         <div className="mb-8">
           <div className="flex border-b border-slate-200 dark:border-slate-700">
             <button
@@ -212,37 +167,90 @@ export default function Home() {
               Script Execution
             </button>
           </div>
-          <div className="mt-6">
-            {activeTab === 'generation' && (
+        </div>
+
+        {activeTab === 'generation' && (
+          <>
+            <ServerIpSettings />
+            <ProjectSetup
+              initialInput={initialInput}
+              setInitialInput={setInitialInput}
+              handleSavePrompt={() => handleSavePrompt(initialInput)}
+              llmModel={llmModel}
+              setLlmModel={setLlmModel}
+              availableModels={availableModels}
+              modelsLoading={modelsLoading}
+              modelsError={modelsError}
+              isLlmTimerRunning={isLlmLoading}
+              isExecutingScript={isExecutingScript}
+              handleRunAllPhases={handleRunScript}
+              isRunAllLoading={isRunAllLoading}
+              runScriptAfterGeneration={runScriptAfterGeneration}
+              setRunScriptAfterGeneration={setRunScriptAfterGeneration}
+              runDuration={runDuration}
+              isTimerRunning={isTimerRunning}
+              activeExecutionMode={activeExecutionMode}
+            />
+            {(error || phasesError) && (
+              <div className="mt-8 p-4 border border-red-400 bg-red-100 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-500/50 dark:text-red-400 shadow-md">
+                <p className="font-bold text-lg mb-2">Error:</p>
+                <p className="text-base">{error || phasesError}</p>
+              </div>
+            )}
+            {isRunAllLoading && (
+              <div className="my-8">
+                <PhaseSummary phases={phases} />
+              </div>
+            )}
+            {(isLlmLoading || llmRequestDuration !== null) && (
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg mb-8 border border-slate-200 dark:border-slate-700 text-center">
+                {isLlmLoading ? (
+                  <p className="text-lg text-blue-700 dark:text-blue-300 font-medium">
+                    LLM Request Timer: <Timer isRunning={isLlmLoading} className="inline font-bold text-xl" />
+                  </p>
+                ) : (
+                  llmRequestDuration !== null && (
+                    <p className="text-lg text-slate-700 dark:text-slate-300 font-medium">
+                      Last LLM request took: <span className="font-bold text-xl">{llmRequestDuration.toFixed(2)}</span> seconds
+                    </p>
+                  )
+                )}
+              </div>
+            )}
+
+            <div className="mt-6">
               <GenerationTab
                 isExecutingScript={isExecutingScript}
                 handleMultiStepPhaseExecution={handlePhaseExecution}
                 multiStepPhase_Durations={Object.fromEntries(phases.map(p => [p.id, p.duration]))}
                 phaseData={phaseData}
               />
-            )}
-            {activeTab === 'execution' && (
-              <ExecutionTab
-                isExecutingScript={isExecutingScript}
-                isExecutingStreamlit={isExecutingStreamlit}
-                isLlmTimerRunning={isLlmLoading}
-                handleExecuteScript={handleExecuteScript}
-                handleExecuteStreamlit={handleExecuteStreamlit}
-                stopExecution={stopExecution} // Pass stopExecution
-                finalExecutionStatus={finalExecutionStatus}
-                hasExecutionAttempted={hasExecutionAttempted}
-                scriptExecutionDuration={scriptExecutionDuration}
-                scriptTimerKey={scriptTimerKey}
-                executionStartTime={executionStartTime}
-                dockerCommandToDisplay={dockerCommandToDisplay}
-                scriptLogOutput={scriptLogOutput}
-                phasedOutputs={phasedOutputs}
-                scriptExecutionError={scriptExecutionError}
-                finalExecutionResult={finalExecutionResult}
-              />
-            )}
+            </div>
+          </>
+        )}
+
+        {activeTab === 'execution' && (
+          <div className="mt-6">
+            <ExecutionTab
+              isExecutingScript={isExecutingScript}
+              isExecutingStreamlit={isExecutingStreamlit}
+              isLlmTimerRunning={isLlmLoading}
+              handleExecuteScript={handleExecuteScript}
+              handleExecuteStreamlit={handleExecuteStreamlit}
+              stopExecution={stopExecution}
+              finalExecutionStatus={finalExecutionStatus}
+              hasExecutionAttempted={hasExecutionAttempted}
+              scriptExecutionDuration={scriptExecutionDuration}
+              scriptTimerKey={scriptTimerKey}
+              executionStartTime={executionStartTime}
+              dockerCommandToDisplay={dockerCommandToDisplay}
+              scriptLogOutput={scriptLogOutput}
+              phasedOutputs={phasedOutputs}
+              scriptExecutionError={scriptExecutionError}
+              finalExecutionResult={finalExecutionResult}
+            />
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
