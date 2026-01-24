@@ -95,6 +95,6 @@ def run_streamlit():
     import sys
     from streamlit.web import cli as stcli
     
-    sys.argv = ["streamlit", "run", "src/crewai_generated/streamit.py"]
+    sys.argv = ["streamlit", "run", "streamit.py"]
     sys.exit(stcli.main())
 ```

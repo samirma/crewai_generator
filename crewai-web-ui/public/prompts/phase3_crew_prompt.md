@@ -122,7 +122,6 @@ Iterate through `task_roster`.
     1.  Find the entry in `tool_repository` where `task_identifier` matches `yaml_definition.yaml_id`.
     2.  If found, iterate through that entry's `tools` list.
     3.  **For Custom Tools:**
-        *   Instantiate the tool class locally inside the task method. `tool_var = CustomToolClass()`
         *   Add `tool_var` to the `tools` list.
     4.  **For Canonical/MCP Tools:**
         *   Reference the global variable created in **Section 4**. Match using `design_metadata.tool_id` (e.g., `get_current_utc_time_tool`).

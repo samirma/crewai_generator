@@ -114,7 +114,7 @@
               },
               "expected_output": {
                 "type": "string",
-                "description": "**CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed."
+                "description": "**CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed. MUST include variables from `user_inputs` using `{variable_name}` syntax where relevant."
               },
               "agent": {
                 "type": "string",

@@ -7,6 +7,7 @@ export async function POST(req: Request) {
   const scriptStartTime = Date.now(); // Record start time before execution setup
 
   let projectName: string | undefined;
+  let scriptName: string | undefined;
   try {
     // Clone the request to read the body, as it might be consumed by Next.js or other middleware if we are not careful.
     // However, req.json() consumes the body. 
@@ -17,6 +18,7 @@ export async function POST(req: Request) {
     // To support passing projectName, we MUST read the body.
     const body = await req.json();
     projectName = body.projectName;
+    scriptName = body.scriptName;
   } catch (e) {
     // If parsing fails (e.g. empty body), just proceed with default (undefined projectName)
     // console.warn("Could not parse request body for projectName:", e);
@@ -25,9 +27,9 @@ export async function POST(req: Request) {
   const readableStream = new ReadableStream({
     async start(controller) {
       try {
-        console.log(`Received script for execution. Project: ${projectName || 'default (workspace)'}. Setting up Docker container and stream...`);
+        console.log(`Received script for execution. Project: ${projectName || 'default (workspace)'}. Script: ${scriptName || 'default'}. Setting up Docker container and stream...`);
         // Pass controller to executePythonScript to stream build logs
-        const setupResult = await executePythonScript(controller, projectName);
+        const setupResult = await executePythonScript(controller, projectName, scriptName);
 
         // If setup failed (e.g., pre-host, docker build, container creation failed)
         if (setupResult.overallStatus === 'failure' || !setupResult.container || !setupResult.stream) {

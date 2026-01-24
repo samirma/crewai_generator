@@ -29,7 +29,7 @@ Generate a Python script that uses Streamlit to create a user interface. The scr
 * **Runtime Monitoring**:
 * Display a loading spinner during execution.
 * Continuously poll and read `./execution_log.json` to provide real-time status updates within the UI.
-* Provide an **Interrupt** button to allow users to stop the crew execution mid-process.
+* Provide an **Interrupt** button to allow users to stop the crew execution mid-process called "Stop Crew" killing the current running of crew_instance.
 * **Completion**:
 * Upon successful completion, display a success message.
 * Render the final `result` using `st.markdown` or `st.write`.
