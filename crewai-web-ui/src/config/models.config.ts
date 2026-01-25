@@ -52,6 +52,31 @@ export const staticModels: ModelConfig[] = [
   },
 ];
 
+export interface LocalServerConfig {
+  id: string; // Unique identifier for the server (e.g., 'local', 'vllm')
+  name: string; // Display name prefix
+  baseURL: string;
+  apiKey?: string;
+  timeout?: number;
+}
+
+export const localServerConfigs: LocalServerConfig[] = [
+  {
+    id: 'local',
+    name: 'Local',
+    baseURL: 'http://localhost:8080/v1',
+    apiKey: 'LOCAL_API_KEY',
+    timeout: 600,
+  },
+  {
+    id: 'ml-studio',
+    name: 'ML Studio',
+    baseURL: 'http://localhost:1234/v1',
+    apiKey: 'LOCAL_API_KEY',
+    timeout: 600,
+  }
+];
+
 export async function getAllModels(): Promise<ModelConfig[]> {
   let ollamaModels: ModelConfig[] = [];
   try {
@@ -72,24 +97,30 @@ export async function getAllModels(): Promise<ModelConfig[]> {
     console.warn('Failed to fetch Ollama models:', error);
   }
 
-  let localModels: ModelConfig[] = [];
-  try {
-    const response = await fetch('http://localhost:8080/v1/models');
-    if (response.ok) {
-      const data = await response.json();
-      // data.data is the standard OpenAI format list
-      localModels = (data.data || data).map((model: any) => ({
-        id: `local_${model.id}`,
-        name: `(Local) ${model.id}`,
-        model: model.id,
-        timeout: 600,
-        apiKey: 'LOCAL_API_KEY', // Placeholder
-        baseURL: 'http://localhost:8080/v1',
-      }));
+  const localModelsPromises = localServerConfigs.map(async (server) => {
+    try {
+      const response = await fetch(`${server.baseURL}/models`);
+      if (response.ok) {
+        const data = await response.json();
+        // data.data is the standard OpenAI format list
+        const models = (data.data || data).map((model: any) => ({
+          id: `${server.id}_${model.id}`,
+          name: `(${server.name}) ${model.id}`,
+          model: model.id,
+          timeout: server.timeout || 600,
+          apiKey: server.apiKey || 'LOCAL_API_KEY',
+          baseURL: server.baseURL,
+        }));
+        return models;
+      }
+    } catch (error) {
+      console.warn(`Failed to fetch models from ${server.name} (${server.baseURL}):`, error);
     }
-  } catch (error) {
-    console.warn('Failed to fetch Local models');
-  }
+    return [];
+  });
+
+  const localModelsArrays = await Promise.all(localModelsPromises);
+  const localModels = localModelsArrays.flat();
 
   return [...staticModels, ...ollamaModels, ...localModels];
 }
