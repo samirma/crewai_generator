@@ -19,7 +19,7 @@ export const staticModels: ModelConfig[] = [
   },
   {
     id: "qwen-3-235b-a22b-instruct",
-    name: "Qwen 3 235B Instruct",
+    name: "Cerebras Qwen 3 235B Instruct",
     model: "qwen-3-235b-a22b-instruct-2507",
     timeout: 600,
     apiKey: "CEREBRAS_API_KEY",
@@ -27,7 +27,7 @@ export const staticModels: ModelConfig[] = [
   },
   {
     id: "zai-glm-4.7",
-    name: "Zai GLM 4.7",
+    name: "Cerebras GLM 4.7",
     model: "zai-glm-4.7",
     timeout: 600,
     apiKey: "CEREBRAS_API_KEY",
