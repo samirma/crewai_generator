@@ -17,7 +17,7 @@ Generate a Python script that uses Streamlit to create a user interface. The scr
 * **Output Management**:
 * For every output defined in the YAML file, display its file path in the UI.
 * Implement a **background monitoring process** to check for file availability in real-time.
-* Provide a direct link or interface to open/access files through the Streamlit server once they exist.
+* Provide a direct link or interface to open/access files through the Streamlit server once they exist, display its content in the UI, when the file is a format that allows it, for instance if the file is a text file, display its content in the UI, for instance, but not limited to, text files, markdown files, pdf files, image files, html files, etc.
 * Include a **status indicator** (Available/Pending) for each file and a **Delete** button that appears once the file is generated.
 
 ### 2. Execution Logic
@@ -25,14 +25,11 @@ Generate a Python script that uses Streamlit to create a user interface. The scr
 * **Trigger**: Upon clicking the **"Run Crew"** button:
 * **Instantiation**: Initialize the crew using `crew_instance = CrewaiGenerated().crew()`.
 * **State Persistence**: Save the `inputs` dictionary to `inputs.json`. On subsequent loads, the UI should read this file to pre-populate input fields with previous values.
-* **Execution**: Invoke the crew using `result = crew_instance.kickoff(inputs=inputs)` exclude the current `./execution_log.json`.
+* **Execution**: Invoke the crew using `result = crew_instance.kickoff(inputs=inputs)` exclude the current `execution_log.json`.
 * **Runtime Monitoring**:
-* Display a loading spinner during execution.
-* Continuously poll and read `./execution_log.json` to provide real-time status updates within the UI.
 * Provide an **Interrupt** button to allow users to stop the crew execution mid-process called "Stop Crew" killing the current running of crew_instance.
 * **Completion**:
 * Upon successful completion, display a success message.
-* Render the final `result` using `st.markdown` or `st.write`.
 
 ### 3. Environment & Path Handling
 * **Compatibility**: Implement fallback import logic to ensure the application runs seamlessly in both local development environments and as an installed Docker package.
