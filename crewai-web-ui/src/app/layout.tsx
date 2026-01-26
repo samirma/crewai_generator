@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ExecutionProvider } from "@/context/ExecutionContext";
+import { SettingsProvider } from "@/context/SettingsContext";
 
 export const metadata: Metadata = {
   title: "CrewAI Studio: Design & Build Autonomous Crews",
@@ -17,9 +18,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased font-sans">
-        <ExecutionProvider>
-          {children}
-        </ExecutionProvider>
+        <SettingsProvider>
+          <ExecutionProvider>
+            {children}
+          </ExecutionProvider>
+        </SettingsProvider>
       </body>
     </html>
   );

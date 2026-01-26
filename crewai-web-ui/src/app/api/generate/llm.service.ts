@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import fs from 'fs/promises';
-import { getAllModels } from '../../../config/models.config';
+import { getModelConfig } from '../../../config/models.config';
 import path from 'path';
 
 export async function interactWithLLM(
@@ -10,8 +10,7 @@ export async function interactWithLLM(
 ): Promise<{ llmResponseText: string; generatedScript?: string; duration: number; tokensPerSecond: number }> {
   const startTime = Date.now();
 
-  const allModels = await getAllModels();
-  const modelConfig = allModels.find(m => m.id.toLowerCase() === llmModel.toLowerCase());
+  const modelConfig = await getModelConfig(llmModel);
 
   if (!modelConfig) {
     throw new Error(`Model ${llmModel} not found in configuration.`);

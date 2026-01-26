@@ -1,42 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import { useSettings } from '@/context/SettingsContext';
 
 export default function ServerIpSettings() {
+    const { ip: globalIp, port: globalPort, ipLoading: globalLoading, refreshIp, updateIpSettings } = useSettings();
     const [ip, setIp] = useState<string>('');
     const [port, setPort] = useState<number>(8080);
-    const [loading, setLoading] = useState<boolean>(false);
+    const [localLoading, setLocalLoading] = useState<boolean>(false);
     const [message, setMessage] = useState<string>('');
 
     useEffect(() => {
-        fetchIp();
-    }, []);
-
-    const fetchIp = async (force: boolean = false) => {
-        setLoading(true);
-        if (force) setMessage('Discovering...');
-        try {
-            const url = force ? '/api/settings/server-ip?force=true' : '/api/settings/server-ip';
-            const res = await fetch(url);
-            const data = await res.json();
-            if (data.ip) {
-                setIp(data.ip);
-            }
-            if (data.port) {
-                setPort(data.port);
-            }
-            if (force) {
-                setMessage(data.ip ? 'Discovery successful!' : 'Discovery failed.');
-                setTimeout(() => setMessage(''), 3000);
-            }
-        } catch (error) {
-            console.error('Error fetching IP:', error);
-            if (force) setMessage('Discovery error.');
-        } finally {
-            setLoading(false);
-        }
-    };
+        if (globalIp) setIp(globalIp);
+        if (globalPort) setPort(globalPort);
+    }, [globalIp, globalPort]);
 
     const handleSave = async () => {
-        setLoading(true);
+        setLocalLoading(true);
         setMessage('');
         try {
             const res = await fetch('/api/settings/server-ip', {
@@ -47,6 +25,7 @@ export default function ServerIpSettings() {
             const data = await res.json();
             if (data.success) {
                 setMessage('Saved successfully!');
+                updateIpSettings(ip, port);
                 setTimeout(() => setMessage(''), 3000);
             } else {
                 setMessage('Error saving.');
@@ -55,13 +34,25 @@ export default function ServerIpSettings() {
             console.error('Error saving:', error);
             setMessage('Error saving.');
         } finally {
-            setLoading(false);
+            setLocalLoading(false);
         }
     };
 
-    const handleDiscover = () => {
-        fetchIp(true);
+    const handleDiscover = async () => {
+        setLocalLoading(true);
+        setMessage('Discovering...');
+        await refreshIp(true);
+        setLocalLoading(false);
+        // We rely on the context update to trigger the useEffect and set the ip/port in the form
+        // But we can check if it was successful by seeing if the global values updated or via a separate state/callback if needed.
+        // For simplicity, we just clear the message or show success/fail based on context state if we want better feedback.
+        // Given refreshIp catches errors, we can't easily know success here without checking values or adding return value to refreshIp.
+        // Let's assume refreshIp handles errors and we just check the result roughly.
+        setMessage('Discovery completed (check values).');
+        setTimeout(() => setMessage(''), 3000);
     };
+
+    const loading = globalLoading || localLoading;
 
     return (
         <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm mb-6 border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-4">

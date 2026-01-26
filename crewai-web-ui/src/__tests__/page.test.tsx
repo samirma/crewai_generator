@@ -24,7 +24,41 @@ jest.mock('../app/components/ProjectSetup', () => {
 jest.mock('../app/components/SavedPrompts', () => () => <div data-testid="saved-prompts-mock" />);
 jest.mock('../app/components/GenerationTab', () => () => <div data-testid="generation-tab-mock" />);
 jest.mock('../app/components/ExecutionTab', () => () => <div data-testid="execution-tab-mock" />);
+jest.mock('../app/components/ServerIpSettings', () => () => <div data-testid="server-ip-settings-mock" />);
 jest.mock('../hooks/usePhases');
+jest.mock('../context/SettingsContext', () => ({
+  useSettings: () => ({
+    availableModels: [{ id: 'test-model', name: 'Test Model' }],
+    modelsLoading: false,
+    modelsError: "",
+    ip: "127.0.0.1",
+    port: 8080,
+    ipLoading: false,
+    ipError: "",
+    refreshModels: jest.fn(),
+    refreshIp: jest.fn(),
+    updateIpSettings: jest.fn(),
+  }),
+}));
+jest.mock('../hooks/useExecution', () => ({
+  useExecution: () => ({
+    isExecutingScript: false,
+    isExecutingStreamlit: false,
+    scriptExecutionError: null,
+    scriptLogOutput: [],
+    dockerCommandToDisplay: "",
+    phasedOutputs: [],
+    scriptExecutionDuration: null,
+    hasExecutionAttempted: false,
+    scriptTimerKey: 0,
+    executionStartTime: null,
+    finalExecutionStatus: 'idle',
+    finalExecutionResult: null,
+    handleExecuteScript: jest.fn(),
+    handleExecuteStreamlit: jest.fn(),
+    stopExecution: jest.fn(),
+  })
+}));
 
 const mockUsePhases = usePhases as jest.Mock;
 
@@ -65,7 +99,7 @@ describe('Home page', () => {
   });
 
   it('should call handleRunAllPhases from hook when sequential button is clicked', async () => {
-    const handleRunAllPhases = jest.fn().mockReturnValue(new Promise(() => {}));
+    const handleRunAllPhases = jest.fn().mockReturnValue(new Promise(() => { }));
     mockUsePhases.mockReturnValue({
       ...mockInitialPhases,
       handleRunAllPhases,
@@ -84,7 +118,7 @@ describe('Home page', () => {
   });
 
   it('should call handleRunAllPhasesInParallel from hook when parallel button is clicked', async () => {
-    const handleRunAllPhasesInParallel = jest.fn().mockReturnValue(new Promise(() => {}));
+    const handleRunAllPhasesInParallel = jest.fn().mockReturnValue(new Promise(() => { }));
     mockUsePhases.mockReturnValue({
       ...mockInitialPhases,
       handleRunAllPhases: jest.fn(),
@@ -103,7 +137,7 @@ describe('Home page', () => {
   });
 
   it('should show loading state on sequential button when running sequentially', async () => {
-    const promise = new Promise<boolean>(() => {}); // A promise that never resolves
+    const promise = new Promise<boolean>(() => { }); // A promise that never resolves
     const handleRunAllPhases = jest.fn().mockReturnValue(promise);
 
     mockUsePhases.mockImplementation(() => ({
@@ -130,7 +164,7 @@ describe('Home page', () => {
   });
 
   it('should show loading state on parallel button when running in parallel', async () => {
-    const promise = new Promise<boolean>(() => {});
+    const promise = new Promise<boolean>(() => { });
     const handleRunAllPhasesInParallel = jest.fn().mockReturnValue(promise);
 
     mockUsePhases.mockImplementation(() => ({

@@ -124,3 +124,39 @@ export async function getAllModels(): Promise<ModelConfig[]> {
 
   return [...staticModels, ...ollamaModels, ...localModels];
 }
+
+export async function getModelConfig(modelId: string): Promise<ModelConfig | undefined> {
+  // 1. Check static models first
+  const staticModel = staticModels.find(m => m.id === modelId);
+  if (staticModel) return staticModel;
+
+  // 2. Check for Local Server models (prefix match)
+  // Format: {server.id}_{model.id}
+  for (const server of localServerConfigs) {
+    if (modelId.startsWith(`${server.id}_`)) {
+      const actualModelId = modelId.slice(server.id.length + 1);
+      return {
+        id: modelId,
+        name: `(${server.name}) ${actualModelId}`,
+        model: actualModelId,
+        timeout: server.timeout || 600,
+        apiKey: server.apiKey || 'LOCAL_API_KEY',
+        baseURL: server.baseURL,
+      };
+    }
+  }
+
+  // 3. Fallback: Assume it's an Ollama model if we haven't found it yet
+  // If the ID was fetched from Ollama, it's just the model name.
+  // We don't have a reliable prefix for Ollama models from the list logic above (it just uses model.name).
+  // But since we checked static and local prefixes, if it's not those, it's likely Ollama or an invalid ID.
+  // We can treat it as an Ollama model.
+  return {
+    id: modelId,
+    name: `(Ollama) ${modelId}`,
+    model: modelId,
+    timeout: 600,
+    apiKey: 'OLLAMA_API_KEY',
+    baseURL: 'http://localhost:11434/v1',
+  };
+}

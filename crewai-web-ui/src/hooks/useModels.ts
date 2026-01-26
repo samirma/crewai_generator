@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getCookie } from '@/utils/cookieUtils';
+import { useSettings } from '@/context/SettingsContext';
 
 export interface Model {
   id: string;
@@ -7,51 +8,26 @@ export interface Model {
 }
 
 export const useModels = () => {
-  const [availableModels, setAvailableModels] = useState<Model[]>([]);
-  const [modelsLoading, setModelsLoading] = useState<boolean>(true);
-  const [modelsError, setModelsError] = useState<string>("");
+  const { availableModels, modelsLoading, modelsError } = useSettings();
   const [llmModel, setLlmModel] = useState<string>("");
 
   useEffect(() => {
-    const fetchModels = async () => {
-      setModelsLoading(true);
-      setModelsError("");
-      try {
-        const response = await fetch('/api/models');
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Failed to fetch models: ${response.status}`);
-        }
-        const models: Model[] = await response.json();
-        setAvailableModels(models);
-        if (models.length > 0) {
-          const selectableModels = models.filter(model => model.id !== 'ollama/not-configured' && model.id !== 'ollama/error');
-          if (selectableModels.length > 0) {
-            const llmModelCookie = getCookie('llmModelSelection');
-            if (llmModelCookie && selectableModels.some(model => model.id === llmModelCookie)) {
-              setLlmModel(llmModelCookie);
-            } else {
-              setLlmModel(selectableModels[0].id);
-            }
-          } else {
-            setLlmModel("");
-          }
+    if (availableModels.length > 0) {
+      const selectableModels = availableModels.filter(model => model.id !== 'ollama/not-configured' && model.id !== 'ollama/error');
+      if (selectableModels.length > 0) {
+        const llmModelCookie = getCookie('llmModelSelection');
+        if (llmModelCookie && selectableModels.some(model => model.id === llmModelCookie)) {
+          setLlmModel(llmModelCookie);
         } else {
-          setLlmModel("");
+          setLlmModel(selectableModels[0].id);
         }
-      } catch (err) {
-        console.error("Error fetching models:", err);
-        if (err instanceof Error) {
-          setModelsError(err.message);
-        } else {
-          setModelsError("An unknown error occurred while fetching models.");
-        }
-      } finally {
-        setModelsLoading(false);
+      } else {
+        setLlmModel("");
       }
-    };
-    fetchModels();
-  }, []);
+    } else {
+      setLlmModel("");
+    }
+  }, [availableModels]);
 
   return {
     availableModels,
