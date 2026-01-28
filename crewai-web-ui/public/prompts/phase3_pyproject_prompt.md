@@ -50,13 +50,6 @@ description = "crewai_generated using crewAI"
 authors = [{ name = "Your Name", email = "you@example.com" }]
 requires-python = ">=3.10,<3.14"
 dependencies = [
-    "crewai[google-genai,tools]",
-    "crewai-tools[mcp]",
-    "fastmcp",
-    "litellm>=1.80.9",
-    "zeroconf",
-    "ollama",
-    "python-dotenv", # Example extra dependency
 ]
 
 [project.scripts]
