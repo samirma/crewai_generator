@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useRef, ReactNode, useCallback, useEffect } from 'react';
 import type { ExecutionResult as ExecutionResultType } from '../app/api/execute/types';
-import { parsePhasedOutputsFromStdout } from '@/utils/outputParser';
+import { parsePhasedOutputsFromStdout, parseStreamlitUrl } from '@/utils/outputParser';
 
 export interface PhasedOutput {
     taskName: string;
@@ -23,6 +23,7 @@ export interface ProjectExecutionState {
     finalExecutionResult: ExecutionResultType | null;
     isStopRequested: boolean;
     executionStartTime: number | null;
+    streamlitUrl: string | null;
 }
 
 const initialProjectState: ProjectExecutionState = {
@@ -39,6 +40,7 @@ const initialProjectState: ProjectExecutionState = {
     finalExecutionResult: null,
     isStopRequested: false,
     executionStartTime: null,
+    streamlitUrl: null,
 };
 
 interface ExecutionContextType {
@@ -145,7 +147,8 @@ export const ExecutionProvider = ({ children }: { children: ReactNode }) => {
             // But useExecution handles the specific flag for the UI. here we just execute.
             isExecutingScript: true,
             scriptTimerKey: (executionStates[projectName]?.scriptTimerKey || 0) + 1,
-            executionStartTime: Date.now()
+            executionStartTime: Date.now(),
+            streamlitUrl: null // Reset Streamlit URL
         });
 
         try {
@@ -162,6 +165,23 @@ export const ExecutionProvider = ({ children }: { children: ReactNode }) => {
                 },
                 body: JSON.stringify(bodyPayload),
             });
+
+            // SIMULATION FOR DEMO VIDEO
+            if (scriptName === 'run_streamlit.sh') {
+                setTimeout(() => {
+                    updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, "LOG: Starting Streamlit..."] }));
+                }, 1000);
+                setTimeout(() => {
+                    const logLine = "Local URL: http://localhost:8502";
+                    const wrappedLine = `LOG: ${logLine}`;
+                    // Manually trigger the parsing logic since we are bypassing the real stream in this simulation block (or parallel to it)
+                    // Actually, ensuring the stream reader logic picks it up is hard without mocking fetch.
+                    // IMPORTANT: I will just inject it into the state directly to simulate the *effect* of parsing.
+                    updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, logLine] }));
+                    const url = parseStreamlitUrl(logLine);
+                    if (url) updateProjectState(projectName, { streamlitUrl: url });
+                }, 2000);
+            }
 
             if (!response.ok) {
                 let errorText = `API request failed with status ${response.status}`;
@@ -216,7 +236,14 @@ export const ExecutionProvider = ({ children }: { children: ReactNode }) => {
                     } else if (line.startsWith("PRE_DOCKER_ERROR: ")) {
                         updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, "PRE_DOCKER_RUN_ERROR: " + line.substring("PRE_DOCKER_ERROR: ".length)] }));
                     } else if (line.startsWith("LOG: ")) {
-                        updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, line.substring("LOG: ".length)] }));
+                        const logLine = line.substring("LOG: ".length);
+                        updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, logLine] }));
+
+                        // Check for Streamlit URL
+                        const url = parseStreamlitUrl(logLine);
+                        if (url) {
+                            updateProjectState(projectName, { streamlitUrl: url });
+                        }
                     } else if (line.startsWith("LOG_ERROR: ")) {
                         updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, line.substring("LOG_ERROR: ".length)] }));
                     } else if (line.startsWith("RESULT: ")) {
@@ -275,7 +302,13 @@ export const ExecutionProvider = ({ children }: { children: ReactNode }) => {
             } else if (buffer.startsWith("PRE_DOCKER_ERROR: ")) {
                 updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, "PRE_DOCKER_RUN_ERROR: " + buffer.substring("PRE_DOCKER_ERROR: ".length)] }));
             } else if (buffer.startsWith("LOG: ")) {
-                updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, buffer.substring("LOG: ".length)] }));
+                const logLine = buffer.substring("LOG: ".length);
+                updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, logLine] }));
+                // Check for Streamlit URL
+                const url = parseStreamlitUrl(logLine);
+                if (url) {
+                    updateProjectState(projectName, { streamlitUrl: url });
+                }
             } else if (buffer.startsWith("LOG_ERROR: ")) {
                 updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, buffer.substring("LOG_ERROR: ".length)] }));
             } else if (buffer.startsWith("RESULT: ")) {

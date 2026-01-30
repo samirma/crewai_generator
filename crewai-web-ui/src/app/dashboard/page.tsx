@@ -131,6 +131,7 @@ export default function Dashboard() {
                             scriptExecutionError={activeProjectState?.scriptExecutionError || ""}
                             finalExecutionResult={activeProjectState?.finalExecutionResult || null}
                             projectName={selectedProject} // Pass projectName to context-aware file explorer
+                            streamlitUrl={activeProjectState?.streamlitUrl || null}
                         />
                     </div>
                 )}

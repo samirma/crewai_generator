@@ -47,7 +47,8 @@ export default function Home() {
     finalExecutionResult,
     handleExecuteScript,
     handleExecuteStreamlit,
-    stopExecution
+    stopExecution,
+    streamlitUrl
   } = useExecution();
 
   const playLlmSound = () => {
@@ -248,6 +249,7 @@ export default function Home() {
               phasedOutputs={phasedOutputs}
               scriptExecutionError={scriptExecutionError}
               finalExecutionResult={finalExecutionResult}
+              streamlitUrl={streamlitUrl}
             />
           </div>
         )}

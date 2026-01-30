@@ -54,6 +54,7 @@ export const useExecution = (projectName: string = 'default') => {
     stopExecution,
     resetExecutionState,
     playSuccessSound,
-    playErrorSound
+    playErrorSound,
+    streamlitUrl: state.streamlitUrl
   };
 };

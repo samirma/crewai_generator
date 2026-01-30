@@ -35,6 +35,7 @@ interface ExecutionTabProps {
   scriptExecutionError: string;
   finalExecutionResult: ExecutionResultType | null;
   projectName?: string | null;
+  streamlitUrl?: string | null;
 }
 
 const ExecutionTab = ({
@@ -54,7 +55,8 @@ const ExecutionTab = ({
   phasedOutputs,
   scriptExecutionError,
   // finalExecutionResult, // Used for JSON view - I'll keep it if it's not "Generated Files" or "Logs", but maybe user wants clean UI. I'll remove raw JSON too to be cleaner.
-  projectName
+  projectName,
+  streamlitUrl
 }: ExecutionTabProps) => {
   const [outputs, setOutputs] = useState<(string | OutputItem)[]>([]);
   const [previewFile, setPreviewFile] = useState<string | null>(null);
@@ -160,6 +162,17 @@ const ExecutionTab = ({
           >
             Stop Streamlit
           </button>
+        )}
+
+        {streamlitUrl && (
+          <a
+            href={streamlitUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold text-lg px-6 py-3 rounded-xl shadow-lg transition duration-200 ease-in-out transform hover:scale-105 focus:ring-4 focus:ring-green-300 focus:outline-none dark:focus:ring-green-800 flex items-center justify-center gap-2 mb-6"
+          >
+            Open Streamlit
+          </a>
         )}
       </div>
 

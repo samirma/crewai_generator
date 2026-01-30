@@ -32,3 +32,13 @@ export const parsePhasedOutputsFromStdout = (stdout: string): PhasedOutput[] => 
   }
   return outputs;
 };
+
+export const parseStreamlitUrl = (logLine: string): string | null => {
+  if (logLine.includes("Local URL:")) {
+    const match = logLine.match(/Local URL:\s+(http:\/\/[^\s]+)/);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  return null;
+};
