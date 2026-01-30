@@ -29,9 +29,23 @@
     *   **Outputs:** What is the result of this step? (e.g., 'Structured Analysis', 'Refined Text'). **refer to a proper Deliverable from Section C if applicable.**
 *   **Note:** Focus on the *flow of information* and *decision points*.
 
-**C. Deliverables & Success Criteria:**
-*   **Deliverables:** Precise specification of ALL final outputs (filenames, formats, structure).
-*   **Success Criteria:** How do we know if the task was successful? (e.g., "The report covers both Android and Backend profiles").
+**C. Final Deliverables & Success Criteria:**
+*   **Deliverables:**
+    *   **File Deliverables, when required by the initial instruction:**
+        *   **Description:** List ALL files that need to be saved to the filesystem, only if needed.
+        *   **Schema for each file:**
+            *   **Deliverable Name:** Descriptive name.
+            *   **Description:** What does this file contain?
+            *   **Format:** (e.g., 'JSON', 'Markdown', 'Python').
+            *   **Location:** **MANDATORY.** The absolute path where the file must be saved (e.g., '/tmp/output.json').
+    *   **Main Output (Return Value, when needed):**
+        *   **Description:** The primary string content that should be returned to the user. This is a single grouped string. This output is optional, only if needed.
+        *   **Schema:**
+            *   **Deliverable Name:** "Main Output String"
+            *   **Description:** Summary of the returned content.
+            *   **Format:** 'String'
+*   **Success Criteria:**
+    *   How do we know if the task was successful? (e.g., "The file was created at the specified path and the returned string contains the corrected text").
 
 **D. Information Assets & Constraints:**
 *   **Data Sources:** List ALL files, URLs, or external data sources mentioned.

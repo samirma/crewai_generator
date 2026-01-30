@@ -15,9 +15,23 @@ Generate a Python script that uses Streamlit to create a user interface. The scr
 * Use the `name` field as the widget label and unique key.
 * Store all collected values in a dictionary named `inputs`.
 * **Output Management**:
-* For every output defined in the YAML file, display its file path in the UI.
-* Implement a **background monitoring process** to check for file availability in real-time.
-* Provide a direct link or interface to open/access files through the Streamlit server once they exist, display its content in the UI, when the file is a format that allows it, for instance if the file is a text file, display its content in the UI, for instance, but not limited to, text files, markdown files, pdf files, image files, html files, etc.
+* Iterate through the defined outputs in the YAML file.
+* **File-based Outputs** (have a `location` or `file` path):
+    * Display the file path in the UI.
+    * Implement a **background monitoring process** to check for file availability in real-time.
+    * Include a **status indicator** (Available/Pending) for each file.
+* **Direct Outputs** (NO `location` or `file` path):
+    * These represent the direct result of the crew execution (the return value of `crew.kickoff()`).
+    * Display them ONLY after the execution completes successfully.
+* **Common Rendering Logic** (for both types):
+    * Use the **`description`** field to display a helper text or caption (e.g., `st.caption` or `st.info`).
+    * Use the **`format`** field to determine how to render the content:
+        * **JSON**: Use `st.json()` (parse string content if needed).
+        * **Markdown**: Use `st.markdown()`.
+        * **Image**: Use `st.image()`.
+        * **String** / **Text**: Use `st.text()` or `st.write()`.
+* Provide a direct link or interface to open/access file-based outputs through the Streamlit server once they exist.
+* Provide a direct link or interface to open/access files through the Streamlit server once they exist.
 * Include a **status indicator** (Available/Pending) for each file and a **Delete** button that appears once the file is generated.
 
 ### 2. Execution Logic
@@ -26,6 +40,9 @@ Generate a Python script that uses Streamlit to create a user interface. The scr
 * **Instantiation**: Initialize the crew using `crew_instance = CrewaiGenerated().crew()`.
 * **State Persistence**: Save the `inputs` dictionary to `inputs.json`. On subsequent loads, the UI should read this file to pre-populate input fields with previous values.
 * **Execution**: Invoke the crew using `result = crew_instance.kickoff(inputs=inputs)` exclude the current `execution_log.json`.
+* **Handling Direct Outputs**:
+    * If an output definition has NO `location`, extract its content from the `result` object (or use `result` directly if it matches the format).
+    * Display these outputs immediately after execution finishes.
 * **Runtime Monitoring**:
 * Provide an **Interrupt** button to allow users to stop the crew execution mid-process called "Stop Crew" killing the current running of crew_instance.
 * **Completion**:

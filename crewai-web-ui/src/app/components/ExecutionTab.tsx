@@ -10,12 +10,19 @@ interface PhasedOutput {
   output: string;
 }
 
+interface OutputItem {
+  name: string;
+  description: string;
+  format: string;
+  location: string;
+}
+
 interface ExecutionTabProps {
   isExecutingScript: boolean;
-  isExecutingStreamlit: boolean;
+  isExecutingStreamlit?: boolean;
   isLlmTimerRunning: boolean;
   handleExecuteScript: () => void;
-  handleExecuteStreamlit: () => void;
+  handleExecuteStreamlit?: () => void;
   stopExecution?: () => void;
   finalExecutionStatus: string | null;
   hasExecutionAttempted: boolean;
@@ -32,10 +39,10 @@ interface ExecutionTabProps {
 
 const ExecutionTab = ({
   isExecutingScript,
-  isExecutingStreamlit,
+  isExecutingStreamlit = false,
   isLlmTimerRunning,
   handleExecuteScript,
-  handleExecuteStreamlit,
+  handleExecuteStreamlit = () => { },
   stopExecution,
   finalExecutionStatus,
   hasExecutionAttempted,
@@ -49,7 +56,7 @@ const ExecutionTab = ({
   // finalExecutionResult, // Used for JSON view - I'll keep it if it's not "Generated Files" or "Logs", but maybe user wants clean UI. I'll remove raw JSON too to be cleaner.
   projectName
 }: ExecutionTabProps) => {
-  const [outputs, setOutputs] = useState<string[]>([]);
+  const [outputs, setOutputs] = useState<(string | OutputItem)[]>([]);
   const [previewFile, setPreviewFile] = useState<string | null>(null);
 
   const fetchOutputs = useCallback(async () => {
@@ -208,29 +215,47 @@ const ExecutionTab = ({
             <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
               <ul className="space-y-2">
                 {outputs.map((output, idx) => {
-                  // Clean up path for display
-                  const displayName = output.split('/').pop() || output;
+                  let displayName = '';
+                  let filePath = '';
+                  let description = '';
+
+                  if (typeof output === 'string') {
+                    displayName = output.split('/').pop() || output;
+                    filePath = output;
+                  } else {
+                    displayName = output.name || output.location.split('/').pop() || 'Unknown Output';
+                    filePath = output.location;
+                    description = output.description;
+                  }
+
                   return (
-                    <li key={idx} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-md hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors">
-                      <span className="font-mono text-sm text-slate-700 dark:text-slate-200 truncate mr-4">
-                        {displayName}
-                      </span>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setPreviewFile(output)}
-                          className="px-3 py-1 text-sm bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 rounded hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors"
-                        >
-                          Preview
-                        </button>
-                        <a
-                          href={getFileUrl(output)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1 text-sm bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-300 rounded hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors"
-                        >
-                          Open New Tab
-                        </a>
+                    <li key={idx} className="flex flex-col p-3 bg-slate-50 dark:bg-slate-700 rounded-md hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-sm text-slate-700 dark:text-slate-200 truncate mr-4">
+                          {displayName}
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setPreviewFile(filePath)}
+                            className="px-3 py-1 text-sm bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 rounded hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors"
+                          >
+                            Preview
+                          </button>
+                          <a
+                            href={getFileUrl(filePath)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1 text-sm bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-300 rounded hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors"
+                          >
+                            Open New Tab
+                          </a>
+                        </div>
                       </div>
+                      {description && (
+                        <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          {description}
+                        </span>
+                      )}
                     </li>
                   );
                 })}

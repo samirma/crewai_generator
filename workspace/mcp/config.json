@@ -1,5 +1,9 @@
 {
    "mcpServers": {
+   "playwright": {
+    "command": "npx",
+    "args": ["-y", "@playwright/mcp@latest", "--headless"]
+   },
       "excel-stdio": {
          "command": "uvx",
          "args": [

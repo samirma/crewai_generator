@@ -6,7 +6,7 @@
   "llm_list": [
     {
       "design_metadata": {
-        "llm_id": "ollama/minimax-m2.1:cloud",
+        "llm_id": "ollama-minimax-m2.1:cloud",
         "reasoner": true,
         "multimodal_support": true,
         "description": "An advanced 230B parameter MoE model optimized for complex agentic workflows and multilingual programming. Features 'Interleaved Thinking' for robust multi-step reasoning and supports multimodal inputs."
@@ -19,7 +19,7 @@
     },
     {
       "design_metadata": {
-        "llm_id": "qwen-3-235b-a22b-instruct",
+        "llm_id": "cerebras-qwen-3-235b-a22b-instruct",
         "reasoner": false,
         "multimodal_support": false,
         "description": "A high-speed, cost-efficient frontier model by Alibaba on Cerebras. Offers exceptional inference capabilities (1,500+ t/s) and large context (131K), excelling in coding, math, and general instruction following."
@@ -33,7 +33,7 @@
     },
     {
       "design_metadata": {
-        "llm_id": "zai-glm-4.7",
+        "llm_id": "cerebras-zai-glm-4.7",
         "reasoner": true,
         "multimodal_support": true,
         "description": "ZhipuAI's flagship 358B MoE model. specialized for complex reasoning with 'Interleaved Thinking', advanced coding agent capabilities, and native multimodal understanding for high-quality UI/visual outputs."
@@ -43,20 +43,6 @@
         "timeout": 600,
         "api_key": "CEREBRAS_API_KEY",
         "base_url": "https://api.cerebras.ai/v1"
-      }
-    },
-    {
-      "design_metadata": {
-        "llm_id": "glm-4.7-flash",
-        "reasoner": false,
-        "multimodal_support": false,
-        "description": "ZhipuAI's GLM-4.7 Flash model. High speed and low cost, suitable for high-concurrency tasks."
-      },
-      "constructor_args": {
-        "model": "glm-4.7-flash",
-        "timeout": 600,
-        "api_key": "ZAI_API_KEY",
-        "base_url": "https://api.z.ai/api/paas/v4"
       }
     },
     {
