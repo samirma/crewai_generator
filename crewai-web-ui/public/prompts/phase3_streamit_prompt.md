@@ -1,77 +1,110 @@
 
-You will be provided with the content of previous phases, including the JSON definition of agents, tasks, and user inputs. Your task is to generate the content for a `streamit.py` file that serves as a Streamlit UI for the CrewAI project.
+You are an expert Python Streamlit Developer. Your task is to generate a `streamit.py` file that serves as a modern, functional User Interface for a CrewAI project.
 
-**Objective:**
-Generate a Python script that uses Streamlit to create a user interface. The script must dynamically create input fields based on the `user_inputs` defined in the provided JSON and execute the crew.
+# Context
+The user has defined a CrewAI project with specific agents, tasks, and **User Inputs**. You will be provided with this definition in JSON format.
+Your goal is to build a UI that allows users to:
+1.  Enter values for the defined User Inputs.
+2.  Run the Crew.
+3.  View the outputs (both generated files and direct execution results).
 
-**Constraints:**
-*   **Output ONLY Python code.** No markdown formatting, no explanation, no prologue, no epilogue.
-*   The file must be valid, executable Python code.
+# Task Requirements
 
-### 1. UI Design
-* **Layout Definition**: Parse the YAML `description` attribute to define the basic UI layout.
-* **Input Generation**: Scan the provided JSON for the `user_inputs` list.
-* For each item in `user_inputs`, generate a corresponding Streamlit input widget (e.g., `st.text_input`).
-* Use the `name` field as the widget label and unique key.
-* Store all collected values in a dictionary named `inputs`.
-* **Output Management**:
-* Iterate through the defined outputs in the YAML file.
-* **File-based Outputs** (have a `location` or `file` path):
-    * Display the file path in the UI.
-    * Implement a **background monitoring process** to check for file availability in real-time.
-    * Include a **status indicator** (Available/Pending) for each file.
-* **Direct Outputs** (NO `location` or `file` path):
-    * These represent the direct result of the crew execution (the return value of `crew.kickoff()`).
-    * Display them ONLY after the execution completes successfully.
-* **Common Rendering Logic** (for both types):
-    * Use the **`description`** field to display a helper text or caption (e.g., `st.caption` or `st.info`).
-    * Use the **`format`** field to determine how to render the content:
-        * **JSON**: Use `st.json()` (parse string content if needed).
-        * **Markdown**: Use `st.markdown()`.
-        * **Image**: Use `st.image()`.
-        * **String** / **Text**: Use `st.text()` or `st.write()`.
-* Provide a direct link or interface to open/access file-based outputs through the Streamlit server once they exist.
-* Provide a direct link or interface to open/access files through the Streamlit server once they exist.
-* Include a **status indicator** (Available/Pending) for each file and a **Delete** button that appears once the file is generated.
+Generate a valid, executable Python script (`streamit.py`) that implements the following logic:
 
-### 2. Execution Logic
-* **Initialization**: Import `CrewaiGenerated` from `crewai_generated.crew`.
-* **Trigger**: Upon clicking the **"Run Crew"** button:
-* **Instantiation**: Initialize the crew using `crew_instance = CrewaiGenerated().crew()`.
-* **State Persistence**: Save the `inputs` dictionary to `inputs.json`. On subsequent loads, the UI should read this file to pre-populate input fields with previous values.
-* **Execution**: Invoke the crew using `result = crew_instance.kickoff(inputs=inputs)` exclude the current `execution_log.json`.
-* **Handling Direct Outputs**:
-    * If an output definition has NO `location`, extract its content from the `result` object (or use `result` directly if it matches the format).
-    * Display these outputs immediately after execution finishes.
-* **Runtime Monitoring**:
-* Provide an **Interrupt** button to allow users to stop the crew execution mid-process called "Stop Crew" killing the current running of crew_instance.
-* **Completion**:
-* Upon successful completion, display a success message.
+## 1. Dynamic Input Form
+*   **Analyze the `user_inputs` list** from the provided JSON.
+*   **Loop through each input** and create a corresponding Streamlit widget:
+    *   Use `st.text_input` as the default.
+    *   Use the input's `name` as the label.
+    *   Use the input's `name` as the key for state management.
+*   **Store** all user-entered values in a dictionary named `inputs`.
 
-### 3. Environment & Path Handling
-* **Compatibility**: Implement fallback import logic to ensure the application runs seamlessly in both local development environments and as an installed Docker package.
+## 2. Crew Execution
+*   **Import** the crew class: `from crewai_generated.crew import CrewaiGenerated`.
+*   **Initialize** the crew: `crew_instance = CrewaiGenerated().crew()`.
+*   **Button**: Create a `st.button("Run Crew")` that is only visible if the crew is not running.
+*   **On Click**:
+    1.  **Save Inputs**: Dump the `inputs` dictionary to a local file named `inputs.json` (for persistence).
+    2.  **Execute**:
+        *   Use a **Status Container** (e.g., `with st.status("Running Crew...", expanded=True) as status:`) to show progress.
+        *   Wrap the execution in a `try...except` block.
+        *   **Running**: Update status to "Running".
+        *   **Invocation**: Call `result = crew_instance.kickoff(inputs=inputs)`.
+        *   **Success**: Update status to "Complete" (e.g., `status.update(label="Crew Execution Complete", state="complete")`).
+        *   **Failure**: Catch exceptions, display an error message (`st.error(f"Error: {e}")`), and update status to "Error" (`status.update(label="Execution Failed", state="error")`).
+    3.  **Handle Results**: Display outputs immediately after execution (see "Output Handling").
 
-**Template:**
+    *   **Interrupt**: Add a `stop_btn = st.button("Stop Execution")` (if appropriate for the layout) that simply calls `st.stop()` or resets state to halt the process if clicked (note: valid for script re-runs, though acting on blocking calls varies). ensure the UI reflects the "Stopped" state if interrupted. It should only be visible if the crew is running.
+
+## 3. Output Handling (CRITICAL)
+You must handle two types of outputs defined in the configuration. Iterate through the `outputs` list:
+
+### Type A: File-based Outputs
+*   **Definition**: Outputs that have a `location` (or `file`) path specified.
+*   **Behavior**: These files are generated *during* or *after* execution by the agents.
+*   **UI Elements**:
+    *   Display the **File Path**.
+    *   Show a **Status Indicator** (e.g., "Pending" vs "Available").
+    *   Implement a **Background Monitor** to check if the file exists on disk.
+    *   Provide a **Preview/Open** button once the file exists.
+
+### Type B: Direct Execution Results
+*   **Definition**: Outputs that **DO NOT** have a `location` path.
+*   **Behavior**: These are returned directly by the `crew.kickoff()` method (wrapped in the `result` object).
+*   **UI Elements**:
+    *   Display these **ONLY** after execution completes successfully.
+    *   Use the `result` variable to extract the content.
+
+### Rendering Rules (For Both Types)
+Use the `format` and `description` fields to determine how to render the content:
+*   **Description**: Display as a caption or help text (`st.caption(description)`).
+*   **Format**:
+    *   `"JSON"` -> `st.json(content)`
+    *   `"Markdown"` -> `st.markdown(content)`
+    *   `"Image"` -> `st.image(content)`
+    *   Everything else -> `st.write()` or `st.text()`
+
+## 4. State & Persistence
+*   **Load Inputs**: On script launch, check if `inputs.json` exists. If so, pre-fill the input widgets with the saved values.
+*   **Stop Button**: detailed instructions to add a "Stop" button are NOT required for this version, but standard Streamlit structure should allow for future expansion.
+
+# Constraints
+*   **Output ONLY Python code.** No markdown blocks, no explanations.
+*   **Compatibility**: Include the standard boilerplate to handle imports for both local development (running `streamlit run streamit.py`) and installed package mode. (See Template).
+
+# Template
+Use this structure as a starting point:
 
 ```python
 import streamlit as st
 import sys
 import os
+import json
+import time
 
-# Adjust import based on the actual package structure if needed
+# --- Path Setup ---
 try:
     from crewai_generated.crew import CrewaiGenerated
 except ImportError:
-    # Fallback for local development if not installed as package
+    # Fallback for local dev
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     from crewai_generated.crew import CrewaiGenerated
 
-crew = CrewaiGenerated().crew()
+def load_inputs():
+    if os.path.exists('inputs.json'):
+        with open('inputs.json', 'r') as f:
+            return json.load(f)
+    return {}
 
 def main():
-
-    inputs = {}
-
+    st.title("CrewAI Dashboard")
+    
+    # ... [Your Dynamic Input Logic Here] ...
+    
+    if st.button("Run Crew"):
+        # ... [Execution Logic] ...
+        # ... [Output Display Logic] ...
 
 if __name__ == "__main__":
     main()

@@ -21,7 +21,7 @@ Use the JSON object provided as the single source of truth. Your task is to gene
     *   **Context:** Add a comment block inside the method or class documentation citing the `design_metadata.task_use_case` to clarify intent.
 
 *   **Output Format:**
-    *   The output should be a series of file blocks, each marked with `[START_FILE:FILE_PATH]` and `[END_FILE:FILE_PATH]`.
+    *   The output should be a series of file blocks, each marked with `[START_FILE:FILE_PATH]` and `[END_FILE:FILE_PATH]`. Returns nothing in case no code should be developed.
 
 **EXAMPLE of expected output format (Do NOT copy valid usage, structure ONLY):**
 
