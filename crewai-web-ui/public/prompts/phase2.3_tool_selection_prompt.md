@@ -140,7 +140,7 @@ JSON Schema:
           },
           "justification": {
             "type": "string",
-            "description": "Considering the information of the current task available in the design_metadata and yaml_definition, you should determine if a tool is required or not, and why based on the capabilities of a llm."
+            "description": "Considering the information of the current task available in the design_metadata and yaml_definition, you should determine if a tool is required or not, and why based on the capabilities of a llm. Be aware that the llm are not time-aware, so if the task has any time component, you should select the time-stdio tool."
           },
           "tools": {
             "type": "array",
