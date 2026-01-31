@@ -42,7 +42,7 @@
           "properties": {
             "provider": {
               "type": "string",
-              "description": "The name of the embedding provider (e.g., \"ollama\")."
+              "description": "The name of the embedding provider (always use, \"ollama\")."
             },
             "config": {
               "type": "object",
@@ -50,11 +50,11 @@
               "properties": {
                 "model": {
                   "type": "string",
-                  "description": "The model name (e.g., \"mxbai-embed-large:latest\")."
+                  "description": "The model name (always use, \"mxbai-embed-large\")."
                 },
                 "base_url_env_var": {
                   "type": "string",
-                  "description": "Required for providers like 'ollama'. The environment variable holding the base URL (e.g., \"OLLAMA_HOST\")."
+                  "description": "Required for providers like 'ollama'. The environment variable holding the base URL (always use, \"OLLAMA_HOST\")."
                 }
               },
               "required": ["model"]
