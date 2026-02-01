@@ -104,7 +104,8 @@ export const ExecutionProvider = ({ children }: { children: ReactNode }) => {
         try {
             updateProjectState(projectName, prev => ({
                 scriptLogOutput: [...prev.scriptLogOutput, "LOG: Requesting container stop..."],
-                isStopRequested: true
+                isStopRequested: true,
+                streamlitUrl: null // Clear Streamlit URL to hide the button immediately
             }));
 
             const response = await fetch('/api/stop', {
