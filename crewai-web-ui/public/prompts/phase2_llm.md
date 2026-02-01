@@ -19,20 +19,6 @@
     },
     {
       "design_metadata": {
-        "llm_id": "cerebras-qwen-3-235b-a22b-instruct",
-        "reasoner": false,
-        "multimodal_support": false,
-        "description": "A high-speed, cost-efficient frontier model by Alibaba on Cerebras. Offers exceptional inference capabilities (1,500+ t/s) and large context (131K), excelling in coding, math, and general instruction following."
-      },
-      "constructor_args": {
-        "model": "cerebras/qwen-3-235b-a22b-instruct-2507",
-        "timeout": 600,
-        "api_key": "CEREBRAS_API_KEY",
-        "base_url": "https://api.cerebras.ai/v1"
-      }
-    },
-    {
-      "design_metadata": {
         "llm_id": "deepseek_chat_worker",
         "reasoner": false,
         "multimodal_support": false,

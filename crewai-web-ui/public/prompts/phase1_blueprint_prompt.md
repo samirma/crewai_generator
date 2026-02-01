@@ -1,5 +1,3 @@
-## Phase 1: Define Blueprint
-
 **Input:** User-provided 'Initial Instruction Input' (from the `@@@` delimiters).
 
 **Goal:** Transform the raw input into a structured **Logic Plan**. This plan is the foundational logic that will be later converted into a concrete execution plan with Agents and Tasks. The focus should be on *what* needs to be done logically and the flow of data, rather than implementation details.
@@ -16,9 +14,10 @@
 **A. Primary Objective:**
 *   **Goal:** A clear, single-sentence statement of what needs to be achieved.
 *   **Value:** Why is this being done? What is the intended outcome for the user?
+*   **Requiments:** A detailed list of all requiriments stated by the user.
 
 **B. Logic Plan (The Core):**
-*   **Description:** A high-level logical flow of how to solve the problem.
+*   **Description:** A high-level logical flow of how to solve the problem fullfilling all requiriments considering that steps should be planned considering the dependencies between steps, the inputs and outputs of each step and the final deliverables and previous and next steps.
 *   **Structure:** Break the solution down into **Logical Steps**.
     *   **Step Name:** A descriptive name for the logical step.
     *   **Purpose:** What does this step achieve?
