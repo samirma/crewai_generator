@@ -50,6 +50,30 @@ export const staticModels: ModelConfig[] = [
     apiKey: "ZAI_API_KEY",
     baseURL: "https://api.z.ai/api/paas/v4",
   },
+  {
+    id: "moonshotai_kimi-k2.5",
+    name: "Nvidia - MoonshotAI Kimi K2.5",
+    model: "moonshotai/kimi-k2.5",
+    timeout: 600,
+    apiKey: "NVIDIA_API_KEY",
+    baseURL: "https://integrate.api.nvidia.com/v1",
+  },
+  {
+    id: "minimaxai_minimax-m2",
+    name: "Nvidia - Minimax AI Minimax M2",
+    model: "minimaxai/minimax-m2",
+    timeout: 600,
+    apiKey: "NVIDIA_API_KEY",
+    baseURL: "https://integrate.api.nvidia.com/v1",
+  },
+  {
+    id: "z-ai_glm4.7",
+    name: "Nvidia - Zai GLM 4.7",
+    model: "z-ai/glm4.7",
+    timeout: 600,
+    apiKey: "NVIDIA_API_KEY",
+    baseURL: "https://integrate.api.nvidia.com/v1",
+  },
 ];
 
 export interface LocalServerConfig {

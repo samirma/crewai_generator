@@ -33,20 +33,6 @@
     },
     {
       "design_metadata": {
-        "llm_id": "cerebras-zai-glm-4.7",
-        "reasoner": true,
-        "multimodal_support": true,
-        "description": "ZhipuAI's flagship 358B MoE model. specialized for complex reasoning with 'Interleaved Thinking', advanced coding agent capabilities, and native multimodal understanding for high-quality UI/visual outputs."
-      },
-      "constructor_args": {
-        "model": "cerebras/zai-glm-4.7",
-        "timeout": 600,
-        "api_key": "CEREBRAS_API_KEY",
-        "base_url": "https://api.cerebras.ai/v1"
-      }
-    },
-    {
-      "design_metadata": {
         "llm_id": "deepseek_chat_worker",
         "reasoner": false,
         "multimodal_support": false,
@@ -57,6 +43,34 @@
         "timeout": 600,
         "api_key": "DEEPSEEK_API_KEY",
         "max_tokens": 8000
+      }
+    },
+    {
+      "design_metadata": {
+        "llm_id": "z-ai_glm4.7",
+        "reasoner": false,
+        "multimodal_support": false,
+        "description": "Hosted on Nvidia API. ZhipuAI's GLM 4.7 model."
+      },
+      "constructor_args": {
+        "model": "z-ai/glm4.7",
+        "timeout": 600,
+        "api_key": "NVIDIA_API_KEY",
+        "base_url": "https://integrate.api.nvidia.com/v1"
+      }
+    },
+    {
+      "design_metadata": {
+        "llm_id": "nvidia-moonshotai_kimi-k2.5",
+        "reasoner": false,
+        "multimodal_support": false,
+        "description": "Hosted on Nvidia API. Moonshot AI's Kimi K2.5 model."
+      },
+      "constructor_args": {
+        "model": "moonshotai/kimi-k2.5",
+        "timeout": 600,
+        "api_key": "NVIDIA_API_KEY",
+        "base_url": "https://integrate.api.nvidia.com/v1"
       }
     }
   ]
