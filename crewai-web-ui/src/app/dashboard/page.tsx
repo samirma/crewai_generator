@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import ExecutionTab from '../components/ExecutionTab';
 import ProjectList from '../components/ProjectList';
+import DockerContainerManager from '../components/DockerContainerManager';
 import { useExecutionContext } from '@/context/ExecutionContext';
 
 export default function Dashboard() {
@@ -75,6 +76,11 @@ export default function Dashboard() {
     // Get state for the selected project to pass to ExecutionTab
     const activeProjectState = selectedProject ? executionStates[selectedProject] : null;
 
+    // Extract all container IDs from execution states
+    const activeContainerIds = Object.values(executionStates)
+        .map(state => state.containerId)
+        .filter((id): id is string => !!id);
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-inter p-8">
             <div className="max-w-7xl mx-auto">
@@ -89,6 +95,9 @@ export default function Dashboard() {
                         &larr; Back to Generator
                     </Link>
                 </header>
+
+                {/* Docker Container Manager */}
+                <DockerContainerManager projectContainerIds={activeContainerIds} />
 
                 {error && (
                     <div className="p-4 mb-6 bg-red-100 border border-red-400 text-red-700 rounded-md">
