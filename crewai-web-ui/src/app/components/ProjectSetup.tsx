@@ -17,6 +17,7 @@ interface ProjectSetupProps {
   isLlmTimerRunning: boolean;
   isExecutingScript: boolean;
   handleRunAllPhases: (isParallel: boolean) => void;
+  stopRunAllPhases: () => void;
   isRunAllLoading: boolean;
   runScriptAfterGeneration: boolean;
   setRunScriptAfterGeneration: (value: boolean) => void;
@@ -40,6 +41,7 @@ const ProjectSetup = ({
   isLlmTimerRunning,
   isExecutingScript,
   handleRunAllPhases,
+  stopRunAllPhases,
   isRunAllLoading,
   runScriptAfterGeneration,
   setRunScriptAfterGeneration,
@@ -180,40 +182,41 @@ const ProjectSetup = ({
         {modelsError && <p className="text-sm text-red-600 dark:text-red-400 mt-2">{modelsError}</p>}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-        <button
-          type="button"
-          className="w-full bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold text-lg px-6 py-3 rounded-xl shadow-lg transition duration-200 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:from-gray-400 disabled:to-gray-600 focus:ring-4 focus:ring-green-300 focus:outline-none dark:focus:ring-green-800"
-          onClick={() => handleRunAllPhases(false)}
-          disabled={modelsLoading || !llmModel || isLlmTimerRunning || isExecutingScript || !initialInput.trim() || isRunAllLoading}
-        >
-          {isRunAllLoading && activeExecutionMode === 'sequential' ? (
+      {isRunAllLoading ? (
+        <div className="mt-6">
+          <button
+            type="button"
+            className="w-full bg-gradient-to-r from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white font-bold text-lg px-6 py-3 rounded-xl shadow-lg transition duration-200 ease-in-out transform hover:scale-105 focus:ring-4 focus:ring-red-300 focus:outline-none dark:focus:ring-red-800"
+            onClick={stopRunAllPhases}
+          >
             <span className="flex items-center justify-center">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect x="6" y="6" width="12" height="12" strokeWidth="2" fill="currentColor" />
               </svg>
-              Running...
+              Stop Generation
             </span>
-          ) : 'Generate Full Script (Sequential)'}
-        </button>
-        <button
-          type="button"
-          className="w-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-bold text-lg px-6 py-3 rounded-xl shadow-lg transition duration-200 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:from-gray-400 disabled:to-gray-600 focus:ring-4 focus:ring-blue-300 focus:outline-none dark:focus:ring-blue-800"
-          onClick={() => handleRunAllPhases(true)}
-          disabled={modelsLoading || !llmModel || isLlmTimerRunning || isExecutingScript || !initialInput.trim() || isRunAllLoading}
-        >
-          {isRunAllLoading && activeExecutionMode === 'parallel' ? (
-            <span className="flex items-center justify-center">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Running...
-            </span>
-          ) : 'Generate Full Script (Parallel)'}
-        </button>
-      </div>
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+          <button
+            type="button"
+            className="w-full bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold text-lg px-6 py-3 rounded-xl shadow-lg transition duration-200 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:from-gray-400 disabled:to-gray-600 focus:ring-4 focus:ring-green-300 focus:outline-none dark:focus:ring-green-800"
+            onClick={() => handleRunAllPhases(false)}
+            disabled={modelsLoading || !llmModel || isLlmTimerRunning || isExecutingScript || !initialInput.trim()}
+          >
+            Generate Full Script (Sequential)
+          </button>
+          <button
+            type="button"
+            className="w-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-bold text-lg px-6 py-3 rounded-xl shadow-lg transition duration-200 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:from-gray-400 disabled:to-gray-600 focus:ring-4 focus:ring-blue-300 focus:outline-none dark:focus:ring-blue-800"
+            onClick={() => handleRunAllPhases(true)}
+            disabled={modelsLoading || !llmModel || isLlmTimerRunning || isExecutingScript || !initialInput.trim()}
+          >
+            Generate Full Script (Parallel)
+          </button>
+        </div>
+      )}
       {(isTimerRunning || runDuration) && (
         <div className="mt-4 p-3 border rounded-md shadow-sm text-center bg-gray-50 dark:bg-gray-700">
           <p className="text-sm text-gray-600 dark:text-gray-300">

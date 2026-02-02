@@ -3,6 +3,7 @@ type GenerateApiResponse = {
   isSuccess: boolean;
   result: any | null;       // 'any' to match the successful JSON payload
   errorMessage: string | null;
+  isAborted?: boolean;
 };
 
 // This hook is stateless and returns a structured response object
@@ -10,7 +11,7 @@ type GenerateApiResponse = {
 export const useGenerationApi = () => {
   
   // The function is now typed to return a Promise of GenerateApiResponse
-  const generate = async (payload: any): Promise<GenerateApiResponse> => {
+  const generate = async (payload: any, signal?: AbortSignal): Promise<GenerateApiResponse> => {
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
@@ -18,6 +19,7 @@ export const useGenerationApi = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
+        signal,
       });
 
       const result = await response.json();
@@ -39,6 +41,16 @@ export const useGenerationApi = () => {
       };
 
     } catch (err: any) {
+      // Check if the error is due to an abort
+      if (err.name === 'AbortError') {
+        return {
+          isSuccess: false,
+          result: null,
+          errorMessage: "Request was cancelled",
+          isAborted: true,
+        };
+      }
+      
       // Catch network errors or JSON parsing errors
       return {
         isSuccess: false,

@@ -61,6 +61,7 @@ export default function Home() {
     handlePhaseExecution,
     handleRunAllPhases,
     handleRunAllPhasesInParallel,
+    stopRunAllPhases,
     isRunAllLoading,
     error: phasesError,
   } = usePhases(initialInput, llmModel, playLlmSound, generateApi);
@@ -185,6 +186,7 @@ export default function Home() {
               isLlmTimerRunning={isLlmLoading}
               isExecutingScript={isExecutingScript}
               handleRunAllPhases={handleRunScript}
+              stopRunAllPhases={stopRunAllPhases}
               isRunAllLoading={isRunAllLoading}
               runScriptAfterGeneration={runScriptAfterGeneration}
               setRunScriptAfterGeneration={setRunScriptAfterGeneration}

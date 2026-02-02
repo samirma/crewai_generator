@@ -1,15 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getPhases, PhaseState } from '../config/phases.config';
 
 export const usePhases = (
   initialInput: string,
   llmModel: string,
   playLlmSound: () => void,
-  generateApi: (payload: any) => Promise<any>
+  generateApi: (payload: any, signal?: AbortSignal) => Promise<any>
 ) => {
   const [phases, setPhases] = useState<PhaseState[]>(getPhases());
   const [isRunAllLoading, setIsRunAllLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const fetchInitialPrompts = async () => {
@@ -34,8 +35,14 @@ export const usePhases = (
 
   const handlePhaseExecution = async (
     phaseId: number,
-    phasesForExecution: PhaseState[] = phases
-  ): Promise<{ newPhases: PhaseState[]; success: boolean }> => {
+    phasesForExecution: PhaseState[] = phases,
+    signal?: AbortSignal
+  ): Promise<{ newPhases: PhaseState[]; success: boolean; isAborted?: boolean }> => {
+    // Check if aborted before starting
+    if (signal?.aborted) {
+      return { newPhases: phasesForExecution, success: false, isAborted: true };
+    }
+
     const currentPhase = phasesForExecution.find(p => p.id === phaseId);
     if (!currentPhase) {
       return { newPhases: phasesForExecution, success: false };
@@ -60,6 +67,15 @@ export const usePhases = (
     );
     setPhases(updatedPhasesWithInput);
 
+    // Check if aborted before API call
+    if (signal?.aborted) {
+      const finalPhases = updatedPhasesWithInput.map(p =>
+        p.id === phaseId ? { ...p, status: 'failed' as const } : p
+      );
+      setPhases(finalPhases);
+      return { newPhases: finalPhases, success: false, isAborted: true };
+    }
+
     const response = await generateApi({
       llmModel,
       mode: 'advanced',
@@ -67,7 +83,17 @@ export const usePhases = (
       fullPrompt: fullPromptValue,
       filePath: currentPhase.filePath,
       outputType: currentPhase.outputType,
-    });
+    }, signal);
+
+    // Check if aborted after API call
+    if (response.isAborted || signal?.aborted) {
+      const finalPhases = updatedPhasesWithInput.map(p =>
+        p.id === phaseId ? { ...p, status: 'failed' as const } : p
+      );
+      setPhases(finalPhases);
+      setError("Execution was cancelled by user.");
+      return { newPhases: finalPhases, success: false, isAborted: true };
+    }
 
     let finalPhases: PhaseState[];
 
@@ -95,14 +121,30 @@ export const usePhases = (
     setIsRunAllLoading(true);
     setError(null); // Clear previous errors
 
+    // Create new abort controller for this run
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     let currentPhases: PhaseState[] = phases.map((p) => ({ ...p, status: 'pending' as const }));
     setPhases(currentPhases);
 
     let runAllSuccess = true;
+    let isAborted = false;
 
     for (const phase of phases) {
-      const { newPhases, success } = await handlePhaseExecution(phase.id, currentPhases);
+      // Check if aborted before each phase
+      if (signal.aborted) {
+        isAborted = true;
+        break;
+      }
+
+      const { newPhases, success, isAborted: phaseAborted } = await handlePhaseExecution(phase.id, currentPhases, signal);
       currentPhases = newPhases;
+
+      if (phaseAborted) {
+        isAborted = true;
+        break;
+      }
 
       if (!success) {
         runAllSuccess = false; // Mark the overall run as failed
@@ -110,13 +152,27 @@ export const usePhases = (
       }
     }
 
+    if (isAborted) {
+      // Mark only the running phase as failed, leave pending phases as pending
+      currentPhases = currentPhases.map(p =>
+        p.status === 'running' ? { ...p, status: 'failed' as const } : p
+      );
+      setPhases(currentPhases);
+      setError("Execution was cancelled by user.");
+    }
+
+    abortControllerRef.current = null;
     setIsRunAllLoading(false);
-    return runAllSuccess; // Return the final status
+    return runAllSuccess && !isAborted; // Return the final status
   };
 
   const handleRunAllPhasesInParallel = async () => {
     setIsRunAllLoading(true);
     setError(null);
+
+    // Create new abort controller for this run
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     let currentPhases: PhaseState[] = phases.map((p) => ({ ...p, status: 'pending' as const }));
     setPhases(currentPhases); // Set initial status for all phases
@@ -124,10 +180,17 @@ export const usePhases = (
     const completedPhases = new Set<number>();
     const inProgressPhases = new Set<number>();
     let overallSuccess = true;
+    let isAborted = false;
 
     const pendingPromises = new Map<number, Promise<any>>();
 
-    while (completedPhases.size < phases.length && overallSuccess) {
+    while (completedPhases.size < phases.length && overallSuccess && !isAborted) {
+      // Check if aborted at start of each iteration
+      if (signal.aborted) {
+        isAborted = true;
+        break;
+      }
+
       const readyPhases = currentPhases.filter(
         (phase) =>
           !completedPhases.has(phase.id) &&
@@ -148,7 +211,7 @@ export const usePhases = (
       for (const phase of readyPhases) {
         inProgressPhases.add(phase.id);
 
-        const executionPromise = handlePhaseExecution(phase.id, currentPhases)
+        const executionPromise = handlePhaseExecution(phase.id, currentPhases, signal)
           .then((result) => ({ ...result, phaseId: phase.id }));
 
         pendingPromises.set(phase.id, executionPromise);
@@ -168,7 +231,12 @@ export const usePhases = (
         const promisesWithId = Array.from(pendingPromises.values());
         const finishedResult = await Promise.race(promisesWithId);
 
-        const { phaseId, newPhases, success } = finishedResult;
+        const { phaseId, newPhases, success, isAborted: phaseAborted } = finishedResult;
+
+        if (phaseAborted) {
+          isAborted = true;
+          break;
+        }
 
         const finishedPhase = newPhases.find((p: PhaseState) => p.id === phaseId);
         if (finishedPhase) {
@@ -187,6 +255,11 @@ export const usePhases = (
           overallSuccess = false;
         }
       } catch (error) {
+        // Check if the error is due to abort
+        if (signal.aborted) {
+          isAborted = true;
+          break;
+        }
         console.error('An unexpected error occurred during phase execution:', error);
         setError('An unexpected error occurred. Check the console for details.');
         overallSuccess = false;
@@ -194,14 +267,25 @@ export const usePhases = (
       }
     }
 
-    try {
-      await Promise.all(pendingPromises.values());
-    } catch (e) {
-      console.error('Additional errors from remaining phases:', e);
+    if (isAborted) {
+      // Mark only the running phases as failed, leave pending phases as pending
+      currentPhases = currentPhases.map(p =>
+        p.status === 'running' ? { ...p, status: 'failed' as const } : p
+      );
+      setPhases(currentPhases);
+      setError("Execution was cancelled by user.");
     }
 
+    abortControllerRef.current = null;
     setIsRunAllLoading(false);
-    return overallSuccess;
+    return overallSuccess && !isAborted;
+  };
+
+  const stopRunAllPhases = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      console.log("Execution cancelled by user.");
+    }
   };
 
   return {
@@ -213,6 +297,7 @@ export const usePhases = (
     },
     handleRunAllPhases,
     handleRunAllPhasesInParallel,
+    stopRunAllPhases,
     isRunAllLoading,
     error,
   };
