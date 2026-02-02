@@ -144,8 +144,6 @@ export const ExecutionProvider = ({ children }: { children: ReactNode }) => {
         updateProjectState(projectName, {
             ...initialProjectState,
             hasExecutionAttempted: true,
-            // If scriptName is provided and includes streamlit, we might want to flag that?
-            // But useExecution handles the specific flag for the UI. here we just execute.
             isExecutingScript: true,
             scriptTimerKey: (executionStates[projectName]?.scriptTimerKey || 0) + 1,
             executionStartTime: Date.now(),
@@ -153,7 +151,6 @@ export const ExecutionProvider = ({ children }: { children: ReactNode }) => {
         });
 
         try {
-            // Pass projectName (if it's not 'default')
             const bodyPayload: any = projectName === 'default' ? {} : { projectName };
             if (scriptName) {
                 bodyPayload.scriptName = scriptName;
@@ -166,23 +163,6 @@ export const ExecutionProvider = ({ children }: { children: ReactNode }) => {
                 },
                 body: JSON.stringify(bodyPayload),
             });
-
-            // SIMULATION FOR DEMO VIDEO
-            if (scriptName === 'run_streamlit.sh') {
-                setTimeout(() => {
-                    updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, "LOG: Starting Streamlit..."] }));
-                }, 1000);
-                setTimeout(() => {
-                    const logLine = "Local URL: http://localhost:8502";
-                    const wrappedLine = `LOG: ${logLine}`;
-                    // Manually trigger the parsing logic since we are bypassing the real stream in this simulation block (or parallel to it)
-                    // Actually, ensuring the stream reader logic picks it up is hard without mocking fetch.
-                    // IMPORTANT: I will just inject it into the state directly to simulate the *effect* of parsing.
-                    updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, logLine] }));
-                    const url = parseStreamlitUrl(logLine);
-                    if (url) updateProjectState(projectName, { streamlitUrl: url });
-                }, 2000);
-            }
 
             if (!response.ok) {
                 let errorText = `API request failed with status ${response.status}`;
@@ -203,160 +183,96 @@ export const ExecutionProvider = ({ children }: { children: ReactNode }) => {
             let buffer = "";
 
             while (true) {
-                let value, done;
-                try {
-                    ({ value, done } = await reader.read());
-                } catch (streamReadError) {
-                    console.error("Error reading from stream:", streamReadError);
-                    updateProjectState(projectName, { scriptExecutionError: "Error reading script output stream." });
-                    updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, "STREAM_ERROR: Stream ended unexpectedly."] }));
-                    break;
-                }
-
+                const { value, done } = await reader.read();
                 if (done) break;
 
-                try {
-                    buffer += decoder.decode(value, { stream: true });
-                } catch (decodeError) {
-                    console.error("Error decoding stream data:", decodeError);
-                    updateProjectState(projectName, { scriptExecutionError: "Error decoding script output." });
-                    break;
-                }
-
+                const chunk = decoder.decode(value, { stream: true });
+                buffer += chunk;
                 const lines = buffer.split('\n');
-                buffer = lines.pop() || "";
+                buffer = lines.pop() || ""; // Keep the incomplete line in buffer
 
                 for (const line of lines) {
-                    // Processing logic - updated to use updateProjectState
-                    if (line.startsWith("CONTAINER_ID: ")) {
-                        updateProjectState(projectName, { containerId: line.substring("CONTAINER_ID: ".length) });
-                    } else if (line.startsWith("DOCKER_COMMAND: ")) {
-                        updateProjectState(projectName, { dockerCommandToDisplay: line.substring("DOCKER_COMMAND: ".length) });
-                    } else if (line.startsWith("PRE_DOCKER_LOG: ")) {
-                        updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, "PRE_DOCKER_RUN: " + line.substring("PRE_DOCKER_LOG: ".length)] }));
-                    } else if (line.startsWith("PRE_DOCKER_ERROR: ")) {
-                        updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, "PRE_DOCKER_RUN_ERROR: " + line.substring("PRE_DOCKER_ERROR: ".length)] }));
-                    } else if (line.startsWith("LOG: ")) {
-                        const logLine = line.substring("LOG: ".length);
-                        updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, logLine] }));
-
-                        // Check for Streamlit URL
-                        const url = parseStreamlitUrl(logLine);
-                        if (url) {
-                            updateProjectState(projectName, { streamlitUrl: url });
-                        }
-                    } else if (line.startsWith("LOG_ERROR: ")) {
-                        updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, line.substring("LOG_ERROR: ".length)] }));
-                    } else if (line.startsWith("RESULT: ")) {
+                    if (line.trim() === "") continue;
+                    if (line.startsWith("CONTAINER_ID:")) {
+                        const containerId = line.replace("CONTAINER_ID:", "").trim();
+                        updateProjectState(projectName, { containerId });
+                    } else if (line.startsWith("STREAMLIT_URL:") && scriptName === 'run_streamlit.sh') {
+                        const url = line.replace("STREAMLIT_URL:", "").trim();
+                        updateProjectState(projectName, { streamlitUrl: url });
+                    } else if (line.startsWith("RESULT:")) {
                         try {
-                            const finalResult: ExecutionResultType = JSON.parse(line.substring("RESULT: ".length));
+                            const resultJson = JSON.parse(line.replace("RESULT:", "").trim());
+                            updateProjectState(projectName, {
+                                finalExecutionResult: resultJson,
+                                finalExecutionStatus: resultJson.overallStatus || "unknown",
+                                isExecutingScript: false,
+                                scriptExecutionDuration: (Date.now() - (executionStatesRef.current[projectName]?.executionStartTime || Date.now())) / 1000
+                            });
+                            if (resultJson.overallStatus === 'success') {
+                                playSuccessSound();
+                            } else {
+                                playErrorSound();
+                            }
+                        } catch (e) {
+                            console.error("Failed to parse RESULT JSON:", e);
+                            updateProjectState(projectName, prev => ({
+                                scriptLogOutput: [...prev.scriptLogOutput, `ERROR: Failed to parse result: ${e}`]
+                            }));
+                        }
+                    } else if (line.startsWith("LOG:")) {
+                        const logContent = line.replace("LOG:", "").trim();
+
+                        updateProjectState(projectName, prev => {
                             const updates: Partial<ProjectExecutionState> = {
-                                finalExecutionResult: finalResult,
-                                finalExecutionStatus: finalResult.overallStatus,
-                                containerId: null // Clear on finish
+                                scriptLogOutput: [...prev.scriptLogOutput, logContent],
+                                phasedOutputs: parsePhasedOutputsFromStdout([...prev.scriptLogOutput, logContent].join('\n'))
                             };
 
-                            if (finalResult.scriptExecutionDuration !== undefined) {
-                                updates.scriptExecutionDuration = finalResult.scriptExecutionDuration;
-                            }
-
-                            if (finalResult.mainScript && finalResult.mainScript.stdout) {
-                                updates.phasedOutputs = parsePhasedOutputsFromStdout(finalResult.mainScript.stdout);
-                            }
-
-                            if (executionStatesRef.current[projectName]?.isStopRequested) {
-                                updates.scriptExecutionError = "Project stopped by user.";
-                                updates.finalExecutionStatus = 'stopped';
-                                // Do not play error sound
-                            } else if (finalResult.overallStatus === 'failure') {
-                                let errorMsg = "Script execution failed.";
-                                if (finalResult.error) errorMsg += ` Error: ${finalResult.error}`;
-                                if (finalResult.mainScript && finalResult.mainScript.stderr) errorMsg += ` Stderr: ${finalResult.mainScript.stderr}`;
-                                updates.scriptExecutionError = errorMsg;
-                                playErrorSound();
-                            } else if (finalResult.overallStatus === 'success') {
-                                playSuccessSound();
-                            }
-
-                            updateProjectState(projectName, updates);
-
-                        } catch (e) {
-                            console.error("Error parsing final result JSON:", e);
-                            updateProjectState(projectName, {
-                                scriptExecutionError: "Error parsing final result.",
-                                finalExecutionStatus: 'failure',
-                                finalExecutionResult: null
-                            });
-                            playErrorSound();
-                        }
+                            return updates;
+                        });
+                    } else if (line.startsWith("LOG_ERROR:")) {
+                        const logContent = line.replace("LOG_ERROR:", "").trim();
+                        updateProjectState(projectName, prev => ({
+                            scriptLogOutput: [...prev.scriptLogOutput, `ERROR: ${logContent}`],
+                            scriptExecutionError: logContent
+                        }));
+                    } else {
+                        // Default to log if no prefix (shouldn't happen with our API but good fallback)
+                        updateProjectState(projectName, prev => ({
+                            scriptLogOutput: [...prev.scriptLogOutput, line]
+                        }));
                     }
                 }
             }
 
-            // Handle remaining buffer (copy-paste of logic effectively, or abstracted if I had time, but for now inline is safer to ensure identical behavior)
-            if (buffer.startsWith("CONTAINER_ID: ")) {
-                updateProjectState(projectName, { containerId: buffer.substring("CONTAINER_ID: ".length) });
-            } else if (buffer.startsWith("DOCKER_COMMAND: ")) {
-                updateProjectState(projectName, { dockerCommandToDisplay: buffer.substring("DOCKER_COMMAND: ".length) });
-            } else if (buffer.startsWith("PRE_DOCKER_LOG: ")) {
-                updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, "PRE_DOCKER_RUN: " + buffer.substring("PRE_DOCKER_LOG: ".length)] }));
-            } else if (buffer.startsWith("PRE_DOCKER_ERROR: ")) {
-                updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, "PRE_DOCKER_RUN_ERROR: " + buffer.substring("PRE_DOCKER_ERROR: ".length)] }));
-            } else if (buffer.startsWith("LOG: ")) {
-                const logLine = buffer.substring("LOG: ".length);
-                updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, logLine] }));
-                // Check for Streamlit URL
-                const url = parseStreamlitUrl(logLine);
-                if (url) {
-                    updateProjectState(projectName, { streamlitUrl: url });
-                }
-            } else if (buffer.startsWith("LOG_ERROR: ")) {
-                updateProjectState(projectName, prev => ({ scriptLogOutput: [...prev.scriptLogOutput, buffer.substring("LOG_ERROR: ".length)] }));
-            } else if (buffer.startsWith("RESULT: ")) {
-                // ... buffer parsing logic similar to above ...
-                try {
-                    const finalResult: ExecutionResultType = JSON.parse(buffer.substring("RESULT: ".length));
-                    const updates: Partial<ProjectExecutionState> = {
-                        finalExecutionResult: finalResult,
-                        finalExecutionStatus: finalResult.overallStatus,
-                        containerId: null
+            // Clean up any remaining buffer
+            if (buffer.trim()) {
+                updateProjectState(projectName, prev => ({
+                    scriptLogOutput: [...prev.scriptLogOutput, buffer]
+                }));
+            }
+
+            // Ensure we mark as finished if RESULT wasn't received (unexpected stream end)
+            updateProjectState(projectName, prev => {
+                if (prev.isExecutingScript) {
+                    return {
+                        isExecutingScript: false,
+                        scriptExecutionDuration: (Date.now() - (prev.executionStartTime || Date.now())) / 1000
                     };
-                    if (finalResult.scriptExecutionDuration !== undefined) updates.scriptExecutionDuration = finalResult.scriptExecutionDuration;
-                    if (finalResult.mainScript && finalResult.mainScript.stdout) updates.phasedOutputs = parsePhasedOutputsFromStdout(finalResult.mainScript.stdout);
-
-                    if (executionStatesRef.current[projectName]?.isStopRequested) {
-                        updates.scriptExecutionError = "Project stopped by user.";
-                        updates.finalExecutionStatus = 'stopped';
-                    } else if (finalResult.overallStatus === 'failure') {
-                        let errorMsg = "Script execution failed.";
-                        if (finalResult.error) errorMsg += ` Error: ${finalResult.error}`;
-                        if (finalResult.mainScript && finalResult.mainScript.stderr) errorMsg += ` Stderr: ${finalResult.mainScript.stderr}`;
-                        updates.scriptExecutionError = errorMsg;
-                        playErrorSound();
-                    } else if (finalResult.overallStatus === 'success') {
-                        playSuccessSound();
-                    }
-                    updateProjectState(projectName, updates);
-                } catch (e) {
-                    // ... error
-                    updateProjectState(projectName, {
-                        scriptExecutionError: "Error parsing final result (buffer).",
-                        finalExecutionStatus: 'failure',
-                        finalExecutionResult: null
-                    });
-                    playErrorSound();
                 }
-            }
+                return {};
+            });
 
-        } catch (err) {
-            console.error("Error executing script:", err);
-            const msg = err instanceof Error ? err.message : "Unknown error";
-            updateProjectState(projectName, { scriptExecutionError: msg });
+        } catch (error: any) {
+            console.error("Error executing script:", error);
+            updateProjectState(projectName, {
+                isExecutingScript: false,
+                scriptExecutionError: error.message || "Unknown error occurred",
+                scriptLogOutput: [...executionStates[projectName]?.scriptLogOutput || [], `ERROR: ${error.message}`]
+            });
             playErrorSound();
-        } finally {
-            updateProjectState(projectName, { isExecutingScript: false, containerId: null });
         }
-    }, [playErrorSound, playSuccessSound, updateProjectState, executionStates]); // Added dependencies
+    }, [executionStates, updateProjectState, playSuccessSound, playErrorSound]);
 
     return (
         <ExecutionContext.Provider value={{

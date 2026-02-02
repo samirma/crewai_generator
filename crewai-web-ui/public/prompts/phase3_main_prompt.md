@@ -89,12 +89,41 @@ def test():
         raise Exception(f"An error occurred while testing the crew: {e}")
 
 def run_streamlit():
-    """
-    Run the streamlit app triggered by run_streamlit.sh script which was triggered by ExecutionTab component.
-    """
-    import sys
     from streamlit.web import cli as stcli
+    import socket
+    from contextlib import closing
     
-    sys.argv = ["streamlit", "run", "streamit.py"]
-    sys.exit(stcli.main())
+    def find_free_port(start_port=8501):
+        """Find the first available port starting from start_port."""
+        port = start_port
+        while port < 9000:  # Reasonable upper limit
+            with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+                if sock.connect_ex(('localhost', port)) != 0:
+                    return port
+                port += 1
+        raise RuntimeError("No available ports found between 8501 and 9000")
+    
+    try:
+        # Determine available port and construct URL
+        port = find_free_port(8501)
+        host = "localhost"
+        url = f"http://{host}:{port}"
+        
+        # Output the URL before starting
+        print(f"\n{'='*60}")
+        print(f"STREAMLIT_URL: {url}")
+        print(f"{'='*60}\n")
+        
+        # Set arguments with explicit port to ensure URL matches
+        sys.argv = [
+            "streamlit", 
+            "run", 
+            "streamit.py",
+            "--server.port", str(port),
+            "--server.address", host
+        ]
+        sys.exit(stcli.main())
+        
+    except Exception as e:
+        raise Exception(f"An error occurred while running the streamlit app: {e}")
 ```
