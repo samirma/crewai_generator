@@ -3,6 +3,15 @@ import fs from 'fs/promises';
 import { getModelConfig } from '../../../config/models.config';
 import path from 'path';
 
+function stripThinkingTags(content: string): string {
+  // Remove <thinking>...</thinking> tags and their content
+  // Handles both <thinking> and <think> tags
+  return content
+    .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .trim();
+}
+
 export async function interactWithLLM(
   fullPrompt: string,
   llmModel: string,
@@ -16,15 +25,8 @@ export async function interactWithLLM(
     throw new Error(`Model ${llmModel} not found in configuration.`);
   }
 
-  try {
-    const inputPath = path.join(process.cwd(), 'llm_input_prompt.txt');
-    await fs.writeFile(inputPath, fullPrompt);
-    console.log('Successfully wrote LLM input to llm_input_prompt.txt');
-  } catch (error) {
-    console.error('Failed to write LLM input to llm_input_prompt.txt:', error);
-  }
-
   let llmResponseText = "";
+  let rawResponse = "";
   let generatedScript: string | undefined = undefined;
   let completion: OpenAI.Chat.Completions.ChatCompletion | any;
 
@@ -68,7 +70,8 @@ export async function interactWithLLM(
   try {
     completion = await openai.chat.completions.create(params);
     console.log("API call completed.");
-    llmResponseText = completion.choices?.[0]?.message?.content ?? '';
+    rawResponse = completion.choices?.[0]?.message?.content ?? '';
+    llmResponseText = stripThinkingTags(rawResponse);
   } catch (error) {
     console.error(`Error interacting with LLM for model ${llmModel}:`, error);
     if (error instanceof OpenAI.APIError) {
@@ -99,13 +102,19 @@ export async function interactWithLLM(
   const completionTokens = completion?.usage?.completion_tokens || 0;
   const tokensPerSecond = duration > 0 ? parseFloat((completionTokens / duration).toFixed(2)) : 0;
 
-
+  // Save both input and output files at the end
+  // Output is saved before stripping thinking tags to preserve the raw response
   try {
+    const inputPath = path.join(process.cwd(), 'llm_input_prompt.txt');
     const outputPath = path.join(process.cwd(), 'llm_output_prompt.txt');
-    await fs.writeFile(outputPath, llmResponseText);
-    console.log('Successfully wrote LLM output to llm_output_prompt.txt');
+    
+    await fs.writeFile(inputPath, fullPrompt);
+    await fs.writeFile(outputPath, rawResponse); // Save raw response with thinking tags
+    
+    console.log('Successfully wrote LLM input to llm_input_prompt.txt');
+    console.log('Successfully wrote LLM output (with thinking tags) to llm_output_prompt.txt');
   } catch (error) {
-    console.error('Failed to write LLM output to llm_output_prompt.txt:', error);
+    console.error('Failed to write LLM input/output to files:', error);
   }
 
   return { llmResponseText, generatedScript, duration, tokensPerSecond };
