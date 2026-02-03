@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useRef, ReactNode, useCallback, useEffect } from 'react';
 import type { ExecutionResult as ExecutionResultType } from '../app/api/execute/types';
-import { parsePhasedOutputsFromStdout, parseStreamlitUrl } from '@/utils/outputParser';
+import { parsePhasedOutputsFromStdout } from '@/utils/outputParser';
 
 export interface PhasedOutput {
     taskName: string;
@@ -202,11 +202,16 @@ export const ExecutionProvider = ({ children }: { children: ReactNode }) => {
                     } else if (line.startsWith("RESULT:")) {
                         try {
                             const resultJson = JSON.parse(line.replace("RESULT:", "").trim());
+                            // Extract error message from the result if it failed
+                            const errorMessage = resultJson.overallStatus === 'failure' && resultJson.mainScript?.stderr
+                                ? resultJson.mainScript.stderr
+                                : resultJson.error || '';
                             updateProjectState(projectName, {
                                 finalExecutionResult: resultJson,
                                 finalExecutionStatus: resultJson.overallStatus || "unknown",
                                 isExecutingScript: false,
-                                scriptExecutionDuration: (Date.now() - (executionStatesRef.current[projectName]?.executionStartTime || Date.now())) / 1000
+                                scriptExecutionDuration: (Date.now() - (executionStatesRef.current[projectName]?.executionStartTime || Date.now())) / 1000,
+                                scriptExecutionError: errorMessage
                             });
                             if (resultJson.overallStatus === 'success') {
                                 playSuccessSound();

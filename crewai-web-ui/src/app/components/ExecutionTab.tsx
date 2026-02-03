@@ -198,15 +198,15 @@ const ExecutionTab = ({
         {(isExecutingScript || (hasExecutionAttempted && scriptExecutionDuration !== null)) && (
           <div className="mb-4 p-3 border border-green-300 dark:border-green-700 rounded-md bg-green-50 dark:bg-green-900/30 shadow-sm text-center">
             <p className="text-sm text-green-700 dark:text-green-300">
-              Execution Timer: <Timer key={scriptTimerKey} isRunning={isExecutingScript} startTime={executionStartTime} className="inline font-semibold" />
+              Execution Timer: <Timer key={scriptTimerKey} isRunning={isExecutingScript} duration={scriptExecutionDuration} startTime={executionStartTime} className="inline font-semibold" />
             </p>
           </div>
         )}
 
-        {scriptExecutionError && !finalExecutionStatus && (
+        {scriptExecutionError && (
           <div className="mt-4 p-3 border border-red-400 bg-red-100 text-red-700 rounded-md dark:bg-red-900/30 dark:border-red-500/50 dark:text-red-400">
             <p className="font-semibold">Execution Error:</p>
-            <p>{scriptExecutionError}</p>
+            <p className="whitespace-pre-wrap font-mono text-sm">{scriptExecutionError}</p>
           </div>
         )}
       </div>
