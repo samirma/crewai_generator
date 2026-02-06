@@ -10,20 +10,21 @@ export interface ModelConfig {
 
 export const staticModels: ModelConfig[] = [
   {
+    id: "kimi-for-coding",
+    name: "Kimi For Coding",
+    model: "kimi-for-coding",
+    timeout: 600,
+    apiKey: "KIMI_API_KEY",
+    baseURL: "https://api.kimi.com/coding/v1",
+    maxOutputTokens: 32768,
+  },
+  {
     id: "gemini-2.5-flash",
     name: "Gemini 2.5 Flash",
     model: "gemini-2.5-flash",
     timeout: 600,
     apiKey: "GEMINI_API_KEY",
     baseURL: "https://generativelanguage.googleapis.com/v1beta",
-  },
-  {
-    id: "qwen-3-235b-a22b-instruct",
-    name: "Cerebras Qwen 3 235B Instruct",
-    model: "qwen-3-235b-a22b-instruct-2507",
-    timeout: 600,
-    apiKey: "CEREBRAS_API_KEY",
-    baseURL: "https://api.cerebras.ai/v1",
   },
   {
     id: "zai-glm-4.7",
@@ -73,6 +74,14 @@ export const staticModels: ModelConfig[] = [
     timeout: 600,
     apiKey: "NVIDIA_API_KEY",
     baseURL: "https://integrate.api.nvidia.com/v1",
+  },
+  {
+    id: "kimi-local-wrapper",
+    name: "Kimi Local Wrapper",
+    model: "kimi-for-coding",
+    timeout: 600,
+    apiKey: "KIMI_API_KEY",
+    baseURL: "http://localhost:3050/v1",
   },
 ];
 

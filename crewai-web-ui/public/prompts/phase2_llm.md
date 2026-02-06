@@ -19,20 +19,6 @@
     },
     {
       "design_metadata": {
-        "llm_id": "deepseek_chat_worker",
-        "reasoner": false,
-        "multimodal_support": false,
-        "description": "A capable and efficient model for general-purpose tasks like writing, summarization, and data extraction. A good choice for worker agents that don't require advanced reasoning."
-      },
-      "constructor_args": {
-        "model": "deepseek/deepseek-chat",
-        "timeout": 600,
-        "api_key": "DEEPSEEK_API_KEY",
-        "max_tokens": 8000
-      }
-    },
-    {
-      "design_metadata": {
         "llm_id": "z-ai_glm4.7",
         "reasoner": false,
         "multimodal_support": false,
@@ -57,6 +43,20 @@
         "timeout": 600,
         "api_key": "NVIDIA_API_KEY",
         "base_url": "https://integrate.api.nvidia.com/v1"
+      }
+    },
+    {
+      "design_metadata": {
+        "llm_id": "kimi_local_llm",
+        "reasoner": false,
+        "multimodal_support": false,
+        "description": "Local Kimi Wrapper for coding. Proxies requests to a local Kimi server."
+      },
+      "constructor_args": {
+        "model": "kimi-for-coding",
+        "timeout": 600,
+        "api_key": "KIMI_API_KEY",
+        "base_url": "http://localhost:3050/v1"
       }
     }
   ]
