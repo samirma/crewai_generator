@@ -35,12 +35,6 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
           "description": "A tool for writing files."
         },
         {
-          "tool_name": "DirectoryReadTool",
-          "tool_id": "directory_reader",
-          "supports_embedding": false,
-          "description": "A tool for reading directory contents."
-        },
-        {
           "tool_name": "CSVSearchTool",
           "tool_id": "csv_searcher",
           "supports_embedding": true,

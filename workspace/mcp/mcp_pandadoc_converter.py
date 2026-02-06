@@ -10,9 +10,21 @@ mcp = FastMCP("Pandoc Document Conversion Server")
 @mcp.tool
 def convert_document(input_path: str, output_path: str) -> str:
     """
-    Converts a document from one format to another using Pandoc by taking a source `input_path` and a destination `output_path`, returning a string message indicating the result. The desired output format is automatically inferred from the output file's extension. Supported input formats include biblatex, bibtex, commonmark, creole, csljson, csv, docbook, docx, dokuwiki, endnotexml, epub, fb2, gfm, haddock, html, ipynb, jats, jira, json, latex, markdown, markdown_mmd, markdown_phpextra, markdown_strict, mediawiki, man, muse, native, odt, opml, org, ris, rst, rtf, t2t, textile, tikiwiki, tsv, twiki, and vimwiki. Supported output formats include asciidoc, beamer, commonmark, context, csljson, docbook, docx, dokuwiki, dzslides, epub, fb2, gfm, haddock, html, icml, ipynb, jats, jira, json, latex, man, markdown, markdown_mmd, markdown_phpextra, markdown_strict, mediawiki, ms, muse, native, odt, opml, opendocument, org, pdf, plain, pptx, revealjs, rst, rtf, s5, slidy, slideous, tei, texinfo, textile, xwiki, and zimwiki.
+    Converts a document from one format to another using Pandoc.
 
-    You must generate a tool call to the `convert_document` function. Your call must include two string arguments: `input_path`, representing the local path to the source file that needs to be converted, and `output_path`, representing the local path where the converted file should be saved. The file extension provided in the `output_path` (e.g., `.docx`, `.pdf`, `.html`) dictates the output format, so ensure it matches one of the supported output types. For example, to convert a Markdown file to a PDF, your tool call would be: `tool_call('convert_document', input_path='report.md', output_path='report.pdf')`.
+    Use this tool when the user needs to convert files between formats like:
+    - Markdown to PDF, DOCX, or HTML
+    - HTML to Markdown or PDF
+    - DOCX to Markdown or PDF
+    - Any other document format conversion
+
+    Args:
+        input_path: Path to the source file to convert.
+        output_path: Path where the converted file will be saved. The file extension
+            determines the output format (e.g., .pdf, .docx, .html, .md).
+
+    Returns:
+        A message indicating success or describing any error that occurred.
     """
     try:
         # Extract the output format from the output file's extension.

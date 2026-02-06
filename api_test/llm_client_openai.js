@@ -37,7 +37,7 @@ class LLMClientOpenAI {
     this.model = config.model;
     this.logFile = config.logFile;
     this.systemPrompt = config.systemPrompt || '';
-    this.maxTokens = config.maxTokens || 4096;
+    this.maxTokens = config.maxTokens;
     this.temperature = config.temperature || 0.7;
     this.topP = config.topP || 0.8;
     this.tools = config.tools || TOOLS[config.toolSet] || [];

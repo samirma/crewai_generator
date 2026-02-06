@@ -48,7 +48,7 @@ function callKimiApi(kimiRequest, apiKey) {
 function transformRequest(openAIRequest) {
     const kimiRequest = {
         model: openAIRequest.model,
-        max_tokens: openAIRequest.max_tokens || 4096,
+        max_tokens: openAIRequest.max_tokens || 32768,
         stream: openAIRequest.stream || false,
         messages: []
     };

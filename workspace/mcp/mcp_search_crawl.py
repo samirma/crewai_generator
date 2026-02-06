@@ -81,17 +81,24 @@ async def make_request(url: str, method: str = "GET", params: dict = None, json_
 @mcp.tool()
 async def perform_web_search(query: str, pageno: int = 1) -> str:
     """
-    Performs a web search to retrieve relevant URLs and content snippets.
+    Performs a web search to find relevant URLs and content snippets.
 
-    Use this tool when you need to find up-to-date public information, external documentation,
-    or identify specific URLs for further processing.
+    Use this tool FIRST when the user asks about:
+    - Current events, news, or recent information
+    - Facts or data that may have changed over time
+    - Topics you don't have detailed knowledge about
+    - Finding specific websites or documentation
+
+    After finding relevant URLs, use crawl_webpage or crawl_single_url to extract
+    full content if needed.
 
     Args:
-        query (str): The search keywords or question.
-        pageno (int): The page number of results to retrieve (default: 1).
+        query: The search keywords or question.
+        pageno: Page number of results (1-based, default: 1).
 
     Returns:
-        str: A JSON formatted string containing a list of search results.
+        JSON string with search results. Each result contains 'url' and 'content'.
+        Returns an error message if the search service is unavailable.
     """
     if not SEARXNG_URL:
         return "Error: SearxNG service address is not available. Please check server_config.ini."
@@ -184,14 +191,36 @@ async def _perform_crawl(
 @mcp.tool()
 async def crawl_webpage(urls: list[str]) -> str:
     """
-    Reads and extracts the main content in markdown format from a LIST of URLs.
+    Extracts the main content from multiple webpages and returns it as markdown.
+
+    Use this tool when you need to read the full content of one or more webpages
+    identified from a search, or when the user provides specific URLs to analyze.
+
+    For a single URL, consider using crawl_single_url for simplicity.
+
+    Args:
+        urls: List of webpage URLs to crawl. Limit to 5-10 URLs per call for best results.
+
+    Returns:
+        Markdown content from all URLs, separated by '---' dividers.
+        Returns an error message if a URL is inaccessible or the crawl fails.
     """
     return await _perform_crawl(urls)
 
 @mcp.tool()
 async def crawl_single_url(url: str) -> str:
     """
-    Reads and extracts the main content in markdown format from a SINGLE URL.
+    Extracts the main content from a single webpage and returns it as markdown.
+
+    Use this tool when you need to read content from one specific URL.
+    This is a convenience wrapper around crawl_webpage for single URLs.
+
+    Args:
+        url: The webpage URL to crawl.
+
+    Returns:
+        Markdown content of the webpage.
+        Returns an error message if the URL is inaccessible or the crawl fails.
     """
     return await _perform_crawl([url])
 

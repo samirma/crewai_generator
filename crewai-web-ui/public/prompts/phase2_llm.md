@@ -6,47 +6,6 @@
   "llm_list": [
     {
       "design_metadata": {
-        "llm_id": "ollama-minimax-m2.1:cloud",
-        "reasoner": true,
-        "multimodal_support": true,
-        "description": "An advanced 230B parameter MoE model optimized for complex agentic workflows and multilingual programming. Features 'Interleaved Thinking' for robust multi-step reasoning and supports multimodal inputs."
-      },
-      "constructor_args": {
-        "model": "ollama/minimax-m2.1:cloud",
-        "timeout": 600,
-        "api_key": "OLLAMA_API_KEY"
-      }
-    },
-    {
-      "design_metadata": {
-        "llm_id": "z-ai_glm4.7",
-        "reasoner": false,
-        "multimodal_support": false,
-        "description": "Hosted on Nvidia API. ZhipuAI's GLM 4.7 model."
-      },
-      "constructor_args": {
-        "model": "z-ai/glm4.7",
-        "timeout": 600,
-        "api_key": "NVIDIA_API_KEY",
-        "base_url": "https://integrate.api.nvidia.com/v1"
-      }
-    },
-    {
-      "design_metadata": {
-        "llm_id": "nvidia-moonshotai_kimi-k2.5",
-        "reasoner": false,
-        "multimodal_support": false,
-        "description": "Hosted on Nvidia API. Moonshot AI's Kimi K2.5 model."
-      },
-      "constructor_args": {
-        "model": "moonshotai/kimi-k2.5",
-        "timeout": 600,
-        "api_key": "NVIDIA_API_KEY",
-        "base_url": "https://integrate.api.nvidia.com/v1"
-      }
-    },
-    {
-      "design_metadata": {
         "llm_id": "kimi_local_llm",
         "reasoner": false,
         "multimodal_support": false,
