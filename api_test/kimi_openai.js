@@ -18,7 +18,6 @@ const client = new LLMClientOpenAI({
   }
 });
 
-const promptPath = path.join(__dirname, 'llm_input_prompt.txt');
-const userMessage = fs.readFileSync(promptPath, 'utf8');
+const userMessage = process.argv[2] || 'What time is it in Tokyo right now?';
 
 client.chat(userMessage).catch(console.error);

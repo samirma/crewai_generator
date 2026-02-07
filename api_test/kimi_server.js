@@ -8,6 +8,8 @@ const PORT = 3050;
 const fs = require('fs');
 const path = require('path');
 const LOG_FILE = path.join(__dirname, 'server_debug.log');
+const INPUT_PROMPT_FILE = path.join(__dirname, 'llm_input_prompt.txt');
+const OUTPUT_PROMPT_FILE = path.join(__dirname, 'llm_output_prompt.txt');
 
 function appendLog(data) {
     fs.appendFileSync(LOG_FILE, data + '\n');
@@ -114,6 +116,16 @@ function transformRequest(openAIRequest) {
     return kimiRequest;
 }
 
+// Generate a mock system fingerprint similar to OpenAI/Cerebras format
+function generateSystemFingerprint() {
+    const chars = 'abcdef0123456789';
+    let fp = 'fp_';
+    for (let i = 0; i < 20; i++) {
+        fp += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return fp;
+}
+
 // Transform Kimi Response to OpenAI Response
 function transformResponse(kimiResponse, openAIRequestModel) {
 
@@ -122,13 +134,13 @@ function transformResponse(kimiResponse, openAIRequestModel) {
     }
 
     const choices = [{
+        finish_reason: 'stop',
         index: 0,
         message: {
             role: 'assistant',
             content: null, // Default
             tool_calls: []
-        },
-        finish_reason: 'stop'
+        }
     }];
 
     const message = choices[0].message;
@@ -176,16 +188,36 @@ function transformResponse(kimiResponse, openAIRequestModel) {
         choices[0].finish_reason = kimiResponse.stop_reason;
     }
 
+    const promptTokens = kimiResponse.usage?.input_tokens || 0;
+    const completionTokens = kimiResponse.usage?.output_tokens || 0;
+    const now = Date.now();
+    const created = Math.floor(now / 1000);
+
+    // Build OpenAI-compatible response with mocked fields to match Cerebras format
     const openAIResponse = {
         id: kimiResponse.id,
-        object: 'chat.completion',
-        created: Math.floor(Date.now() / 1000),
-        model: kimiResponse.model || openAIRequestModel,
         choices: choices,
+        created: created,
+        model: kimiResponse.model || openAIRequestModel,
+        system_fingerprint: generateSystemFingerprint(),
+        object: 'chat.completion',
         usage: {
-            prompt_tokens: kimiResponse.usage?.input_tokens || 0,
-            completion_tokens: kimiResponse.usage?.output_tokens || 0,
-            total_tokens: (kimiResponse.usage?.input_tokens || 0) + (kimiResponse.usage?.output_tokens || 0)
+            total_tokens: promptTokens + completionTokens,
+            completion_tokens: completionTokens,
+            completion_tokens_details: {
+                reasoning_tokens: 0
+            },
+            prompt_tokens: promptTokens,
+            prompt_tokens_details: {
+                cached_tokens: 0
+            }
+        },
+        time_info: {
+            queue_time: 0.0001,
+            prompt_time: 0.001,
+            completion_time: 0.01,
+            total_time: 0.011,
+            created: now / 1000
         }
     };
 
@@ -212,8 +244,8 @@ const server = http.createServer(async (req, res) => {
                 const openAIRequest = JSON.parse(body);
                 const apiKey = req.headers['authorization']?.replace('Bearer ', '');
 
-                console.log(`[Proxy] Received request for model: ${openAIRequest.model}`);
-                console.log(`[Proxy] Request Body Preview:`, JSON.stringify(openAIRequest, null, 2).substring(0, 500) + '...');
+                // Save input prompt to file
+                fs.writeFileSync(INPUT_PROMPT_FILE, JSON.stringify(openAIRequest, null, 2));
 
                 if (!apiKey) {
                     res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -233,13 +265,9 @@ const server = http.createServer(async (req, res) => {
 
                 // Transform
                 const kimiRequest = transformRequest(openAIRequest);
-                console.log(`[Proxy] Transformed Kimi Request:`, JSON.stringify(kimiRequest, null, 2));
 
                 // Call Kimi
                 const kimiResult = await callKimiApi(kimiRequest, validApiKey);
-                console.log(`[Proxy] Kimi API Response Status: ${kimiResult.status}`);
-                appendLog(`[Proxy] Kimi API Response Data: ${JSON.stringify(kimiResult.data, null, 2)}`);
-                console.log(`[Proxy] Kimi API Response Data:`, JSON.stringify(kimiResult.data, null, 2).substring(0, 500) + '...');
 
                 if (kimiResult.status !== 200) {
                     console.error('[Proxy] Kimi API Error:', kimiResult.data);
@@ -250,7 +278,8 @@ const server = http.createServer(async (req, res) => {
 
                 // Transform Response
                 const openAIResponse = transformResponse(kimiResult.data, openAIRequest.model);
-                console.log(`[Proxy] Transformed OpenAI Response:`, JSON.stringify(openAIResponse, null, 2));
+                // Save output prompt to file
+                fs.writeFileSync(OUTPUT_PROMPT_FILE, JSON.stringify(openAIResponse, null, 2));
 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify(openAIResponse));

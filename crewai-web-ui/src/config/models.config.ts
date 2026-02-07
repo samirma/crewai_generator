@@ -10,15 +10,6 @@ export interface ModelConfig {
 
 export const staticModels: ModelConfig[] = [
   {
-    id: "kimi-for-coding",
-    name: "Kimi For Coding",
-    model: "kimi-for-coding",
-    timeout: 600,
-    apiKey: "KIMI_API_KEY",
-    baseURL: "https://api.kimi.com/coding/v1",
-    maxOutputTokens: 32768,
-  },
-  {
     id: "gemini-2.5-flash",
     name: "Gemini 2.5 Flash",
     model: "gemini-2.5-flash",

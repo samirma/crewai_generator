@@ -16,9 +16,9 @@
 *   **Value:** Why is this being done? What is the intended outcome for the user?
 *   **Requiments:** A detailed list of all requiriments stated by the user.
 
-**B. Logic Plan (The Core):**
+**B. Logic Plan:**
 *   **Description:** A high-level logical flow of how to solve the problem fullfilling all requiriments considering that steps should be planned considering the dependencies between steps, the inputs and outputs of each step and the final deliverables and previous and next steps.
-*   **Structure:** Break the solution down into **Logical Steps**.
+*   **Structure in list of steps:** Break the solution down into **Logical Steps**.
     *   **Step Name:** A descriptive name for the logical step.
     *   **Purpose:** What does this step achieve?
     *   **Inputs:** What information is needed to start this step? (e.g., 'Raw Resume Data', 'Search Query').
