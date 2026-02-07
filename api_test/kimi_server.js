@@ -55,6 +55,11 @@ function transformRequest(openAIRequest) {
         messages: []
     };
 
+
+    if (openAIRequest.stop) {
+        kimiRequest.stop_sequences = Array.isArray(openAIRequest.stop) ? openAIRequest.stop : [openAIRequest.stop];
+    }
+
     // 1. Handle Tools
     if (openAIRequest.tools && openAIRequest.tools.length > 0) {
         kimiRequest.tools = openAIRequest.tools.map(t => ({
@@ -81,7 +86,34 @@ function transformRequest(openAIRequest) {
                 kimiRequest.messages.push({ role: 'user', content: msg.content });
             }
         } else if (msg.role === 'assistant') {
-            const content = [];
+            let content = [];
+            let contentText = msg.content || '';
+
+            // Check for Observation in text-based ReAct pattern
+            const observationMatch = contentText.match(/\nObservation:/);
+
+            if (observationMatch) {
+                const splitIndex = observationMatch.index;
+                const assistantPart = contentText.substring(0, splitIndex);
+                const userPart = contentText.substring(splitIndex).trim(); // Keep "Observation:..."
+
+                // Push assistant part
+                kimiRequest.messages.push({
+                    role: 'assistant',
+                    content: [{ type: 'text', text: assistantPart }]
+                });
+
+                // Push user part (Observation)
+                kimiRequest.messages.push({
+                    role: 'user',
+                    content: userPart
+                });
+
+                // We don't continue adding tool_calls to the user message or the split assistant message
+                // assuming ReAct text doesn't mix with native tool_calls in the same message effectively
+                continue;
+            }
+
             if (msg.content) {
                 content.push({ type: 'text', text: msg.content });
             }
@@ -182,7 +214,7 @@ function transformResponse(kimiResponse, openAIRequestModel) {
     // Map finish reason
     if (kimiResponse.stop_reason === 'tool_use') {
         choices[0].finish_reason = 'tool_calls';
-    } else if (kimiResponse.stop_reason === 'end_turn') {
+    } else if (kimiResponse.stop_reason === 'end_turn' || kimiResponse.stop_reason === 'stop_sequence') {
         choices[0].finish_reason = 'stop';
     } else {
         choices[0].finish_reason = kimiResponse.stop_reason;
