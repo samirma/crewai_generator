@@ -53,16 +53,28 @@ def get_base_url(service_port_key: str, default_port: int, env_var: str = None) 
 SEARXNG_URL = get_base_url('searxng_port', 8080)
 CRAWL4AI_URL = get_base_url('crawl4ai_port', 11235, 'CRAWL4AI_API_URL')
 
-async def make_request(url: str, method: str = "GET", params: dict = None, json_data: dict = None, timeout: float = 60.0) -> dict | str:
+# Crawl4AI API Token (required for authentication)
+CRAWL4AI_API_TOKEN = os.getenv('CRAWL4AI_API_TOKEN', get_config_value('DEFAULT', 'crawl4ai_api_token', ''))
+
+async def make_request(
+    url: str, 
+    method: str = "GET", 
+    params: dict = None, 
+    json_data: dict = None, 
+    headers: dict = None,
+    timeout: float = 60.0
+) -> dict | str:
     """
     Unified async HTTP request handler using httpx.
     """
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
+            request_headers = headers or {}
+            
             if method.upper() == "GET":
-                response = await client.get(url, params=params)
+                response = await client.get(url, params=params, headers=request_headers)
             else:
-                response = await client.post(url, json=json_data)
+                response = await client.post(url, json=json_data, headers=request_headers)
             
             response.raise_for_status()
             return response.json()
@@ -127,6 +139,39 @@ async def perform_web_search(query: str, pageno: int = 1) -> str:
 
 # --- Crawl4AI (Crawl) Logic ---
 
+async def _get_crawl_result(task_id: str, max_wait: float = 60.0) -> dict | str:
+    """
+    Polls for crawl task completion and returns the result.
+    """
+    endpoint = f"{CRAWL4AI_URL}/task/{task_id}"
+    headers = {}
+    if CRAWL4AI_API_TOKEN:
+        headers["Authorization"] = f"Bearer {CRAWL4AI_API_TOKEN}"
+    
+    start_time = asyncio.get_event_loop().time()
+    poll_interval = 2.0
+    
+    while True:
+        result = await make_request(endpoint, method="GET", headers=headers, timeout=10.0)
+        
+        if isinstance(result, str):  # Error message
+            return result
+        
+        # Check if task is completed
+        status = result.get("status")
+        if status == "completed":
+            return result
+        elif status == "failed":
+            return f"Crawl task failed: {result.get('error', 'Unknown error')}"
+        
+        # Check timeout
+        elapsed = asyncio.get_event_loop().time() - start_time
+        if elapsed > max_wait:
+            return f"Crawl task timed out after {max_wait} seconds"
+        
+        # Wait before polling again
+        await asyncio.sleep(poll_interval)
+
 async def _perform_crawl(
     urls: list[str], 
     js_code: str = None, 
@@ -138,7 +183,14 @@ async def _perform_crawl(
     """
     Internal helper to execute the crawl request against the API.
     """
+    if not CRAWL4AI_URL:
+        return "Error: Crawl4AI service address is not available. Please check server_config.ini."
+    
     endpoint = f"{CRAWL4AI_URL}/crawl"
+    
+    headers = {}
+    if CRAWL4AI_API_TOKEN:
+        headers["Authorization"] = f"Bearer {CRAWL4AI_API_TOKEN}"
     
     payload = {
         "urls": urls,
@@ -153,40 +205,44 @@ async def _perform_crawl(
     if css_selector:
         payload["css_selector"] = css_selector
 
-    data = await make_request(endpoint, method="POST", json_data=payload)
+    # Start the crawl task
+    data = await make_request(endpoint, method="POST", json_data=payload, headers=headers)
     
-    if isinstance(data, str): # Error message
+    if isinstance(data, str):  # Error message
         return data
-
-    # Handle response containing multiple results
-    if "results" in data and isinstance(data["results"], list):
-        results_text = []
-        for result in data["results"]:
-            # Check if 'markdown' is a dictionary or string
-            markdown_data = result.get("markdown")
-            if isinstance(markdown_data, dict) and "raw_markdown" in markdown_data:
-                content = markdown_data["raw_markdown"]
-            else:
-                content = markdown_data or result.get("html", "No content found.")
-            
-            entry = f"{content}\n"
-            results_text.append(entry)
+    
+    # Get task ID and poll for completion
+    task_id = data.get("task_id")
+    if not task_id:
+        return f"Error: No task_id received from Crawl4AI. Response: {data}"
+    
+    print(f"Crawl task started: {task_id}")
+    result = await _get_crawl_result(task_id)
+    
+    if isinstance(result, str):  # Error message
+        return result
+    
+    # Extract markdown from results
+    crawl_results = result.get("results", [])
+    if not crawl_results:
+        return "No results returned from crawl task."
+    
+    results_text = []
+    for crawl_result in crawl_results:
+        # Check if 'markdown' is a dictionary or string
+        markdown_data = crawl_result.get("markdown")
+        if isinstance(markdown_data, dict) and "raw_markdown" in markdown_data:
+            content = markdown_data["raw_markdown"]
+        else:
+            content = markdown_data or crawl_result.get("html", "No content found.")
         
-        if not results_text:
-            return "No results returned."
-        
-        return "\n---\n".join(results_text)
-        
-    elif "markdown" in data:
-        # Handle single result fallback
-        md = data["markdown"]
-        if isinstance(md, dict) and "raw_markdown" in md:
-            return md["raw_markdown"]
-        return md
-    elif "html" in data:
-        return f"Markdown not returned, raw length: {len(data['html'])} chars. Status: {data.get('status')}"
-    else:
-        return f"Crawl successful but unexpected response format. Keys received: {list(data.keys())}"
+        if content:
+            results_text.append(content)
+    
+    if not results_text:
+        return "No content extracted from crawl results."
+    
+    return "\n---\n".join(results_text)
 
 @mcp.tool()
 async def crawl_webpage(urls: list[str]) -> str:
@@ -232,7 +288,14 @@ if __name__ == "__main__":
     else:
         print("⚠️  SearxNG IP not found in server_config.ini (Search will fail)")
 
-    print(f"✅ Crawl4AI configured at: {CRAWL4AI_URL}")
+    if CRAWL4AI_URL:
+        print(f"✅ Crawl4AI configured at: {CRAWL4AI_URL}")
+        if CRAWL4AI_API_TOKEN:
+            print("✅ Crawl4AI API token configured")
+        else:
+            print("⚠️  Crawl4AI API token not set (authentication may fail)")
+    else:
+        print("⚠️  Crawl4AI URL not found in server_config.ini (Crawl will fail)")
     
     print("The server is now ready to accept tool calls.")
     mcp.run(transport='stdio')

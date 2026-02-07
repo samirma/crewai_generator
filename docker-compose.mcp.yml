@@ -1,0 +1,78 @@
+services:
+  # SearxNG - Privacy-respecting metasearch engine
+  searxng:
+    image: searxng/searxng:latest
+    container_name: mcp-searxng
+    ports:
+      - "8080:8080"
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+      - SEARXNG_SECRET_KEY=${SEARXNG_SECRET_KEY:-changeme}
+    volumes:
+      - searxng-data:/etc/searxng
+      - ./workspace/mcp/searxng-settings.yml:/etc/searxng/settings.yml:ro
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Crawl4AI - Web crawling service
+  crawl4ai:
+    image: unclecode/crawl4ai:all
+    container_name: mcp-crawl4ai
+    ports:
+      - "11235:11235"
+    environment:
+      - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN:-mcp-crawl4ai-token}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      - crawl4ai-data:/app/data
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11235/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Kimi Server - OpenAI-compatible API proxy for Kimi
+  kimi-server:
+    build:
+      context: ./api_test
+      dockerfile: Dockerfile
+    container_name: mcp-kimi-server
+    ports:
+      - "3050:3050"
+    environment:
+      - KIMI_API_KEY=${KIMI_API_KEY:-}
+      - NODE_ENV=production
+    volumes:
+      - ./workspace/.env:/app/.env:ro
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "3050"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  searxng-data:
+    driver: local
+  crawl4ai-data:
+    driver: local
+
+networks:
+  mcp-network:
+    driver: bridge
+    name: crewai_generator_mcp-network
