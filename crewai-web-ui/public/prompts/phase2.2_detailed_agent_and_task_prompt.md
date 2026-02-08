@@ -8,7 +8,7 @@
   "properties": {
     "user_inputs": {
       "type": "array",
-      "description": "Based on the 'Project Blueprint', identify variables that will be input of the crewai project. These variables will be used in the main.py kickoff function inputs json (crew().kickoff(inputs=inputs)) and the agents and tasks description files.",
+      "description": "Identify ONLY static configuration variables that control the crew's operational parameters and are known BEFORE execution begins. These are tuning knobs, file paths, thresholds, and time horizon definitions that configure agent behavior. EXCLUDE any dynamic data that the agents are tasked with gathering during execution (such as current dates/timestamps, live data, news events, etc). If the 'Project Blueprint' describes a data gathering step (e.g., 'fetch current price', 'retrieve timestamp', 'scrape news'), those data points are AGENT RESPONSIBILITIES, not user inputs. User inputs should be limited to: numerical thresholds (confidence_threshold, max_retries), time window definitions (short_term_hours, medium_term_days), filesystem paths (output_path), and static classification criteria (whale_threshold_btc).",
       "items": {
         "type": "object",
         "properties": {
@@ -58,11 +58,11 @@
               },
               "role": {
                 "type": "string",
-                "description": "A well defined agent's role. Can include variables from `user_inputs` using `{variable_name}` syntax."
+                "description": "A well defined agent's role. Can include variables and be restricted to the variables from `user_inputs` using `{variable_name}` syntax."
               },
               "goal": {
                 "type": "string",
-                "description": "A well defined and detailed agent's goal. Can include variables from `user_inputs` using `{variable_name}` syntax."
+                "description": "A well defined and detailed agent's goal. Can include variables and be restricted to the variables from `user_inputs` using `{variable_name}` syntax."
               },
               "backstory": {
                 "type": "string",
@@ -110,11 +110,11 @@
             "properties": {
               "description": {
                 "type": "string",
-                "description": "Detailed operational prompt for the agent, derived from 'Blueprint's Execution Outline'. MUST include variables from `user_inputs` using `{variable_name}` syntax where relevant."
+                "description": "Detailed operational prompt for the agent, derived from 'Blueprint's Execution Outline'. MUST include variables and be restricted to the variables from `user_inputs` using `{variable_name}` syntax where relevant."
               },
               "expected_output": {
                 "type": "string",
-                "description": "**CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed. MUST include variables from `user_inputs` using `{variable_name}` syntax where relevant."
+                "description": "**CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed. MUST include variables and be restricted to the variables from `user_inputs` using `{variable_name}` syntax where relevant."
               },
               "agent": {
                 "type": "string",

@@ -7,14 +7,11 @@ const PORT = 3050;
 
 const fs = require('fs');
 const path = require('path');
-const LOG_FILE = path.join(__dirname, 'server_debug.log');
 const INPUT_PROMPT_FILE = path.join(__dirname, 'llm_input_prompt.txt');
 const OUTPUT_PROMPT_FILE = path.join(__dirname, 'llm_output_prompt.txt');
 const CONFIG_FILE = path.join(__dirname, 'config.properties');
-
-function appendLog(data) {
-    fs.appendFileSync(LOG_FILE, data + '\n');
-}
+const PROXY_INPUT_FILE = path.join(__dirname, 'proxy_input.log');
+const PROXY_OUTPUT_FILE = path.join(__dirname, 'proxy_output.log');
 
 // Load configuration from config.properties (re-read per request for live updates)
 function loadConfig() {
@@ -305,6 +302,14 @@ const server = http.createServer(async (req, res) => {
         req.on('end', async () => {
             try {
                 const openAIRequest = JSON.parse(body);
+
+                // Log incoming request to proxy
+                fs.writeFileSync(PROXY_INPUT_FILE, JSON.stringify({
+                    timestamp: new Date().toISOString(),
+                    headers: req.headers,
+                    body: openAIRequest
+                }, null, 2));
+
                 const apiKey = req.headers['authorization']?.replace('Bearer ', '');
 
 
@@ -351,6 +356,12 @@ const server = http.createServer(async (req, res) => {
 
                 // Transform Response
                 const openAIResponse = transformResponse(kimiResult.data, openAIRequest.model);
+
+                // Log outgoing payload from proxy
+                fs.writeFileSync(PROXY_OUTPUT_FILE, JSON.stringify({
+                    timestamp: new Date().toISOString(),
+                    body: openAIResponse
+                }, null, 2));
 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify(openAIResponse));
