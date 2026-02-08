@@ -46,7 +46,7 @@ services:
   # Kimi Server - OpenAI-compatible API proxy for Kimi
   kimi-server:
     build:
-      context: ./api_test
+      context: ./kimi-proxy
       dockerfile: Dockerfile
     container_name: mcp-kimi-server
     ports:
@@ -56,6 +56,8 @@ services:
       - NODE_ENV=production
     volumes:
       - ./workspace/.env:/app/.env:ro
+      - ./kimi-proxy/proxy.js:/app/proxy.js:ro
+      - ./kimi-proxy/config.properties:/app/config.properties:ro
     networks:
       - mcp-network
     restart: unless-stopped

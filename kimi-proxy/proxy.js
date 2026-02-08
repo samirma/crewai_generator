@@ -10,9 +10,33 @@ const path = require('path');
 const LOG_FILE = path.join(__dirname, 'server_debug.log');
 const INPUT_PROMPT_FILE = path.join(__dirname, 'llm_input_prompt.txt');
 const OUTPUT_PROMPT_FILE = path.join(__dirname, 'llm_output_prompt.txt');
+const CONFIG_FILE = path.join(__dirname, 'config.properties');
 
 function appendLog(data) {
     fs.appendFileSync(LOG_FILE, data + '\n');
+}
+
+// Load configuration from config.properties (re-read per request for live updates)
+function loadConfig() {
+    const config = { thinking: false };
+    try {
+        const configData = fs.readFileSync(CONFIG_FILE, 'utf8');
+        for (const line of configData.split('\n')) {
+            const trimmed = line.trim();
+            if (trimmed && !trimmed.startsWith('#')) {
+                const [key, ...valueParts] = trimmed.split('=');
+                if (key && valueParts.length > 0) {
+                    const value = valueParts.join('=').trim();
+                    if (key.trim() === 'thinking') {
+                        config.thinking = value.toLowerCase() === 'true';
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('[Proxy] Error loading config:', error.message);
+    }
+    return config;
 }
 
 // Helper to make the HTTPS request to Kimi
@@ -47,13 +71,20 @@ function callKimiApi(kimiRequest, apiKey) {
 }
 
 // Transform OpenAI Request to Kimi Request
-function transformRequest(openAIRequest) {
+function transformRequest(openAIRequest, config) {
     const kimiRequest = {
         model: openAIRequest.model,
         max_tokens: openAIRequest.max_tokens || 32768,
         stream: openAIRequest.stream || false,
         messages: []
     };
+
+    // Add thinking parameter if enabled in config
+    if (config.thinking === true) {
+        kimiRequest.thinking = {
+            type: 'enabled'
+        };
+    }
 
 
     if (openAIRequest.stop) {
@@ -276,8 +307,7 @@ const server = http.createServer(async (req, res) => {
                 const openAIRequest = JSON.parse(body);
                 const apiKey = req.headers['authorization']?.replace('Bearer ', '');
 
-                // Save input prompt to file
-                fs.writeFileSync(INPUT_PROMPT_FILE, JSON.stringify(openAIRequest, null, 2));
+
 
                 if (!apiKey) {
                     res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -295,8 +325,16 @@ const server = http.createServer(async (req, res) => {
                     validApiKey = KIMI_API_KEY;
                 }
 
+                // Load configuration
+                const config = loadConfig();
+
                 // Transform
-                const kimiRequest = transformRequest(openAIRequest);
+                const kimiRequest = transformRequest(openAIRequest, config);
+
+                // Save the Kimi request (input) to file with jq-like formatting
+                fs.writeFileSync(INPUT_PROMPT_FILE, JSON.stringify(kimiRequest, null, 2));
+
+                console.log(`[Proxy] Thinking: ${config.thinking}`);
 
                 // Call Kimi
                 const kimiResult = await callKimiApi(kimiRequest, validApiKey);
@@ -308,10 +346,11 @@ const server = http.createServer(async (req, res) => {
                     return;
                 }
 
+                // Save the Kimi response (output) to file with jq-like formatting
+                fs.writeFileSync(OUTPUT_PROMPT_FILE, JSON.stringify(kimiResult.data, null, 2));
+
                 // Transform Response
                 const openAIResponse = transformResponse(kimiResult.data, openAIRequest.model);
-                // Save output prompt to file
-                fs.writeFileSync(OUTPUT_PROMPT_FILE, JSON.stringify(openAIResponse, null, 2));
 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify(openAIResponse));
