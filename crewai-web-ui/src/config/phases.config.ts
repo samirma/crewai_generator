@@ -222,7 +222,7 @@ const mainPyGenerationPhase: PhaseState = createPhaseState({
   promptFileName: "phase3_main_prompt.md",
   filePath: "src/crewai_generated/main.py",
   outputType: 'file',
-  dependencies: [detailedAgentAndTaskDefinitionPhase],
+  dependencies: [projectConfigurationPhase],
   generateInputPrompt: defaultGenerateInputPrompt
 });
 
