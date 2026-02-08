@@ -240,7 +240,7 @@ const streamitPhase: PhaseState = createPhaseState({
   promptFileName: "phase3_streamit_prompt.md",
   filePath: "streamit.py",
   outputType: 'file',
-  dependencies: [projectConfigurationPhase, detailedAgentAndTaskDefinitionPhase],
+  dependencies: [projectConfigurationPhase],
   generateInputPrompt: defaultGenerateInputPrompt
 });
 
