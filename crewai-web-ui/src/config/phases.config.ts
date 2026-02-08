@@ -231,7 +231,7 @@ const pyProjectGenerationPhase: PhaseState = createPhaseState({
   promptFileName: "phase3_pyproject_prompt.md",
   filePath: "pyproject.toml",
   outputType: 'file',
-  dependencies: [crewPyGenerationPhase, toolsGenerationPhase],
+  dependencies: [toolsGenerationPhase],
   generateInputPrompt: pyProjectGenerateInputPrompt
 });
 
@@ -240,7 +240,7 @@ const streamitPhase: PhaseState = createPhaseState({
   promptFileName: "phase3_streamit_prompt.md",
   filePath: "streamit.py",
   outputType: 'file',
-  dependencies: [pyProjectGenerationPhase, projectConfigurationPhase, detailedAgentAndTaskDefinitionPhase],
+  dependencies: [projectConfigurationPhase, detailedAgentAndTaskDefinitionPhase],
   generateInputPrompt: defaultGenerateInputPrompt
 });
 

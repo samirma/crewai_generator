@@ -58,15 +58,15 @@
               },
               "role": {
                 "type": "string",
-                "description": "A well defined agent's role. Can include variables and be restricted to the variables from `user_inputs` using `{variable_name}` syntax."
+                "description": "A well defined agent's role. Can include variables and must be restricted to the variables from `user_inputs` using `{variable_name}` syntax."
               },
               "goal": {
                 "type": "string",
-                "description": "A well defined and detailed agent's goal. Can include variables and be restricted to the variables from `user_inputs` using `{variable_name}` syntax."
+                "description": "A well defined and detailed agent's goal. Can include variables and must be restricted to the variables from `user_inputs` using `{variable_name}` syntax."
               },
               "backstory": {
                 "type": "string",
-                "description": "A narrative that reinforces the agent's expertise and persona. Can include variables from `user_inputs` using `{variable_name}` syntax."
+                "description": "A narrative that reinforces the agent's expertise and persona. Can include variables and must be restricted to the variables from `user_inputs` using `{variable_name}` syntax."
               },
               "reasoning": {
                 "type": "boolean",

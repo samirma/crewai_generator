@@ -67,6 +67,11 @@ function callKimiApi(kimiRequest, apiKey) {
     });
 }
 
+// Helper function to convert JSON schema to string for system prompt
+function schemaToPromptInstruction(schema) {
+    return `\n\nYou MUST respond with ONLY a raw JSON object that strictly follows this schema. Do not wrap in markdown code blocks (no \`\`\`json or \`\`\`), no backticks, no explanations before or after. The response must be a single valid JSON object that can be parsed by JSON.parse() directly:\n\n${JSON.stringify(schema, null, 2)}`;
+}
+
 // Transform OpenAI Request to Kimi Request
 function transformRequest(openAIRequest, config) {
     const kimiRequest = {
@@ -83,7 +88,6 @@ function transformRequest(openAIRequest, config) {
         };
     }
 
-
     if (openAIRequest.stop) {
         kimiRequest.stop_sequences = Array.isArray(openAIRequest.stop) ? openAIRequest.stop : [openAIRequest.stop];
     }
@@ -99,6 +103,15 @@ function transformRequest(openAIRequest, config) {
 
     // 2. Handle Messages & System Prompt
     let systemPrompt = '';
+    
+    // Extract schema from response_format if present
+    let schemaInstruction = '';
+    if (openAIRequest.response_format && openAIRequest.response_format.json_schema) {
+        const schema = openAIRequest.response_format.json_schema.schema;
+        if (schema) {
+            schemaInstruction = schemaToPromptInstruction(schema);
+        }
+    }
 
     for (const msg of openAIRequest.messages) {
         if (msg.role === 'system') {
@@ -169,6 +182,11 @@ function transformRequest(openAIRequest, config) {
         }
     }
 
+    // Append schema instruction to system prompt if present
+    if (schemaInstruction) {
+        systemPrompt += (systemPrompt ? '\n' : '') + schemaInstruction;
+    }
+    
     if (systemPrompt) {
         kimiRequest.system = systemPrompt;
     }

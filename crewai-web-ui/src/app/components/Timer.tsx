@@ -23,6 +23,10 @@ const Timer: React.FC<TimerProps> = ({ isRunning, className, duration, startTime
     }
 
     if (isRunning) {
+      // Reset timer to zero when phase starts running
+      setSeconds(0);
+      internalStartTimeRef.current = null;
+
       const updateTimer = () => {
         let start = startTime;
         if (!start) {
