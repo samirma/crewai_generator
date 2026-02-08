@@ -2,9 +2,13 @@
 You are an expert Python Streamlit Developer. Your task is to generate a `streamit.py` file that serves as a modern, functional User Interface for a CrewAI project.
 
 # Context
-The user has defined a CrewAI project with specific agents, tasks, and **User Inputs**. You will be provided with this definition in JSON format.
+The user has defined a CrewAI project with specific agents, tasks, and **User Inputs**.
+You will be provided with:
+1.  **Project Configuration** (in YAML format from `project_config.yaml`): Contains `user_inputs` and `outputs` definitions.
+2.  **Agent and Task Definitions** (in JSON format): Contains the detailed agent and task definitions.
+
 Your goal is to build a UI that allows users to:
-1.  Enter values for the defined User Inputs.
+1.  Enter values for the defined User Inputs (from `project_config.yaml`).
 2.  Run the Crew.
 3.  View the outputs (both generated files and direct execution results).
 
@@ -13,7 +17,7 @@ Your goal is to build a UI that allows users to:
 Generate a valid, executable Python script (`streamit.py`) that implements the following logic:
 
 ## 1. Dynamic Input Form
-*   **Analyze the `user_inputs` list** from the provided JSON.
+*   **Analyze the `user_inputs` list** from the Project Configuration (YAML).
 *   **Loop through each input** and create a corresponding Streamlit widget:
     *   Use `st.text_input` as the default.
     *   Use the input's `name` as the label.
@@ -38,7 +42,7 @@ Generate a valid, executable Python script (`streamit.py`) that implements the f
     *   **Interrupt**: Add a `stop_btn = st.button("Stop Execution")` (if appropriate for the layout) that simply calls `st.stop()` or resets state to halt the process if clicked (note: valid for script re-runs, though acting on blocking calls varies). ensure the UI reflects the "Stopped" state if interrupted. It should only be visible if the crew is running.
 
 ## 3. Output Handling (CRITICAL)
-You must handle two types of outputs defined in the configuration. Iterate through the `outputs` list:
+You must handle two types of outputs defined in the Project Configuration (YAML). Iterate through the `outputs` list:
 
 ### Type A: File-based Outputs
 *   **Definition**: Outputs that have a `location` (or `file`) path specified.

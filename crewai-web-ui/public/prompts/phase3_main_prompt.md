@@ -3,8 +3,8 @@ Your task is to generate the content for the `main.py` file, which serves as the
 
 **Objective:**
 Generate a Python script based on the provided template. The script must dynamically create an `inputs` dictionary for the `run()`, `train()`, and `test()` functions.
-*   **User Inputs:** If `user_inputs` are defined in the JSON, generate code to populate the `inputs` dictionary.
-    *   Iterate through the `user_inputs` list.
+*   **User Inputs:** If `user_inputs` are defined in the `project_config.yaml`, generate code to populate the `inputs` dictionary.
+    *   Iterate through the `user_inputs` list from the configuration.
     *   For each item, use `name` as the key and `value` as the default value.
     *   Example: If `user_inputs` has `[{"name": "topic", "value": "AI"}]`, generate `inputs = {'topic': 'AI'}`.
 *   **Placeholders:** If no `user_inputs` are defined, leave `inputs = {}`.
@@ -35,13 +35,13 @@ def run():
     Run the crew.
     """
     # Dynamically generated inputs will be placed here
-    # If `user_inputs` are present in the JSON, populate this dictionary.
+    # If `user_inputs` are present in the project configuration, populate this dictionary.
     # Example:
     # inputs = {
     #    'topic': 'AI LLMs'
     # }
     inputs = {
-        # ... generate input fields here based on user_inputs ...
+        # ... generate input fields here based on user_inputs from project_config.yaml ...
     }
     try:
         CrewaiGenerated().crew().kickoff(inputs=inputs)
@@ -54,7 +54,7 @@ def train():
     """
     # Dynamically generated inputs will be placed here
     inputs = {
-        # ... generate input fields here based on user_inputs ...
+        # ... generate input fields here based on user_inputs from project_config.yaml ...
     }
     try:
         CrewaiGenerated().crew().train(n_iterations=int(sys.argv[1]), filename=sys.argv[2], inputs=inputs)

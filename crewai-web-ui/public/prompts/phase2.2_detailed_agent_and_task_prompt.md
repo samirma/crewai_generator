@@ -6,19 +6,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
-    "user_inputs": {
-      "type": "array",
-      "description": "Identify ONLY static configuration variables that control the crew's operational parameters and are known BEFORE execution begins. These are tuning knobs, file paths, thresholds, and time horizon definitions that configure agent behavior. EXCLUDE any dynamic data that the agents are tasked with gathering during execution (such as current dates/timestamps, live data, news events, etc). If the 'Project Blueprint' describes a data gathering step (e.g., 'fetch current price', 'retrieve timestamp', 'scrape news'), those data points are AGENT RESPONSIBILITIES, not user inputs. User inputs should be limited to: numerical thresholds (confidence_threshold, max_retries), time window definitions (short_term_hours, medium_term_days), filesystem paths (output_path), and static classification criteria (whale_threshold_btc).",
-      "items": {
-        "type": "object",
-        "properties": {
-          "name": { "type": "string", "description": "Variable name" },
-          "description": { "type": "string", "description": "What this variable represents" },
-          "value": { "type": "string", "description": "Default value for this variable based on the 'Project Blueprint'" }
-        },
-        "required": ["name", "description", "value"]
-      }
-    },
     "agent_cadre": {
       "type": "array",
       "description": "Using CrewAI best practices, create a comprehensive list of CrewAI agents to fully execute the 'Project Blueprint', covering all its aspects, details, and specifications. Adhere to CrewAI best practices: 1. Roles should be specific and narrow. 2. Goals must be actionable. 3. Backstories should provide context and expertise.",
@@ -58,15 +45,15 @@
               },
               "role": {
                 "type": "string",
-                "description": "A well defined agent's role. Can include variables and must be restricted to the variables from `user_inputs` using `{variable_name}` syntax."
+                "description": "A well defined agent's role. Can include configuration variables from the 'Project Configuration' using `{variable_name}` syntax."
               },
               "goal": {
                 "type": "string",
-                "description": "A well defined and detailed agent's goal. Can include variables and must be restricted to the variables from `user_inputs` using `{variable_name}` syntax."
+                "description": "A well defined and detailed agent's goal. Can include configuration variables from the 'Project Configuration' using `{variable_name}` syntax."
               },
               "backstory": {
                 "type": "string",
-                "description": "A narrative that reinforces the agent's expertise and persona. Can include variables and must be restricted to the variables from `user_inputs` using `{variable_name}` syntax."
+                "description": "A narrative that reinforces the agent's expertise and persona. Can include configuration variables from the 'Project Configuration' using `{variable_name}` syntax."
               },
               "reasoning": {
                 "type": "boolean",
@@ -110,11 +97,11 @@
             "properties": {
               "description": {
                 "type": "string",
-                "description": "Detailed operational prompt for the agent, derived from 'Blueprint's Execution Outline'. MUST include variables and be restricted to the variables from `user_inputs` using `{variable_name}` syntax where relevant."
+                "description": "Detailed operational prompt for the agent, derived from 'Blueprint's Execution Outline'. Can include configuration variables from the 'Project Configuration' using `{variable_name}` syntax where relevant."
               },
               "expected_output": {
                 "type": "string",
-                "description": "**CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed. MUST include variables and be restricted to the variables from `user_inputs` using `{variable_name}` syntax where relevant."
+                "description": "**CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed. Can include configuration variables from the 'Project Configuration' using `{variable_name}` syntax where relevant."
               },
               "agent": {
                 "type": "string",

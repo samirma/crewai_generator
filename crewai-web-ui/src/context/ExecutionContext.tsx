@@ -238,8 +238,7 @@ export const ExecutionProvider = ({ children }: { children: ReactNode }) => {
                     } else if (line.startsWith("LOG_ERROR:")) {
                         const logContent = line.replace("LOG_ERROR:", "").trim();
                         updateProjectState(projectName, prev => ({
-                            scriptLogOutput: [...prev.scriptLogOutput, `ERROR: ${logContent}`],
-                            scriptExecutionError: logContent
+                            scriptLogOutput: [...prev.scriptLogOutput, `ERROR: ${logContent}`]
                         }));
                     } else {
                         // Default to log if no prefix (shouldn't happen with our API but good fallback)

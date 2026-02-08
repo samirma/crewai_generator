@@ -149,7 +149,7 @@ const projectConfigurationPhase: PhaseState = createPhaseState({
 const detailedAgentAndTaskDefinitionPhase: PhaseState = createPhaseState({
   title: "Detailed Agent and Task Definition",
   promptFileName: "phase2.2_detailed_agent_and_task_prompt.md",
-  dependencies: [blueprintDefinitionPhase],
+  dependencies: [blueprintDefinitionPhase, projectConfigurationPhase],
   generateInputPrompt: defaultGenerateInputPrompt
 });
 
