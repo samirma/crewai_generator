@@ -26,6 +26,10 @@ from mcp import StdioServerParameters
 os.environ["OTEL_SDK_DISABLED"] = "true"
 os.environ["CREWAI_DISABLE_TELEMETRY"] = "true"
 os.environ["CREWAI_TELEMETRY"] = "false"
+
+import chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2 as onnx_embed_module
+onnx_embed_module.ONNXMiniLM_L6_V2.DOWNLOAD_PATH = Path("/workspace/onnx_model")
+
 ```
 
 **Tool Imports:**
