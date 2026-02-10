@@ -1,4 +1,4 @@
-* **Instruction:** Only use the document identified as 'Project Blueprint' within `{{{ }}}` as your sole source of truth.
+* **Instruction:** Use the document identified as 'Project Blueprint' within `{{{ }}}` and the yaml as your sole source of truth. Note the yaml defines the configuration variables, where the name is the variable name and the description should be used be better guide to generate the agent and task definitions.
 * **Objective:** Your task is to elaborate on the detailed architecture plan by providing detailed definitions for each agent and task.
 
 ```json
@@ -16,24 +16,12 @@
             "type": "object",
             "description": "Contains contextual information and justifications, not included in the final YAML configuration files.",
             "properties": {
-              "multimodal": {
-                "type": "boolean",
-                "description": "`True` ONLY if this agent needs to process both text and images."
-              },
               "reasoning_rationale": {
                 "type": "string",
                 "description": "A justification for the `reasoning: True/False` setting, explaining why this specific agent needs (or doesn't need) a pre-execution planning step."
-              },
-              "llm_rationale": {
-                "type": "string",
-                "description": "Justification for the chosen `llm_id`. If `multimodal` is `True`, this rationale MUST confirm the selected model has `multimodal_support=True`. It should also reference the model's 'reasoner' capability."
-              },
-              "delegation_rationale": {
-                "type": "string",
-                "description": "Justification for the `allow_delegation` setting."
               }
             },
-            "required": ["multimodal", "reasoning_rationale", "llm_rationale", "delegation_rationale"]
+            "required": ["reasoning_rationale"]
           },
           "yaml_definition": {
             "type": "object",
@@ -45,15 +33,15 @@
               },
               "role": {
                 "type": "string",
-                "description": "A well defined agent's role. Can include configuration variables from the 'Project Configuration' using `{variable_name}` syntax."
+                "description": "A well defined agent's role. Can include configuration variables using `{variable_name}` syntax."
               },
               "goal": {
                 "type": "string",
-                "description": "A well defined and detailed agent's goal. Can include configuration variables from the 'Project Configuration' using `{variable_name}` syntax."
+                "description": "A well defined and detailed agent's goal. Can include configuration variables using `{variable_name}` syntax."
               },
               "backstory": {
                 "type": "string",
-                "description": "A narrative that reinforces the agent's expertise and persona. Can include configuration variables from the 'Project Configuration' using `{variable_name}` syntax."
+                "description": "A narrative that reinforces the agent's expertise and persona. Can include configuration variables using `{variable_name}` syntax."
               },
               "reasoning": {
                 "type": "boolean",
@@ -97,11 +85,11 @@
             "properties": {
               "description": {
                 "type": "string",
-                "description": "Detailed operational prompt for the agent, derived from 'Blueprint's Execution Outline'. Can include configuration variables from the 'Project Configuration' using `{variable_name}` syntax where relevant."
+                "description": "Detailed operational prompt for the agent, derived from 'Blueprint's Execution Outline'. Can include configuration variables using `{variable_name}` syntax where relevant."
               },
               "expected_output": {
                 "type": "string",
-                "description": "**CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed. Can include configuration variables from the 'Project Configuration' using `{variable_name}` syntax where relevant."
+                "description": "**CRITICAL RULE:** This must be a precise description of the **final artifact and its state** that proves the task was successfully completed. Can include configuration variables using `{variable_name}` syntax where relevant."
               },
               "agent": {
                 "type": "string",

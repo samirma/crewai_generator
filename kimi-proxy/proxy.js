@@ -302,16 +302,46 @@ function transformResponse(kimiResponse, openAIRequestModel) {
     return openAIResponse;
 }
 
+// Supported models in OpenAI format
+const SUPPORTED_MODELS = [
+    {
+        id: "kimi-for-coding",
+        object: "model",
+        created: 1700000000,
+        owned_by: "kimi"
+    }
+];
+
 const server = http.createServer(async (req, res) => {
     // CORS wrappers
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     if (req.method === 'OPTIONS') {
         res.writeHead(200);
         res.end();
         return;
+    }
+
+    // Handle GET /v1/models endpoint
+    if (req.method === 'GET' && (req.url === '/v1/models' || req.url.startsWith('/v1/models'))) {
+        try {
+            const modelsResponse = {
+                object: "list",
+                data: SUPPORTED_MODELS
+            };
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(modelsResponse));
+            console.log(`[Proxy] GET /v1/models - returned ${SUPPORTED_MODELS.length} models`);
+            return;
+        } catch (error) {
+            console.error('[Proxy] Error handling models request:', error);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: { message: error.message } }));
+            return;
+        }
     }
 
     if (req.method === 'POST' && req.url.startsWith('/v1/chat/completions')) {
