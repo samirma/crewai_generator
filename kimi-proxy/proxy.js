@@ -103,7 +103,7 @@ function transformRequest(openAIRequest, config) {
 
     // 2. Handle Messages & System Prompt
     let systemPrompt = '';
-    
+
     // Extract schema from response_format if present
     let schemaInstruction = '';
     if (openAIRequest.response_format && openAIRequest.response_format.json_schema) {
@@ -186,7 +186,7 @@ function transformRequest(openAIRequest, config) {
     if (schemaInstruction) {
         systemPrompt += (systemPrompt ? '\n' : '') + schemaInstruction;
     }
-    
+
     if (systemPrompt) {
         kimiRequest.system = systemPrompt;
     }
