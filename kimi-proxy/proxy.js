@@ -36,7 +36,12 @@ function loadConfig() {
     return config;
 }
 
-// Helper to make the HTTPS request to Kimi
+// Generate a unique ID for streaming chunks
+function generateChunkId() {
+    return 'chatcmpl-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+}
+
+// Helper to make the HTTPS request to Kimi (non-streaming)
 function callKimiApi(kimiRequest, apiKey) {
     return new Promise((resolve, reject) => {
         const url = new URL(KIMI_API_URL);
@@ -65,6 +70,151 @@ function callKimiApi(kimiRequest, apiKey) {
         req.write(JSON.stringify(kimiRequest));
         req.end();
     });
+}
+
+// Helper to make streaming HTTPS request to Kimi and transform to OpenAI SSE format
+function callKimiApiStreaming(kimiRequest, apiKey, res, openAIRequestModel, openAIRequest) {
+    return new Promise((resolve, reject) => {
+        const url = new URL(KIMI_API_URL);
+        const options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+                'Accept': 'text/event-stream'
+            }
+        };
+
+        const req = https.request(url, options, (kimiRes) => {
+            // Set up SSE headers
+            res.writeHead(200, {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+                'Access-Control-Allow-Origin': '*'
+            });
+
+            const chunkId = generateChunkId();
+            const created = Math.floor(Date.now() / 1000);
+            let buffer = '';
+            let hasStarted = false;
+
+            kimiRes.on('data', (chunk) => {
+                buffer += chunk.toString();
+                const lines = buffer.split('\n');
+                buffer = lines.pop(); // Keep incomplete line in buffer
+
+                for (const line of lines) {
+                    const trimmedLine = line.trim();
+                    if (!trimmedLine || !trimmedLine.startsWith('data:')) continue;
+
+                    const eventData = trimmedLine.slice(5).trim(); // Remove 'data:' prefix and any whitespace
+                    if (eventData === '[DONE]') continue;
+
+                    try {
+                        const kimiEvent = JSON.parse(eventData);
+                        const openAIChunk = transformStreamingChunk(
+                            kimiEvent, chunkId, created, openAIRequestModel, hasStarted
+                        );
+
+                        if (openAIChunk) {
+                            hasStarted = true;
+                            res.write(`data: ${JSON.stringify(openAIChunk)}\n\n`);
+                        }
+                    } catch (e) {
+                        // Ignore parse errors for non-JSON lines
+                    }
+                }
+            });
+
+            kimiRes.on('end', () => {
+                // Send final chunk with finish_reason
+                const finalChunk = {
+                    id: chunkId,
+                    object: 'chat.completion.chunk',
+                    created: created,
+                    model: openAIRequestModel,
+                    system_fingerprint: generateSystemFingerprint(),
+                    choices: [{
+                        index: 0,
+                        delta: {},
+                        finish_reason: 'stop'
+                    }]
+                };
+                res.write(`data: ${JSON.stringify(finalChunk)}\n\n`);
+                res.write('data: [DONE]\n\n');
+                res.end();
+                resolve();
+            });
+
+            kimiRes.on('error', (err) => {
+                reject(err);
+            });
+        });
+
+        req.on('error', reject);
+        req.write(JSON.stringify(kimiRequest));
+        req.end();
+    });
+}
+
+// Transform a single Kimi streaming event to OpenAI chunk format
+function transformStreamingChunk(kimiEvent, chunkId, created, model, hasStarted) {
+    // Kimi events can have different types
+    const eventType = kimiEvent.type;
+
+    if (eventType === 'content_block_delta' || eventType === 'message_delta') {
+        const delta = {};
+        
+        // Handle text delta (regular content)
+        if (kimiEvent.delta?.text) {
+            delta.content = kimiEvent.delta.text;
+        }
+        
+        // Handle thinking_delta (reasoning content)
+        if (kimiEvent.delta?.thinking) {
+            delta.reasoning = kimiEvent.delta.thinking;
+        }
+
+        // Only send if there's content to send
+        if (Object.keys(delta).length === 0) return null;
+
+        // First chunk should include role
+        if (!hasStarted) {
+            delta.role = 'assistant';
+        }
+
+        return {
+            id: chunkId,
+            object: 'chat.completion.chunk',
+            created: created,
+            model: model,
+            system_fingerprint: generateSystemFingerprint(),
+            choices: [{
+                index: 0,
+                delta: delta,
+                finish_reason: null
+            }]
+        };
+    }
+
+    // Handle message_start to get the role
+    if (eventType === 'message_start' && !hasStarted) {
+        return {
+            id: chunkId,
+            object: 'chat.completion.chunk',
+            created: created,
+            model: model,
+            system_fingerprint: generateSystemFingerprint(),
+            choices: [{
+                index: 0,
+                delta: { role: 'assistant', content: '' },
+                finish_reason: null
+            }]
+        };
+    }
+
+    return null;
 }
 
 // Helper function to convert JSON schema to string for system prompt
@@ -407,9 +557,22 @@ const server = http.createServer(async (req, res) => {
                 // Save the Kimi request (input) to file with jq-like formatting
                 fs.writeFileSync(INPUT_PROMPT_FILE, JSON.stringify(kimiRequest, null, 2));
 
-                console.log(`[Proxy] Thinking: ${config.thinking}`);
+                console.log(`[Proxy] Thinking: ${config.thinking}, Streaming: ${kimiRequest.stream}`);
 
-                // Call Kimi
+                // Handle streaming requests
+                if (kimiRequest.stream) {
+                    try {
+                        await callKimiApiStreaming(kimiRequest, validApiKey, res, openAIRequest.model, openAIRequest);
+                        return;
+                    } catch (error) {
+                        console.error('[Proxy] Streaming Error:', error);
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: { message: error.message } }));
+                        return;
+                    }
+                }
+
+                // Non-streaming request
                 const kimiResult = await callKimiApi(kimiRequest, validApiKey);
 
                 if (kimiResult.status !== 200) {

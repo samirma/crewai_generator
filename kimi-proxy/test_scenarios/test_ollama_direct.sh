@@ -29,6 +29,14 @@ OLLAMA_URL="http://localhost:11434/v1/chat/completions"
 MODIFIED_PAYLOAD=$(jq '.model = "kimi-k2.5:cloud"' "$PAYLOAD_FILE")
 
 # Send request to local Ollama server
-curl -X POST "${OLLAMA_URL}" \
-  -H "Content-Type: application/json" \
-  -d "$MODIFIED_PAYLOAD"
+if [ "$STREAMING" = "true" ]; then
+    # For streaming, output raw SSE data without jq
+    curl -X POST "${OLLAMA_URL}" \
+      -H "Content-Type: application/json" \
+      -d "$MODIFIED_PAYLOAD"
+else
+    # For non-streaming, pipe through jq for formatting
+    curl -X POST "${OLLAMA_URL}" \
+      -H "Content-Type: application/json" \
+      -d "$MODIFIED_PAYLOAD" | jq .
+fi

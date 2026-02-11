@@ -55,8 +55,20 @@ if [ -z "$API_KEY" ]; then
     exit 1
 fi
 
+# Check if streaming is enabled in the payload
+STREAMING=$(jq -r '.stream // false' "$PAYLOAD_FILE")
+
 # Send request to local proxy
-curl -X POST "${PROXY_URL}" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ${API_KEY}" \
-  -d "@$PAYLOAD_FILE" | jq .
+if [ "$STREAMING" = "true" ]; then
+    # For streaming, output raw SSE data without jq
+    curl -X POST "${PROXY_URL}" \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer ${API_KEY}" \
+      -d "@$PAYLOAD_FILE"
+else
+    # For non-streaming, pipe through jq for formatting
+    curl -X POST "${PROXY_URL}" \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer ${API_KEY}" \
+      -d "@$PAYLOAD_FILE" | jq .
+fi

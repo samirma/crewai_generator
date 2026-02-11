@@ -1,0 +1,794 @@
+{
+  "messages": [
+    {
+      "content": "\nYou are currently assisting a developer working inside Android Studio.\nYou should act as an expert Android developer helping the user with their requests.\nWhen responding to user requests, be helpful, but concise. Adopt modern Android\ndevelopment practices where applicable, but consistency with the user's code and\nstyle is more important.\n\nThe Python library provides access to a subset of Android Studio's functionality.\nFirst think about what information is required to satisfy the user's request, then\ncheck if the available APIs can help provide that information. If so, prefer using\nthose APIs rather than asking the user. When invoking these APIs, only invoke a\nsingle one at a time, look at the response, then adapt your plan based on the\nresponse. NEVER write full Python programs - you should only write individual\nstatements that invoke a single function from the provided library.\n\nThe APIs give you access to a subset of the IDE's functionality, such as:\n * ability to read and write files\n * ability to search for files\n\nA majority of the user's requests will involve the following steps:\n * thinking about how to solve the problem\n   * Make reasonable assumptions to solve the problem. The requests usually\n     editing a few files, and you should attempt to interpret their request like\n     a helpful and expert Android application developer.\n * identifying information needed from the user's project to solve the problem.\n   * When the user's request is well specified, most often, it maybe related\n     to the files they currently have open or have recently modified. Before asking\n     the user for more information, check if any functions can provide information\n     about the current context that will help answer the question.\n * editing files to solve the problem.\n   * If you are proposing changes to files, do not print out what the content of\n     the file should be, but instead use one of the available write APIs to update\n     the file.",
+      "role": "developer"
+    },
+    {
+      "content": "The user is currently editing the file at /Users/U124317/Desktop/lh-group-app-android/feature/allflights/src/main/java/com/lhgroup/lhgroupapp/allFlights/list/recentFlights/FilterUiModel.kt\nThe user has recently edited the following files:\n/Users/U124317/Desktop/lh-group-app-android/feature/allflights/src/main/java/com/lhgroup/lhgroupapp/allFlights/list/recentFlights/mappers/RecentFlightCardUiModelMapper.kt\n/Users/U124317/Desktop/lh-group-app-android/feature/allflights/src/main/java/com/lhgroup/lhgroupapp/allFlights/list/recentFlights/mappers/PastFlightsEmptyUiModelMapper.kt\n/Users/U124317/Desktop/lh-group-app-android/feature/allflights/src/main/java/com/lhgroup/lhgroupapp/allFlights/model/AllFlightsUiModelMapper.kt\n/Users/U124317/Desktop/lh-group-app-android/domain/src/main/java/com/lhgroup/lhgroupapp/domain/repository/PastBoundsRepository.kt\n/Users/U124317/Desktop/lh-group-app-android/shared/ui/design-system-desy/src/main/java/com/lhgroup/lhgroupapp/shared/ui/designsystem/desy/organism/boundcard/uimodels/RecentFlightCardUiModel.kt\n/Users/U124317/Desktop/lh-group-app-android/core/src/main/java/com/lhgroup/lhgroupapp/core/repository/pastbounds/PastBoundService.kt\n/Users/U124317/Desktop/lh-group-app-android/core/src/main/java/com/lhgroup/lhgroupapp/core/repository/pastbounds/PastBoundsRepositoryImpl.kt\n/Users/U124317/Desktop/lh-group-app-android/domain/src/main/java/com/lhgroup/lhgroupapp/domain/pastbounds/GetPastBoundsInteractor.kt\n/Users/U124317/Desktop/lh-group-app-android/shared/ui/design-system-desy/src/main/java/com/lhgroup/lhgroupapp/shared/ui/designsystem/desy/organism/boundcard/uimodels/PastFlightCardUiModel.kt\n/Users/U124317/Desktop/lh-group-app-android/feature/more-menu/src/main/java/com/lhgroup/lhgroupapp/moreMenu/MoreMenuViewModel.kt\n\nConsider the queries below in the context of the following files.",
+      "role": "user"
+    },
+    {
+      "content": "The current project's name is lh-group-app-android\nIts root folder is /Users/U124317/Desktop/lh-group-app-android.\n\nConsider the queries below in the context of the following files.",
+      "role": "user"
+    },
+    {
+      "content": "Consider the queries below in the context of the following files.\n\nFile path: /Users/U124317/Desktop/lh-group-app-android/feature/allflights/src/main/java/com/lhgroup/lhgroupapp/allFlights/list/recentFlights/FilterUiModel.kt\nFile Contents:\n```\npackage com.lhgroup.lhgroupapp.allFlights.list.recentFlights\n\nimport androidx.compose.runtime.Immutable\n\n@Immutable\ndata class FilterUiModel(\n    val showFilters: Boolean = false,\n    val filterName: String? = null,\n    val filterIndexSelected: Int = 0,\n)\n\n```",
+      "role": "user"
+    },
+    {
+      "content": [
+        {
+          "text": "Hi",
+          "type": "text"
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello\n!\n How\n can\n I\n help\n you\n today\n?"
+    },
+    {
+      "content": [
+        {
+          "text": "add aa new attribut called if with default value as -1",
+          "type": "text"
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "role": "assistant",
+      "content": " "
+    }
+  ],
+  "model": "kimi-for-coding",
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "function": {
+        "name": "read_file",
+        "description": "Retrieves the text content of a file using its absolute path\n\nUse this tool to read file contents when you have the file's absolute path. Also supports reading files inside .jar files. Do not attempt to read a path that hasn't been previously mentioned.\n\nReturns:\nReturns the file's content if the file exists",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "absolutePath": {
+              "type": "string",
+              "description": "The absolute path of the file to read"
+            }
+          },
+          "required": [
+            "absolutePath"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "write_file",
+        "description": "Writes the given text to the specified file, creating the file if it doesn't exist\n\nUse this tool to modify the entire contents of a file using an absolute path. Use replace_text instead for smaller or more targeted changes. Files can only be created if they reside within the project.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "absolutePath": {
+              "type": "string",
+              "description": "The path to the target file"
+            },
+            "text": {
+              "type": "string",
+              "description": "The new content to write to the file"
+            }
+          },
+          "required": [
+            "absolutePath",
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "list_files",
+        "description": "Lists files and directories in the given absolute path\n\nReturns:\nReturns a JSON-formatted list of entries, where each entry contains:\n- name: The name of the file or directory\n- isDirectory: Set to true if the entry is a directory",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "absolutePath": {
+              "type": "string",
+              "description": "The absolute path of the directory to list files from"
+            }
+          },
+          "required": [
+            "absolutePath"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "resolve_symbol",
+        "description": "Resolves a specific symbol reference to its declaration\n\nReturns:\nIf the declaration is found, the tool returns the absolute path of the containing file as well as the full text of the declaration (including Javadoc).\n\nExample:\n* resolve_symbol(symbol = \"foo\", contextSnippet = \"val result = foo()\", contextFile = \"/path/to/src/File.kt\")",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "symbol": {
+              "type": "string",
+              "description": "Name of the symbol to search (usually a variable or function name)"
+            },
+            "contextSnippet": {
+              "type": "string",
+              "description": "A small snippet of surrounding text to help identify a specific symbol within a file"
+            },
+            "contextFile": {
+              "type": "string",
+              "description": "Absolute path of the file in which the symbol reference resides"
+            }
+          },
+          "required": [
+            "symbol",
+            "contextSnippet",
+            "contextFile"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "find_usages",
+        "description": "Searches the project for references to a given declaration\n\nGeneral tip: use this tool before editing any declaration names or type signatures, as the usages may need to be edited first.\n\nReturns:\nFor each reference found, the tool provides the containing file path. At most 10 usages are returned.\n\nExample:\n* find_usages(symbol = \"foo\", contextSnippet = \"fun foo() {\", contextFile = \"/path/to/src/File.kt\")",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "symbol": {
+              "type": "string",
+              "description": "The target declaration name"
+            },
+            "contextSnippet": {
+              "type": "string",
+              "description": "A small snippet of surrounding text to help identify a specific declaration within a file"
+            },
+            "contextFile": {
+              "type": "string",
+              "description": "The absolute path of the file in which the declaration resides"
+            }
+          },
+          "required": [
+            "symbol",
+            "contextSnippet",
+            "contextFile"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "analyze_current_file",
+        "description": "Analyzes the currently open file in the editor for errors and warnings using the editor's inspections\n\nUse this tool to identify coding issues, syntax errors, and other problems in your current file.\n\nReturns:\nReturns a JSON array of objects containing error information:\n- severity: The severity level of the issue (ERROR, WARNING, etc.)\n- description: A description of the issue\n- lineContent: The content of the line containing the issue\nReturns an empty array ([]) if no issues are found.\nReturns error if no file is currently open.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "git",
+        "description": "Runs a Git CLI command and returns the exit code, stdout, and stderr\n\nThe Git command will always be executed from the root of the Git repository. If you do not know the Git repo root, you can pass a context file instead, and this tool will find the Git repo root automatically.\n\nIf you need to pass a file path as an argument to the Git command, prefer adding it after the pathspec delimiter (--) and prefer absolute file paths when possible (to avoid ambiguity)\n\nSome Git commands may be slow when running in large projects. Use well-known Git flags to optimize queries when possible. For example, when looking for recent commits, consider passing -5 or -10 to limit the commit history to a small handful of commits.\n\nExample:\n* git(\n  repoRoot = '/path/to/project',\n  args = ['log', '-10', '--', '/path/to/project/file.kt']\n)",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "repoRoot": {
+              "type": "string",
+              "description": "Absolute path to the Git repository root directory (containing the .git directory), or any context file located inside the repository"
+            },
+            "args": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "repoRoot",
+            "args"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "list_vcs_roots",
+        "description": "Returns all VCS roots in the current project, along with their type (e.g., Git)",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "contextFile": {
+              "type": "string",
+              "description": "If provided, an absolute path of a file for which to find a VCS root. Omit to list all VCS roots in the project."
+            }
+          },
+          "required": [
+            "contextFile"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "deploy",
+        "description": "Deploys an application to an Android device\n\n\n      An application can be deployed in Run or Debug modes. Using Debug mode will start a \n      debugger and attach it to the app.\n      \n      Invoking this tool will also automatically trigger the build system to build the application.\n    \n\nExamples:\n* deploy(ANDROID_APP,My_Project.app,DEFAULT_ACTIVITY, RUN)\n* deploy(ANDROID_APP,My_Project.app,DEFAULT_ACTIVITY, DEBUG)",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "ANDROID_APP"
+              ]
+            },
+            "module": {
+              "type": "string",
+              "description": "Name of the module. Most common is the module that contains an Android Activity of interest"
+            },
+            "launchType": {
+              "type": "string",
+              "enum": [
+                "NO_ACTIVITY",
+                "DEFAULT_ACTIVITY",
+                "SPECIFIED_ACTIVITY",
+                "URL",
+                "URL_WITH_ACTIVITY"
+              ]
+            },
+            "activityName": {
+              "type": "string",
+              "description": "\n      Activity Name.\n      If Launch Type is SPECIFIED_ACTIVITY or URL_WITH_ACTIVITY, this will be the full name of the activity.\n      For other Launch Types, this field is empty string \"\".\n      "
+            },
+            "url": {
+              "type": "string",
+              "description": "\n      URL.\n      If Launch Type is URL or URL_WITH_ACTIVITY, this will be the URL.\n      For other Launch Types, this field is empty string \"\".\n      "
+            },
+            "deployMode": {
+              "type": "string",
+              "enum": [
+                "RUN",
+                "DEBUG"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "module",
+            "launchType",
+            "activityName",
+            "url",
+            "deployMode"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "read_logcat",
+        "description": "Retrieves the current application's logs from the device using logcat.\n\nReturns:\nThe last 1000 log entries since the previous invocation of this tool.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "take_screenshot",
+        "description": "Takes a screenshot of the currently running device\n\nReturns:\nA screenshot",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "ui_state",
+        "description": "Provides the UI hierarchy of what is currently shown on the screen in the connected device\n\n\nUse this tool to get the UI hierarchy of what is currently shown on the screen in the connected\ndevice.\n\nThe result is an XML file where each <node> element represents a UI element on screen nested\nin the same parent-child relationships as the UI hierarchy.\n\nSome of the important attributes include:\n* \"text\": The text shown in the UI.\n* \"clickable\": Whether this element can be interacted with by tapping on the device screen\n* \"scrollable\": Whether this element can be scrolled\n* \"bounds\": The bounding box of the element's top left and bottom right. This can be\nused to interact with the element, such as clicking with an \"adb shell input tab\" command.\n\nFor all the attributes listed below, if you don't see it in the input, assume it is the value provided below.\n checkable=\"false\"\n checked=\"false\"\n clickable=\"false\"\n content-desc=\"\"\n enabled=\"true\"\n focusable=\"false\"\n focused=\"false\"\n long-clickable=\"false\"\n password=\"false\"\n resource-id=\"\"\n scrollable=\"false\"\n selected=\"false\"\n text=\"\"\n hint=\"\"\n index=\"0\"",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "displayText": {
+              "type": "string",
+              "description": "\nShort display text for the user while fetching UI State to state the purpose.\nExample: Inspecting device screen for big red submit button near the bottom of the screen.\n  \""
+            },
+            "displayTextPastTense": {
+              "type": "string",
+              "description": "\nShort display text for the user after fetching UI State to state the purpose.\nExample: Done inspecting device screen for big red submit button near the bottom of the screen.\n  \""
+            }
+          },
+          "required": [
+            "displayText",
+            "displayTextPastTense"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "adb_shell_input",
+        "description": "This tool invokes `adb shell input <args>` for the currently selected Android device to interact with the current application on the screen\n\n\nThe commands and default sources are:\n* text <string> (Default: touchscreen)\n* keyevent [--longpress|--doubletap] <key code number or name> ... (Default: keyboard)\n* tap <x> <y> (Default: touchscreen)\n* swipe <x1> <y1> <x2> <y2> [duration(ms)] (Default: touchscreen)\n* draganddrop <x1> <y1> <x2> <y2> [duration(ms)] (Default: touchscreen)\n* press (Default: trackball)\n* roll <dx> <dy> (Default: trackball)\n* motionevent <DOWN|UP|MOVE|CANCEL> <x> <y> (Default: touchscreen)\n* keycombination <key code 1> <key code 2> ... (Default: keyboard)\n\nKeep in mind input to running application will almost certainly change the UI of the\napplication. Actively check the running device's UI between consecutive input events.\n\nWhen scrolling, SCROLL SLOWLY. Consider scrolling half a page each time based on the device's\nresolution. Navigation with scrolling can require scrolling multiple times. To do that,\nscroll once, check what is shown on the UI of the application, check for the visible UI\nelement and repeat until it is found or we can no longer scroll.\n\nIf you want to input text in a textbox, make sure you click on that textbox first. It is\npossible that the text box has prefilled text in it. If it is not what we are looking for, delete\nthe prefilled text first and then you can use \"input text\" and remember to follow by \"enter\" event\nafterwards.\n\nWhen deleting existing text, delete characters one by one. Do verify that the text box is\nexactly what you expected before continuing.\n\nBefore interacting with an element such as tapping, make sure that the element has nothing on top\nof it. The Android system can draw elements on top each other by listing other elements\nlater in the UI node tree. If that's the case, scroll a bit further to make sure it is no\nlonger covered up by another node's bounding box.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "enum": [
+                "dpad",
+                "keyboard",
+                "mouse",
+                "touchpad",
+                "gamepad",
+                "touchnavigation",
+                "joystick",
+                "touchscreen",
+                "stylus",
+                "trackball",
+                "usedefault"
+              ]
+            },
+            "displayId": {
+              "type": "integer",
+              "description": "DISPLAY_ID (Default: -1 for key event, 0 for motion event if not specified.)"
+            },
+            "command": {
+              "type": "string",
+              "enum": [
+                "text",
+                "keyevent",
+                "tap",
+                "swipe",
+                "draganddrop",
+                "press",
+                "roll",
+                "motionevent",
+                "keycombination"
+              ]
+            },
+            "args": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "displayText": {
+              "type": "string",
+              "description": "\nShort display text for the user.\nExample: Pressing the Submit button at the botton of the screen\n  \""
+            },
+            "displayTextPastTense": {
+              "type": "string",
+              "description": "\nShort display text for the user after the input is done.\nExample: Pressed the Submit button at the botton of the screen\n  \""
+            }
+          },
+          "required": [
+            "source",
+            "displayId",
+            "command",
+            "args",
+            "displayText",
+            "displayTextPastTense"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "render_compose_preview",
+        "description": "Renders a Compose Preview and returns whether the render was successful\n\nThis tool only compiles the given file before rendering. All other files are assumed to have been successfully compiled from a successful project build.\nAssumes the given file contains the given composable, and that the Composable is annotated with @Preview or a Multipreview annotation.\n\nReturns:\nSuccess, or an error containing the failure reason or render error stack trace",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "type": "string",
+              "description": "The absolute path of the file containing the Compose Preview function"
+            },
+            "composableName": {
+              "type": "string",
+              "description": "The composable function (short) name."
+            }
+          },
+          "required": [
+            "filePath",
+            "composableName"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "gradle_sync",
+        "description": "Synchronizes Android Studio's project structure information with the project structure information from Gradle\n\nUse this tool if any dependencies were updated recently and you want the IDE to know about changes to the gradle build scripts.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "version_lookup",
+        "description": "Looks up the latest available versions on the internet of maven artifacts, Android versions, and more.\n\nReturns:\nA JSON document mapping from the artifact identifiers back to the current stable and preview versions\n\nExample:\n* version_lookup(\"androidx.window:window\")",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "artifacts"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "gradle_build",
+        "description": "Executes the given Gradle tasks on the current project\n\nReturns:\nThe output of the gradle build process\n\nExamples:\n* gradle_build(\"app:assembleDebug\")\n* gradle_build(\"app:unitTests --stacktrace\")",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "commandLine": {
+              "type": "string",
+              "description": "Tasks and other command line arguments"
+            }
+          },
+          "required": [
+            "commandLine"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "get_gradle_artifact_from_file",
+        "description": "Returns an artifact that contains the provided file in its sources\n\nThe result can be used to request more information about the project structure, e.g. in get_test_artifacts_for_sub_project, get_source_folders_for_artifact, get_assemble_task_for_artifact, get_test_task_for_artifact, get_artifact_consumers tools.\n\nReturns:\nReturns a JSON object which represents an artifact containing the file, with the following information:\n- subproject_path: Gradle path of the sub-project\n- artifact_name: Name of the artifact in this sub-project\n- sources: the type of source folder that contains the file. it could be java, kotlin, android resources, android assets, etc...",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "absolutePath": {
+              "type": "string",
+              "description": "Absolute path to the file to get the subproject information for"
+            }
+          },
+          "required": [
+            "absolutePath"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "get_assemble_task_for_artifact",
+        "description": "Returns the name of the task to build the given artifact\n\nThe input should not be inferred from path and other data. It should be based on returned values of get_gradle_artifact_from_file\n\n\nReturns:\nThe name of the Gradle task to run",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "subproject_path": {
+              "type": "string",
+              "description": "Gradle path of the sub-project"
+            },
+            "artifact_name": {
+              "type": "string",
+              "description": "Name of the artifact in this sub-project"
+            }
+          },
+          "required": [
+            "subproject_path",
+            "artifact_name"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "get_artifact_consumers",
+        "description": "Returns the top-level artifacts consuming the given artifact\n\nThe arguments are generally obtained via get_gradle_artifact_from_file.\n\nReturns:\nReturns a JSON array of objects, each representing an artifact and containing the following information:\n- subproject_path: Gradle path of the sub-project\n- artifact_name: Name of the artifact in this sub-project\nReturns an empty array ([]) if no artifacts are found.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "subproject_path": {
+              "type": "string",
+              "description": "Gradle path of the sub-project"
+            },
+            "artifact_name": {
+              "type": "string",
+              "description": "Name of the artifact in this sub-project"
+            }
+          },
+          "required": [
+            "subproject_path",
+            "artifact_name"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "get_build_file_location",
+        "description": "Returns the location of the build file for the given sub-project\n\nThe project path can be queried via tools like get_gradle_artifact_from_file.\n\nReturns:\nThe path to the build file or an error if it the sub-project was not found.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "subproject_path": {
+              "type": "string",
+              "description": "Gradle path of the sub-project"
+            }
+          },
+          "required": [
+            "subproject_path"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "get_test_task_for_artifact",
+        "description": "Returns the name of the task to run a test for the given artifact\n\nUse this to know how to run the tests on an artifact. If you need to find this artifact, you can use get_test_artifacts_for_sub_project from the main artifact. This must be called on a test artifact type only.\n\nThe input should not be inferred from path and other data. It should be based on returned values of get_gradle_artifact_from_file.\n\nReturns:\nA task name to run tests in Gradle",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "subproject_path": {
+              "type": "string",
+              "description": "Gradle path of the sub-project"
+            },
+            "artifact_name": {
+              "type": "string",
+              "description": "Name of the artifact in this sub-project"
+            }
+          },
+          "required": [
+            "subproject_path",
+            "artifact_name"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "get_top_level_sub_projects",
+        "description": "Returns the main artifacts of the top level sub-projects\n\nTop level sub-projects means that they are not consumed by other projects. This includes apps and libraries with no consumers.\n\nReturns:\nReturns a JSON array of objects containing the following information:\n- subproject_path: Gradle path of the sub-project\n- artifact_name: Name of the artifact in this sub-project\nReturns an empty array ([]) if no artifacts are found.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "get_test_artifacts_for_sub_project",
+        "description": "Returns the test artifacts for a main artifact of specified sub-project\n\nThe project path can be queried via tools like get_gradle_artifact_from_file.\n\nReturns:\nReturns a JSON array of objects, each representing a test artifact for the requested sub-project, containing the following information:\n- subproject_path: Gradle path of the sub-project\n- artifact_name: Name of the artifact in this sub-project\nReturns an empty array ([]) if no test artifacts are found.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "subproject_path": {
+              "type": "string",
+              "description": "Gradle path of the sub-project"
+            }
+          },
+          "required": [
+            "subproject_path"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "get_source_folders_for_artifact",
+        "description": "Returns the source folders for the provided artifact if it exists\n\nThe input should not be inferred from path and other data. It should be based on returned values of get_gradle_artifact_from_file.\n\nReturns:\nAn array of folders",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "subproject_path": {
+              "type": "string",
+              "description": "Gradle path of the sub-project"
+            },
+            "artifact_name": {
+              "type": "string",
+              "description": "Name of the artifact in this sub-project"
+            }
+          },
+          "required": [
+            "subproject_path",
+            "artifact_name"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "code_search",
+        "description": "Searches an index of the user's code base\n\nThe index is created by Lucene, and contains a field for the file name and one for its contents.\n\nUse this tool when answering the user's query requires first searching through the codebase\nin natural language. When using this tool, if there are not enough results, consider widening the\nsearch terms and search again. Once relevant files are found, use read_file tool to read those files\nas appropriate.\n\nReturns:\nReturns up to 50 file paths that match the given query.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "terms": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "terms"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "search_android_docs",
+        "description": "Searches authoritative, high-quality Android developer documentation in the Android Knowledge Base.\n\n\nBy providing a few keywords, this tool will return high quality articles that\ncontain examples or guidance on how to use Android APIs or libraries.\nUse this tool to obtain additional information on how to achieve Android-specific tasks\nor to know more about Android APIs, surfaces, libraries or devices.\n\nAlways use this tool to get the most up-to-date information about Android concepts. Typical\ngood use cases are:\n  - Finding migration guides for APIs.\n  - Finding examples for APIs.\n  - Finding up-to-date information about Android APIs.\n  - Finding best practices for Android concepts.\n\n\nAfter calling this tool, use the `fetch_android_docs` tool to fetch the contents passing one of more `relative_url`s.\n\nReturns:\nReturns search results containing title, keywords, description and relative_url\n\nExamples:\n* search_android_docs(\"Android XR\")\n* search_android_docs(\"Animations \\\"Jetpack Compose\\\"\")",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Keywords to search for to find documentation."
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "fetch_android_docs",
+        "description": "Returns full documents from the high quality subset of the official Android Developer documentation\n\nUse the `search_android_docs` first.\n\nReturns:\nReturns the content of the documentation article.\n\nExample:\n* fetch_android_docs(\"android/training/testing/fundamentals\")",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "relativeUrl": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "relativeUrl"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "find_files",
+        "description": "Looks up the absolute path to files given only the file name or a part of the file path.\n\nSearches for all files in the project whose names contain the specified string (case-insensitive).\n\nThe maximum number of results is 100. Attempt a more specific query if this limit is reached. If you do not know specific file paths, please use the `code_search` tool instead. Note: Only searches through files within the project, excluding libraries and external dependencies.\n\nReturns:\nReturns a JSON array of objects containing the full paths that match the query.\n- path: Absolute path\n- type: Optional field, set to \"directory\" if the path corresponds to a directory.\nReturns an empty array ([]) if no matching files are found.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "The file name or part of the file path to search for."
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "grep",
+        "description": "Finds all the files inside the project containing the given pattern\n\nUse this tool when searching for (complex) regular expression patterns. If you need to search for a literal string or an uncertain symbol, or if you are unsure whether the pattern is a valid regular expression, consider using the `code_search` tool instead.\n\nReturns:\nReturns a JSON array of objects containing the absolute paths\nto files that contain text matching the given pattern, and the\nmatching text. Only a maximum of 100 are returned.\nFor each match, only the first 100 characters of\nthe matching text are returned.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "type": "string",
+              "description": "The string or regular expression to find"
+            }
+          },
+          "required": [
+            "pattern"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      },
+      "type": "function"
+    }
+  ],
+  "stream": false
+}
