@@ -66,14 +66,6 @@ export const staticModels: ModelConfig[] = [
     apiKey: "NVIDIA_API_KEY",
     baseURL: "https://integrate.api.nvidia.com/v1",
   },
-  {
-    id: "kimi-local-wrapper",
-    name: "Kimi Local Wrapper",
-    model: "kimi-for-coding",
-    timeout: 600,
-    apiKey: "KIMI_API_KEY",
-    baseURL: "http://localhost:3050/v1",
-  },
 ];
 
 export interface LocalServerConfig {
@@ -85,6 +77,13 @@ export interface LocalServerConfig {
 }
 
 export const localServerConfigs: LocalServerConfig[] = [
+  {
+    id: 'kimi-local-wrapper',
+    name: 'Kimi Local Wrapper',
+    baseURL: 'http://localhost:3050/v1',
+    apiKey: 'KIMI_API_KEY',
+    timeout: 600,
+  },
   {
     id: 'local',
     name: 'Local',
