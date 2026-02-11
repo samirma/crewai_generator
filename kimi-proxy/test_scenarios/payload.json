@@ -735,5 +735,5 @@
             "type": "function"
         }
     ],
-    "stream": true
+    "stream": false
 }

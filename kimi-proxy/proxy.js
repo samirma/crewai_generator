@@ -75,7 +75,7 @@ function schemaToPromptInstruction(schema) {
 // Transform OpenAI Request to Kimi Request
 function transformRequest(openAIRequest, config) {
     const kimiRequest = {
-        model: openAIRequest.model,
+        model: 'kimi-for-coding',
         max_tokens: openAIRequest.max_tokens || 32768,
         stream: openAIRequest.stream || false,
         messages: []
@@ -90,6 +90,21 @@ function transformRequest(openAIRequest, config) {
 
     if (openAIRequest.stop) {
         kimiRequest.stop_sequences = Array.isArray(openAIRequest.stop) ? openAIRequest.stop : [openAIRequest.stop];
+    }
+
+    // Pass through optional parameters if provided
+    if (openAIRequest.seed !== undefined) {
+        // Kimi doesn't support seed directly, but we can store it for logging
+        // Some clients expect this to be echoed back in the response
+    }
+    
+    if (openAIRequest.temperature !== undefined) {
+        // Kimi API doesn't expose temperature in the same way
+        // We could map it if the API supports it in the future
+    }
+    
+    if (openAIRequest.top_p !== undefined) {
+        // Kimi API doesn't expose top_p in the same way
     }
 
     // 1. Handle Tools
@@ -114,7 +129,7 @@ function transformRequest(openAIRequest, config) {
     }
 
     for (const msg of openAIRequest.messages) {
-        if (msg.role === 'system') {
+        if (msg.role === 'system' || msg.role === 'developer') {
             systemPrompt += (systemPrompt ? '\n' : '') + msg.content;
         } else if (msg.role === 'user') {
             if (Array.isArray(msg.content)) {
@@ -205,7 +220,7 @@ function generateSystemFingerprint() {
 }
 
 // Transform Kimi Response to OpenAI Response
-function transformResponse(kimiResponse, openAIRequestModel) {
+function transformResponse(kimiResponse, openAIRequestModel, openAIRequest) {
 
     if (kimiResponse.error) {
         return { error: kimiResponse.error };
@@ -298,6 +313,11 @@ function transformResponse(kimiResponse, openAIRequestModel) {
             created: now / 1000
         }
     };
+
+    // Echo back seed if it was provided in the request (OpenAI compatibility)
+    if (openAIRequest && openAIRequest.seed !== undefined) {
+        openAIResponse.seed = openAIRequest.seed;
+    }
 
     return openAIResponse;
 }
@@ -403,7 +423,7 @@ const server = http.createServer(async (req, res) => {
                 fs.writeFileSync(OUTPUT_PROMPT_FILE, JSON.stringify(kimiResult.data, null, 2));
 
                 // Transform Response
-                const openAIResponse = transformResponse(kimiResult.data, openAIRequest.model);
+                const openAIResponse = transformResponse(kimiResult.data, openAIRequest.model, openAIRequest);
 
                 // Log outgoing payload from proxy
                 fs.writeFileSync(PROXY_OUTPUT_FILE, JSON.stringify({

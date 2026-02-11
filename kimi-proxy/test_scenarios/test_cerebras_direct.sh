@@ -52,7 +52,10 @@ if [ -z "$API_KEY" ]; then
     exit 1
 fi
 
+# Override the model to qwen-3-32b
+MODIFIED_PAYLOAD=$(jq '.model = "qwen-3-32b"' "$PAYLOAD_FILE")
+
 curl -X POST https://api.cerebras.ai/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_KEY}" \
-  -d "@$PAYLOAD_FILE" | jq .
+  -d "$MODIFIED_PAYLOAD" | jq .
