@@ -121,9 +121,11 @@ export async function executePythonScript(controller?: ReadableStreamDefaultCont
     // --- Docker Container Setup ---
     const scriptToRun = scriptName || 'run_crew.sh';
     const dockerCommand = `/bin/sh /workspace/${scriptToRun}`;
+    const containerName = `python-runner-${projectName || 'default'}-${Date.now()}`;
     try {
       const container = await docker.createContainer({
         Image: imageName,
+        name: containerName,
         Cmd: ['/bin/sh', '-c', dockerCommand],
         WorkingDir: '/workspace/crewai_generated',
         HostConfig: {

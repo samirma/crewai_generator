@@ -17,7 +17,7 @@ interface ContainerInfo {
 export async function GET() {
   try {
     const { stdout } = await execPromise(
-      'docker ps -a --filter "ancestor=python-runner" --format "{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}|{{.State}}|{{.Ports}}|{{.CreatedAt}}"'
+      'docker ps -a --filter "name=python-runner-" --format "{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}|{{.State}}|{{.Ports}}|{{.CreatedAt}}"'
     );
 
     const containers: ContainerInfo[] = stdout
