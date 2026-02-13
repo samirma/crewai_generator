@@ -91,7 +91,7 @@ html_file_writer_tool = FileWriterTool(file_path="/workspace/output/report.html"
 ```
 
 #### **5. CrewBase Definition**
-Define the class annotated with `@CrewBase`.
+Define the class CrewaiGenerated annotated with `@CrewBase`.
 
 ```python
 @CrewBase
