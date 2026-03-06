@@ -18,31 +18,6 @@ export const staticModels: ModelConfig[] = [
     baseURL: "https://generativelanguage.googleapis.com/v1beta",
   },
   {
-    id: "zai-glm-4.7",
-    name: "Cerebras GLM 4.7",
-    model: "zai-glm-4.7",
-    timeout: 600,
-    apiKey: "CEREBRAS_API_KEY",
-    baseURL: "https://api.cerebras.ai/v1",
-  },
-  {
-    id: "deepseek_chat_worker",
-    name: "Deepseek Chat Worker",
-    model: "deepseek-chat",
-    timeout: 600,
-    apiKey: "DEEPSEEK_API_KEY",
-    baseURL: "https://api.deepseek.com/v1",
-    maxOutputTokens: 8000,
-  },
-  {
-    id: "glm-4.7-flash",
-    name: "Zai GLM 4.7 Flash",
-    model: "glm-4.7-flash",
-    timeout: 600,
-    apiKey: "ZAI_API_KEY",
-    baseURL: "https://api.z.ai/api/paas/v4",
-  },
-  {
     id: "moonshotai_kimi-k2.5",
     name: "Nvidia - MoonshotAI Kimi K2.5",
     model: "moonshotai/kimi-k2.5",
@@ -50,21 +25,50 @@ export const staticModels: ModelConfig[] = [
     apiKey: "NVIDIA_API_KEY",
     baseURL: "https://integrate.api.nvidia.com/v1",
   },
+  // Bailian/Alibaba Models
   {
-    id: "minimaxai_minimax-m2",
-    name: "Nvidia - Minimax AI Minimax M2",
-    model: "minimaxai/minimax-m2",
+    id: "qwen3.5-plus",
+    name: "(Alibaba) Qwen 3.5 Plus",
+    model: "qwen3.5-plus",
     timeout: 600,
-    apiKey: "NVIDIA_API_KEY",
-    baseURL: "https://integrate.api.nvidia.com/v1",
+    apiKey: "ALIBABA",
+    baseURL: "https://coding-intl.dashscope.aliyuncs.com/v1",
+    maxOutputTokens: 8192,
   },
   {
-    id: "z-ai_glm4.7",
-    name: "Nvidia - Zai GLM 4.7",
-    model: "z-ai/glm4.7",
+    id: "qwen3-max-2026-01-23",
+    name: "(Alibaba) Qwen 3 Max 2026-01-23",
+    model: "qwen3-max-2026-01-23",
     timeout: 600,
-    apiKey: "NVIDIA_API_KEY",
-    baseURL: "https://integrate.api.nvidia.com/v1",
+    apiKey: "ALIBABA",
+    baseURL: "https://coding-intl.dashscope.aliyuncs.com/v1",
+  },
+  {
+    id: "MiniMax-M2.5",
+    name: "(Alibaba) MiniMax M2.5",
+    model: "MiniMax-M2.5",
+    timeout: 600,
+    apiKey: "ALIBABA",
+    baseURL: "https://coding-intl.dashscope.aliyuncs.com/v1",
+    maxOutputTokens: 8192,
+  },
+  {
+    id: "glm-5",
+    name: "(Alibaba) GLM-5",
+    model: "glm-5",
+    timeout: 600,
+    apiKey: "ALIBABA",
+    baseURL: "https://coding-intl.dashscope.aliyuncs.com/v1",
+    maxOutputTokens: 8192,
+  },
+  {
+    id: "kimi-k2.5",
+    name: "(Alibaba) Kimi K2.5",
+    model: "kimi-k2.5",
+    timeout: 600,
+    apiKey: "ALIBABA",
+    baseURL: "https://coding-intl.dashscope.aliyuncs.com/v1",
+    maxOutputTokens: 8192,
   },
 ];
 
@@ -87,7 +91,7 @@ export const localServerConfigs: LocalServerConfig[] = [
   {
     id: 'local',
     name: 'Local',
-    baseURL: 'http://localhost:8080/v1',
+    baseURL: 'http://localhost:8001/v1',
     apiKey: 'LOCAL_API_KEY',
     timeout: 600,
   },
@@ -97,7 +101,8 @@ export const localServerConfigs: LocalServerConfig[] = [
     baseURL: 'http://localhost:1234/v1',
     apiKey: 'LOCAL_API_KEY',
     timeout: 600,
-  }
+  },
+  // Note: Individual Bailian models are defined in staticModels above
 ];
 
 export async function getAllModels(): Promise<ModelConfig[]> {
