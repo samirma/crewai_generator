@@ -17,6 +17,20 @@
         "api_key": "KIMI_API_KEY",
         "base_url": "http://localhost:3050/v1"
       }
+    },
+    {
+      "design_metadata": {
+        "llm_id": "ollama_qwen3_6_27b_mlx",
+        "reasoner": true,
+        "multimodal_support": false,
+        "description": "Local Qwen3.6 27B MLX model served via Ollama. Strong reasoning and coding performance optimized for Apple Silicon, suitable for manager agents and complex task orchestration."
+      },
+      "constructor_args": {
+        "model": "ollama/qwen3.6:27b-mlx",
+        "timeout": 600,
+        "api_key": "OLLAMA_API_KEY",
+        "base_url": "http://localhost:11434"
+      }
     }
   ]
 }

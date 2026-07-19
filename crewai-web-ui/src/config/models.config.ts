@@ -8,69 +8,7 @@ export interface ModelConfig {
   maxOutputTokens?: number;
 }
 
-export const staticModels: ModelConfig[] = [
-  {
-    id: "gemini-2.5-flash",
-    name: "Gemini 2.5 Flash",
-    model: "gemini-2.5-flash",
-    timeout: 600,
-    apiKey: "GEMINI_API_KEY",
-    baseURL: "https://generativelanguage.googleapis.com/v1beta",
-  },
-  {
-    id: "moonshotai_kimi-k2.5",
-    name: "Nvidia - MoonshotAI Kimi K2.5",
-    model: "moonshotai/kimi-k2.5",
-    timeout: 600,
-    apiKey: "NVIDIA_API_KEY",
-    baseURL: "https://integrate.api.nvidia.com/v1",
-  },
-  // Bailian/Alibaba Models
-  {
-    id: "qwen3.5-plus",
-    name: "(Alibaba) Qwen 3.5 Plus",
-    model: "qwen3.5-plus",
-    timeout: 600,
-    apiKey: "ALIBABA",
-    baseURL: "https://coding-intl.dashscope.aliyuncs.com/v1",
-    maxOutputTokens: 8192,
-  },
-  {
-    id: "qwen3-max-2026-01-23",
-    name: "(Alibaba) Qwen 3 Max 2026-01-23",
-    model: "qwen3-max-2026-01-23",
-    timeout: 600,
-    apiKey: "ALIBABA",
-    baseURL: "https://coding-intl.dashscope.aliyuncs.com/v1",
-  },
-  {
-    id: "MiniMax-M2.5",
-    name: "(Alibaba) MiniMax M2.5",
-    model: "MiniMax-M2.5",
-    timeout: 600,
-    apiKey: "ALIBABA",
-    baseURL: "https://coding-intl.dashscope.aliyuncs.com/v1",
-    maxOutputTokens: 8192,
-  },
-  {
-    id: "glm-5",
-    name: "(Alibaba) GLM-5",
-    model: "glm-5",
-    timeout: 600,
-    apiKey: "ALIBABA",
-    baseURL: "https://coding-intl.dashscope.aliyuncs.com/v1",
-    maxOutputTokens: 8192,
-  },
-  {
-    id: "kimi-k2.5",
-    name: "(Alibaba) Kimi K2.5",
-    model: "kimi-k2.5",
-    timeout: 600,
-    apiKey: "ALIBABA",
-    baseURL: "https://coding-intl.dashscope.aliyuncs.com/v1",
-    maxOutputTokens: 8192,
-  },
-];
+export const staticModels: ModelConfig[] = [];
 
 export interface LocalServerConfig {
   id: string; // Unique identifier for the server (e.g., 'local', 'vllm')
@@ -102,7 +40,6 @@ export const localServerConfigs: LocalServerConfig[] = [
     apiKey: 'LOCAL_API_KEY',
     timeout: 600,
   },
-  // Note: Individual Bailian models are defined in staticModels above
 ];
 
 export async function getAllModels(): Promise<ModelConfig[]> {
