@@ -1,4 +1,4 @@
-* **Instruction:** Only use the previouly generated document as a source of truth.
+* **Instruction:** Only use the previously generated document as a source of truth.
 
 **Pre-defined List to Use for `llm_registry`:**
 ```json
@@ -6,27 +6,28 @@
   "llm_list": [
     {
       "design_metadata": {
-        "llm_id": "kimi_local_llm",
-        "reasoner": false,
+        "llm_id": "nvidia_glm_5_2",
+        "reasoner": true,
         "multimodal_support": false,
-        "description": "Local Kimi Wrapper for coding. Proxies requests to a local Kimi server."
+        "description": "Nvidia-hosted Zai GLM 5.2 (remote API). Currently UNAVAILABLE: the account has no inference access (API returns 403). Do NOT select this model for any agent; it is kept in the registry for future reactivation only."
       },
       "constructor_args": {
-        "model": "kimi-for-coding",
+        "model": "openai/z-ai/glm-5.2",
         "timeout": 600,
-        "api_key": "KIMI_API_KEY",
-        "base_url": "http://localhost:3050/v1"
+        "api_key": "NVIDIA_API_KEY",
+        "base_url": "https://integrate.api.nvidia.com/v1",
+        "max_tokens": 16384
       }
     },
     {
       "design_metadata": {
-        "llm_id": "ollama_qwen3_6_27b_mlx",
+        "llm_id": "qwen3_8_27b_mlx",
         "reasoner": true,
         "multimodal_support": false,
-        "description": "Local Qwen3.6 27B MLX model served via Ollama. Strong reasoning and coding performance optimized for Apple Silicon, suitable for manager agents and complex task orchestration."
+        "description": "Local Qwen3.8 27B MLX model served via Ollama. PREFERRED default for all agents (the Nvidia model is currently unavailable)."
       },
       "constructor_args": {
-        "model": "ollama/qwen3.6:27b-mlx",
+        "model": "ollama/qwen3.8:27b-mlx",
         "timeout": 600,
         "api_key": "OLLAMA_API_KEY",
         "base_url": "http://localhost:11434"
@@ -55,7 +56,7 @@ JSON Schema:
             "properties": {
               "llm_id": {
                 "type": "string",
-                "description": "A unique identifier for this configuration (e.g., \"gemini_pro_reasoner\", \"deepseek_chat_basic\"). This will be used to name the Python variable."
+                "description": "A unique identifier for this configuration (e.g., \"gemini_pro_reasoner\", \"deepseek_chat_basic\"). It becomes a Python variable name, so it MUST be a valid lowercase snake_case Python identifier: only `[a-z0-9_]`, not starting with a digit. Copy it verbatim from the llm_list."
               },
               "reasoner": {
                 "type": "boolean",
@@ -100,7 +101,11 @@ JSON Schema:
               },
               "api_key": {
                 "type": "string",
-                "description": "Environment variable name for the API key."
+                "description": "The NAME of the environment variable holding the API key (e.g., \"OLLAMA_API_KEY\") — never the key value itself."
+              },
+              "base_url": {
+                "type": "string",
+                "description": "Base URL of the API endpoint. REQUIRED for local/self-hosted models (e.g., \"http://localhost:11434\" for Ollama). Copy it verbatim from the llm_list entry."
               }
             },
             "required": ["model"]
@@ -147,4 +152,4 @@ JSON Schema:
 }
 ```
 
-Your entire response must be a single, valid JSON object derived from the json schema below without include the schema itself. Do not include any other text before or after the JSON.
+Your entire response must be a single, valid JSON object conforming to the JSON Schema above (do not include the schema itself). Output raw JSON only — no markdown fences, no comments, no text before or after the JSON.

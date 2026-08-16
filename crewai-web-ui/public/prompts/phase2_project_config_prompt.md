@@ -14,8 +14,35 @@
     *   **name:** Variable name.
     *   **description:** What this variable represents.
     *   **value:** Default value for this variable based on the 'Project Blueprint'.
-*   **outputs:** A list of the full path of the output(s) of the project, restricted to only the deliverables defined in the blueprint.
-    *   **name:** A descriptive name for the output.
+*   **outputs:** A list of the output(s) of the project, restricted to only the deliverables defined in the blueprint.
+    *   **name:** A descriptive name for the output. ALWAYS required.
     *   **description:** A comprehensive description of the output contents.
     *   **format:** The format of the output (e.g., 'JSON', 'PDF', 'HTML').
-    *   **location:** The location where the output will be stored, only if needed (e.g., 'src/data/resume.json'), otherwise suppress that field.
+    *   **location:** For file-based outputs only: the absolute path where the file will be stored. When the user/blueprint specifies an explicit path, keep it VERBATIM (it must be under `/workspace/`). When no path is given, default to `/workspace/output/<file>` (e.g., '/workspace/output/report.html'). Files under `/workspace/output/` are wiped before every run — persistent, updated-across-runs artifacts belong directly under `/workspace/`. For outputs returned directly as text (not written to a file), suppress this field entirely.
+
+**CRITICAL STRUCTURE RULES:**
+
+1.  `id`, `description`, `user_inputs`, and `outputs` MUST be TOP-LEVEL YAML keys. NEVER nest them under a wrapper key such as `project_config.yaml:` or `config:` — a wrapper key breaks the application that reads this file.
+2.  Every `user_inputs[].name` must be lowercase snake_case (it becomes a Python dict key and a `{interpolation}` variable in agent/task definitions).
+3.  When a file deliverable exists, `user_inputs` MUST include a path variable (e.g., `output_path`) whose `value` equals that output's `location` — downstream task interpolation relies on it.
+
+**Example structure (top-level keys, no wrapper):**
+
+```yaml
+id: resume_optimizer
+description: Optimizes a resume against a target job description.
+user_inputs:
+  - name: output_path
+    description: Absolute path where the final report is written.
+    value: /workspace/output/report.html
+  - name: max_retries
+    description: Maximum retry attempts for failed steps.
+    value: 3
+outputs:
+  - name: Final Report
+    description: The optimized resume report.
+    format: HTML
+    location: /workspace/output/report.html
+```
+
+CRITICAL OUTPUT FORMAT: Your entire response must be ONLY the raw YAML content of `project_config.yaml` — no markdown fences, no explanations, no text before or after. The response is written to disk verbatim.

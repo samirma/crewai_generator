@@ -39,9 +39,27 @@ export async function interactWithLLM(
     }
   }
 
+  const isCodexResponses = modelConfig.apiType === 'codex-responses';
+
+  let accountId: string | undefined;
+  if (isCodexResponses && modelConfig.accountIdEnv) {
+    accountId = process.env[modelConfig.accountIdEnv];
+    if (!accountId) {
+      throw new Error(`${modelConfig.accountIdEnv} is not set for model: ${llmModel}`);
+    }
+  }
+
   const openai = new OpenAI({
     apiKey: apiKey,
     baseURL: modelConfig.baseURL,
+    ...(isCodexResponses
+      ? {
+          defaultHeaders: {
+            ...(accountId ? { 'ChatGPT-Account-Id': accountId } : {}),
+            'OpenAI-Beta': 'responses=experimental',
+          },
+        }
+      : {}),
   });
 
   const params: OpenAI.Chat.ChatCompletionCreateParams = {
@@ -60,7 +78,7 @@ export async function interactWithLLM(
     params.max_tokens = modelConfig.maxOutputTokens;
   }
 
-  console.log(`Using model: ${modelConfig.model} for request via OpenAI SDK.`);
+  console.log(`Using model: ${modelConfig.model} for request via OpenAI SDK (${isCodexResponses ? 'responses' : 'chat.completions'}).`);
   const { messages, ...restParams } = params;
   console.log("Calling API with params:", {
     url: modelConfig.baseURL,
@@ -68,9 +86,33 @@ export async function interactWithLLM(
     promptSummary: `${fullPrompt.substring(0, 100)}...`,
   });
   try {
-    completion = await openai.chat.completions.create(params);
+    if (isCodexResponses) {
+      // The Codex backend only supports the Responses API and requires streaming.
+      const stream = await openai.responses.create({
+        model: modelConfig.model,
+        instructions: 'You are a precise code and configuration generator. Follow the user instructions exactly.',
+        input: [{ role: 'user', content: [{ type: 'input_text', text: fullPrompt }] }],
+        store: false,
+        stream: true,
+      });
+      const texts: string[] = [];
+      let outputTokens = 0;
+      for await (const event of stream as AsyncIterable<any>) {
+        if (event.type === 'response.output_text.done' && typeof event.text === 'string') {
+          texts.push(event.text);
+        } else if (event.type === 'response.completed') {
+          outputTokens = event.response?.usage?.output_tokens ?? 0;
+        } else if (event.type === 'response.failed') {
+          throw new Error(`Codex response failed: ${event.response?.error?.message ?? 'unknown error'}`);
+        }
+      }
+      rawResponse = texts.join('\n');
+      completion = { usage: { completion_tokens: outputTokens } };
+    } else {
+      completion = await openai.chat.completions.create(params);
+      rawResponse = completion.choices?.[0]?.message?.content ?? '';
+    }
     console.log("API call completed.");
-    rawResponse = completion.choices?.[0]?.message?.content ?? '';
     llmResponseText = stripThinkingTags(rawResponse);
   } catch (error) {
     console.error(`Error interacting with LLM for model ${llmModel}:`, error);

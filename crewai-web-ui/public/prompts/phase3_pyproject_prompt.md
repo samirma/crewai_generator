@@ -3,7 +3,7 @@ You will be provided with one or more Python code files. Your task is to analyze
 
 Objective: Analyze the provided Python code to identify all imported libraries and create a `pyproject.toml` file with the correct dependencies and entry points.
 
-Input: One or more blocks of Python code, each prefixed with its file path (e.g., `File: src/crewai_project/main.py`).
+Input: One or more blocks of Python code, each prefixed with its file path (e.g., `File: src/crewai_project/main.py`). The provided files include the project's `crew.py`, `main.py`, and any custom tool files.
 
 Analysis:
 
@@ -26,9 +26,11 @@ It must include the `[project]` section with standard metadata.
 The `dependencies` array inside `[project]` must include:
 
 **Mandatory Dependencies** (Must always be present):
-*   "crewai[google-genai,tools]>=1.3.0"
+*   "crewai[google-genai,tools]>=1.15.0"
 *   "crewai-tools[mcp]"
+*   "python-dotenv"
 *   "fastmcp"
+*   "mcp-server-time"
 *   "litellm>=1.80.9"
 *   "zeroconf"
 *   "ollama"
@@ -38,7 +40,9 @@ The `dependencies` array inside `[project]` must include:
 *   You should evaluate the imports and identify any other and only the external python libraries you need to run the code.
 
 Formatting:
-The entire output must be a single, valid TOML file content inside a markdown block. Do not include any other text before or after.
+Everything in the reference `pyproject.toml` below except the `dependencies` array MUST be reproduced byte-identical — the `[project.scripts]` entries, the project `name`, and the `[build-system]` section are load-bearing for the runtime.
+
+CRITICAL OUTPUT FORMAT: Your entire response must be ONLY the raw TOML content of `pyproject.toml` — no markdown fences, no explanations, no text before or after. The response is written to disk verbatim.
 
 Reference `pyproject.toml` content the dependencies should be the only one updated:
 

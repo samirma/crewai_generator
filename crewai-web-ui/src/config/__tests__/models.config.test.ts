@@ -22,7 +22,7 @@ describe('getAllModels', () => {
                     })
                 });
             }
-            if (url.includes('8080')) {
+            if (url.includes('8001')) {
                 return Promise.resolve({
                     ok: true,
                     json: () => Promise.resolve({
@@ -37,7 +37,7 @@ describe('getAllModels', () => {
 
         // Check static models (we just check one existence)
         expect(models).toEqual(expect.arrayContaining([
-            expect.objectContaining({ id: 'gemini-2.5-flash' })
+            expect.objectContaining({ id: 'z-ai_glm-5.2' })
         ]));
 
         // Check Ollama
@@ -62,7 +62,7 @@ describe('getAllModels', () => {
                     })
                 });
             }
-            if (url.includes('8080')) {
+            if (url.includes('8001')) {
                 return Promise.reject(new Error('Connection refused'));
             }
             return Promise.reject(new Error('Unknown URL'));
@@ -72,7 +72,7 @@ describe('getAllModels', () => {
 
         // Should still have static and Ollama
         expect(models).toEqual(expect.arrayContaining([
-            expect.objectContaining({ id: 'gemini-2.5-flash' })
+            expect.objectContaining({ id: 'z-ai_glm-5.2' })
         ]));
         expect(models).toEqual(expect.arrayContaining([
             expect.objectContaining({ id: 'llama2' })
@@ -93,7 +93,7 @@ describe('getAllModels', () => {
 
         (global.fetch as jest.Mock).mockImplementation((url: string) => {
             if (url.includes('11434')) return Promise.resolve({ ok: false }); // Ollama fail
-            if (url.includes('8080')) return Promise.resolve({ ok: false }); // Local fail
+            if (url.includes('8001')) return Promise.resolve({ ok: false }); // Local fail
             if (url.includes('8000')) {
                 return Promise.resolve({
                     ok: true,
@@ -122,16 +122,17 @@ describe('getModelConfig', () => {
     });
 
     it('should resolve static model config without network', async () => {
-        const config = await getModelConfig('gemini-2.5-flash');
+        const config = await getModelConfig('z-ai_glm-5.2');
         expect(config).toBeDefined();
-        expect(config?.baseURL).toBe('https://generativelanguage.googleapis.com/v1beta');
+        expect(config?.baseURL).toBe('https://integrate.api.nvidia.com/v1');
+        expect(config?.model).toBe('z-ai/glm-5.2');
         expect(global.fetch).not.toHaveBeenCalled();
     });
 
     it('should resolve local server model config from prefix', async () => {
         const config = await getModelConfig('local_gpt-4-local');
         expect(config).toBeDefined();
-        expect(config?.baseURL).toBe('http://localhost:8080/v1');
+        expect(config?.baseURL).toBe('http://localhost:8001/v1');
         expect(config?.model).toBe('gpt-4-local');
         expect(config?.name).toContain('(Local)');
         expect(global.fetch).not.toHaveBeenCalled();

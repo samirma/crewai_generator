@@ -14,10 +14,10 @@
 **A. Primary Objective:**
 *   **Goal:** A clear, single-sentence statement of what needs to be achieved.
 *   **Value:** Why is this being done? What is the intended outcome for the user?
-*   **Requiments:** A detailed list of all requiriments stated by the user.
+*   **Requirements:** A detailed list of all requirements stated by the user.
 
 **B. Logic Plan:**
-*   **Description:** A high-level logical flow of how to solve the problem fullfilling all requiriments considering that steps should be planned considering the dependencies between steps, the inputs and outputs of each step and the final deliverables and previous and next steps.
+*   **Description:** A high-level logical flow of how to solve the problem fulfilling all requirements, considering that steps should be planned considering the dependencies between steps, the inputs and outputs of each step and the final deliverables and previous and next steps.
 *   **Structure in list of steps:** Break the solution down into **Logical Steps**.
     *   **Step Name:** A descriptive name for the logical step.
     *   **Purpose:** What does this step achieve?
@@ -36,7 +36,7 @@
             *   **Deliverable Name:** Descriptive name.
             *   **Description:** What does this file contain?
             *   **Format:** (e.g., 'JSON', 'Markdown', 'Python').
-            *   **Location:** **MANDATORY.** The absolute path where the file must be saved (e.g., '/tmp/output.json').
+            *   **Location:** **MANDATORY.** The absolute path where the file must be saved. When the user specifies an explicit path, keep it VERBATIM (it must be under `/workspace/`). When the user gives no path, default to `/workspace/output/<file>` (e.g., '/workspace/output/output.json'). Note: files under `/workspace/output/` are wiped before every run — artifacts that must persist across runs (read-then-update reports) belong directly under `/workspace/`.
     *   **Main Output (Return Value, when needed):**
         *   **Description:** The primary string content that should be returned to the user. This is a single grouped string. This output is optional, only if needed.
         *   **Schema:**

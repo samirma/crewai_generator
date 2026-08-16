@@ -6,9 +6,62 @@ export interface ModelConfig {
   apiKey: string;
   baseURL: string;
   maxOutputTokens?: number;
+  // 'chat' (default) = OpenAI-compatible chat.completions.
+  // 'codex-responses' = ChatGPT Codex backend: Responses API, streaming-only,
+  // OAuth access token in `apiKey` env var + ChatGPT-Account-Id header from `accountIdEnv`.
+  apiType?: 'chat' | 'codex-responses';
+  accountIdEnv?: string;
 }
 
-export const staticModels: ModelConfig[] = [];
+export const staticModels: ModelConfig[] = [
+  // Nvidia-hosted models (integrate.api.nvidia.com)
+  {
+    id: "z-ai_glm-5.2",
+    name: "Nvidia - Zai GLM 5.2",
+    model: "z-ai/glm-5.2",
+    timeout: 600,
+    apiKey: "NVIDIA_API_KEY",
+    baseURL: "https://integrate.api.nvidia.com/v1",
+    maxOutputTokens: 16384,
+  },
+  // OpenAI via the ChatGPT Codex backend (OAuth access token from a ChatGPT
+  // login, e.g. opencode's auth.json — NOT a platform API key).
+  {
+    id: "openai_gpt-5.6-terra",
+    name: "OpenAI - GPT 5.6 Terra (ChatGPT)",
+    model: "gpt-5.6-terra",
+    timeout: 600,
+    apiKey: "OPENAI_CHATGPT_ACCESS_TOKEN",
+    baseURL: "https://chatgpt.com/backend-api/codex",
+    apiType: "codex-responses",
+    accountIdEnv: "OPENAI_CHATGPT_ACCOUNT_ID",
+  },
+  {
+    id: "openai_gpt-5.6-luna",
+    name: "OpenAI - GPT 5.6 Luna (ChatGPT)",
+    model: "gpt-5.6-luna",
+    timeout: 600,
+    apiKey: "OPENAI_CHATGPT_ACCESS_TOKEN",
+    baseURL: "https://chatgpt.com/backend-api/codex",
+    apiType: "codex-responses",
+    accountIdEnv: "OPENAI_CHATGPT_ACCOUNT_ID",
+  },
+];
+
+const CODEX_BASE_URL = "https://chatgpt.com/backend-api/codex";
+
+function codexModelConfig(modelId: string): ModelConfig {
+  return {
+    id: `openai_${modelId}`,
+    name: `OpenAI - ${modelId} (ChatGPT)`,
+    model: modelId,
+    timeout: 600,
+    apiKey: "OPENAI_CHATGPT_ACCESS_TOKEN",
+    baseURL: CODEX_BASE_URL,
+    apiType: "codex-responses",
+    accountIdEnv: "OPENAI_CHATGPT_ACCOUNT_ID",
+  };
+}
 
 export interface LocalServerConfig {
   id: string; // Unique identifier for the server (e.g., 'local', 'vllm')
@@ -87,7 +140,38 @@ export async function getAllModels(): Promise<ModelConfig[]> {
   const localModelsArrays = await Promise.all(localModelsPromises);
   const localModels = localModelsArrays.flat();
 
-  return [...staticModels, ...ollamaModels, ...localModels];
+  // ChatGPT Codex backend: list available OpenAI models when OAuth env vars are
+  // present. Fails silently (static entries remain) when absent or unsupported.
+  let codexModels: ModelConfig[] = [];
+  const codexToken = process.env.OPENAI_CHATGPT_ACCESS_TOKEN;
+  const codexAccountId = process.env.OPENAI_CHATGPT_ACCOUNT_ID;
+  if (codexToken && codexAccountId) {
+    try {
+      const response = await fetch(`${CODEX_BASE_URL}/models`, {
+        headers: {
+          Authorization: `Bearer ${codexToken}`,
+          'ChatGPT-Account-Id': codexAccountId,
+          'OpenAI-Beta': 'responses=experimental',
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const list = data.data || data.models || data;
+        if (Array.isArray(list)) {
+          codexModels = list
+            .map((m: any) => (typeof m === 'string' ? m : m.id || m.slug || m.model))
+            .filter((id: any): id is string => typeof id === 'string' && id.length > 0)
+            .map(codexModelConfig);
+        }
+      } else {
+        console.warn(`ChatGPT Codex model listing not available (HTTP ${response.status}).`);
+      }
+    } catch (error) {
+      console.warn('Failed to fetch ChatGPT Codex models:', error);
+    }
+  }
+
+  return [...staticModels, ...ollamaModels, ...localModels, ...codexModels];
 }
 
 export async function getModelConfig(modelId: string): Promise<ModelConfig | undefined> {
@@ -95,7 +179,12 @@ export async function getModelConfig(modelId: string): Promise<ModelConfig | und
   const staticModel = staticModels.find(m => m.id === modelId);
   if (staticModel) return staticModel;
 
-  // 2. Check for Local Server models (prefix match)
+  // 2. ChatGPT Codex models discovered at runtime (prefix openai_)
+  if (modelId.startsWith('openai_')) {
+    return codexModelConfig(modelId.slice('openai_'.length));
+  }
+
+  // 3. Check for Local Server models (prefix match)
   // Format: {server.id}_{model.id}
   for (const server of localServerConfigs) {
     if (modelId.startsWith(`${server.id}_`)) {

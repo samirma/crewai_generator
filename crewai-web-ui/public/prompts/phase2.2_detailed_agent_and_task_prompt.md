@@ -1,5 +1,6 @@
 * **Instruction:** Use the document identified as 'Project Blueprint' within `{{{ }}}` and the yaml as your sole source of truth. Note the yaml defines the configuration variables, where the name is the variable name and the description should be used be better guide to generate the agent and task definitions.
 * **Objective:** Your task is to elaborate on the detailed architecture plan by providing detailed definitions for each agent and task.
+* **CRITICAL BRACE RULE:** In every `role`, `goal`, `backstory`, `description`, and `expected_output` string, curly braces may ONLY appear as `{variable_name}` references to `user_inputs` names defined in the project configuration YAML. Any other literal `{` or `}` (JSON examples, code snippets, set notation) is FORBIDDEN — describe such structures in words instead. Unknown `{placeholders}` crash the crew at kickoff during input interpolation.
 
 ```json
 {
@@ -8,7 +9,7 @@
   "properties": {
     "agent_cadre": {
       "type": "array",
-      "description": "Using CrewAI best practices, create a comprehensive list of CrewAI agents to fully execute the 'Project Blueprint', covering all its aspects, details, and specifications. Adhere to CrewAI best practices: 1. Roles should be specific and narrow. 2. Goals must be actionable. 3. Backstories should provide context and expertise.",
+      "description": "Using CrewAI best practices, create the SMALLEST list of CrewAI agents that fully executes the 'Project Blueprint'. RIGHT-SIZE the crew to the complexity of the user's request: a simple request with a single deliverable (e.g. research a topic and write one report) must use 2-4 agents; only genuinely multi-faceted projects justify more, and never exceed 6. Merge related responsibilities into one agent (e.g. one researcher covering several angles, not one agent per angle) — every extra agent multiplies LLM calls and runtime. Adhere to CrewAI best practices: 1. Roles should be specific and narrow. 2. Goals must be actionable. 3. Backstories should provide context and expertise.",
       "items": {
         "type": "object",
         "properties": {
@@ -19,9 +20,13 @@
               "reasoning_rationale": {
                 "type": "string",
                 "description": "A justification for the `reasoning: True/False` setting, explaining why this specific agent needs (or doesn't need) a pre-execution planning step."
+              },
+              "delegation_rationale": {
+                "type": "string",
+                "description": "A justification for the `allow_delegation: True/False` setting, explaining why this specific agent should (or should not) be able to delegate work to other agents."
               }
             },
-            "required": ["reasoning_rationale"]
+            "required": ["reasoning_rationale", "delegation_rationale"]
           },
           "yaml_definition": {
             "type": "object",
@@ -45,14 +50,14 @@
               },
               "reasoning": {
                 "type": "boolean",
-                "description": "`True` or `False`, only `True` when the justification in `reasoning_rationale` justifies it."
+                "description": "`True` or `False`. Default to `False`. Each `True` adds pre-execution planning LLM calls requiring strict structured output, which small local models frequently fail — causing replan loops and multiplying runtime. Set `True` for AT MOST one agent, and only when its task involves genuinely complex multi-step orchestration that would fail without an explicit plan."
               },
               "allow_delegation": {
                 "type": "boolean",
                 "description": "`True` or `False`, only `True` when the justification in `delegation_rationale` justifies it."
               }
             },
-            "required": ["role", "goal", "backstory", "reasoning", "allow_delegation"]
+            "required": ["yaml_id", "role", "goal", "backstory", "reasoning", "allow_delegation"]
           }
         },
         "required": ["design_metadata", "yaml_definition"]
@@ -60,7 +65,7 @@
     },
     "task_roster": {
       "type": "array",
-      "description": "Using CrewAI best practices, create a comprehensive list of tasks to fully execute the 'Project Blueprint', covering all its aspects, details, and specifications. A single step can be extrapolated into one or more tasks if it is too complex, considering the CrewAI recommended architecture.",
+      "description": "Using CrewAI best practices, create the SMALLEST list of tasks that fully executes the 'Project Blueprint'. RIGHT-SIZE the roster: merge blueprint steps that share an agent and data flow into a single task (e.g. one research task covering several angles, not one task per angle); a simple single-deliverable request should need 3-5 tasks, never more than 7. Split a step into multiple tasks only when it is genuinely too complex for one task. Every extra task adds significant runtime.",
       "items": {
         "type": "object",
         "properties": {
@@ -74,7 +79,7 @@
               },
               "detailed_description": {
                 "type": "string",
-                "description": "A detailed statement explaining the success criteria for this task and how to archive it."
+                "description": "A detailed statement explaining the success criteria for this task and how to achieve it."
               }
             },
             "required": ["llm_limitations", "detailed_description"]
@@ -105,6 +110,10 @@
                 "items": {
                   "type": "string"
                 }
+              },
+              "output_file": {
+                "type": "string",
+                "description": "OPTIONAL. Set ONLY on the final task that produces a file deliverable declared in the project configuration outputs. MUST be a template reference to a `user_inputs` variable holding the path (e.g., \"{output_path}\") — NEVER a hardcoded literal path (CrewAI strips the leading slash from literal paths, relocating the file). CrewAI writes the task's final output to this path natively; prefer this over a file-writing tool for final artifacts."
               }
             },
             "required": ["description", "expected_output", "agent", "yaml_id"]
@@ -118,4 +127,4 @@
 }
 ```
 
-Your entire response must be a single, valid JSON object derived from the json schema below without include the schema itself. Do not include any other text before or after the JSON.
+Your entire response must be a single, valid JSON object conforming to the JSON Schema above (do not include the schema itself). Output raw JSON only — no markdown fences, no comments, no text before or after the JSON.

@@ -1,5 +1,5 @@
 
-* **Instruction:** Only use the previouly generated document as a source of truth.
+* **Instruction:** Only use the previously generated document as a source of truth.
 * **Objective:** Your task is to generate the complete definition for any custom tools that were identified in the tool selection plan.
 * **Output Structure:** The output should be a JSON object with a single key: `custom_tools`.
 
@@ -7,7 +7,6 @@
 The input is a JSON object containing a `tool_repository` list. You must iterate through this list to find custom tools.
 Structure: `tool_repository` -> (list of tasks) -> `tools` -> (list of tools).
 For each tool in the `tools` list, check if it contains a `custom_tool` object with `"is_custom_tool": true`.
-- In case a dict python would be used it always include a description of the expected keys and defined types.
 If found, use the following mapping to generate the output:
 - `design_metadata.tool_id`: comes from input `design_metadata.tool_id`
 - `design_metadata.task_use_case`: comes from input `design_metadata.task_use_case`
@@ -33,7 +32,7 @@ If found, use the following mapping to generate the output:
               },
               "description": {
                 "type": "string",
-                "description": "A detailed description of the tool's function to better orient its development in pyhton, including the output. including all parameters(described in the 'run_method_parameters' section), and the expected output."
+                "description": "A detailed description of the tool's function to better orient its development in Python, including all parameters (described in the 'run_method_parameters' section) and the expected output."
               },
               "task_use_case": {
                 "type": "string",
@@ -56,7 +55,7 @@ If found, use the following mapping to generate the output:
               },
               "description_attribute": {
                 "type": "string",
-                "description": "The value for the tool's `description` attribute. It should include all parameters(described in the 'run_method_parameters' section, including all parameters' types, and keysand values, in case of a dict python would be used, the expected output)."
+                "description": "The value for the tool's `description` attribute. It should include all parameters (described in the 'run_method_parameters' section) with their types, and the expected output. When a Python dict is used anywhere, always describe its expected keys and value types."
               },
               "run_method_parameters": {
                 "type": "array",
@@ -97,4 +96,4 @@ If found, use the following mapping to generate the output:
 ```
 
 
-Your entire response must be a single, valid JSON object derived from the json schema below without include the schema itself. Do not include any other text before or after the JSON.
+Your entire response must be a single, valid JSON object conforming to the JSON Schema above (do not include the schema itself). Output raw JSON only — no markdown fences, no comments, no text before or after the JSON.

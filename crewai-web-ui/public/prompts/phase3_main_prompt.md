@@ -8,8 +8,9 @@ Generate a Python script based on the provided template. The script must dynamic
     *   For each item, use `name` as the key and `value` as the default value.
     *   Example: If `user_inputs` has `[{"name": "topic", "value": "AI"}]`, generate `inputs = {'topic': 'AI'}`.
 *   **Placeholders:** If no `user_inputs` are defined, leave `inputs = {}`.
+*   **Value types:** Copy each `value` with its original YAML type — numbers stay numbers, lists stay lists, strings stay strings. Do not stringify non-string values.
 
-No explication shoudl be provided, just output the code.
+No explanation should be provided, just output the code.
 
 
 **Template:**
@@ -83,11 +84,6 @@ def test():
     except Exception as e:
         raise Exception(f"An error occurred while testing the crew: {e}")
 
-    try:
-        CrewaiGenerated().crew().test(n_iterations=int(sys.argv[1]), eval_llm=sys.argv[2], inputs=inputs)
-    except Exception as e:
-        raise Exception(f"An error occurred while testing the crew: {e}")
-
 def run_streamlit():
     from streamlit.web import cli as stcli
     import socket
@@ -127,3 +123,5 @@ def run_streamlit():
     except Exception as e:
         raise Exception(f"An error occurred while running the streamlit app: {e}")
 ```
+
+CRITICAL OUTPUT FORMAT: Your entire response must be ONLY the raw Python content of `main.py` — no markdown fences, no explanations, no text before or after. The response is written to disk verbatim.

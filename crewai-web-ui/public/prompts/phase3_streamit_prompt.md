@@ -4,8 +4,7 @@ You are an expert Python Streamlit Developer. Your task is to generate a `stream
 # Context
 The user has defined a CrewAI project with specific agents, tasks, and **User Inputs**.
 You will be provided with:
-1.  **Project Configuration** (in YAML format from `project_config.yaml`): Contains `user_inputs` and `outputs` definitions.
-2.  **Agent and Task Definitions** (in JSON format): Contains the detailed agent and task definitions.
+1.  **Project Configuration** (in YAML format from `project_config.yaml`): Contains `user_inputs` and `outputs` definitions. This is your ONLY input.
 
 Your goal is to build a UI that allows users to:
 1.  Enter values for the defined User Inputs (from `project_config.yaml`).
@@ -25,7 +24,7 @@ Generate a valid, executable Python script (`streamit.py`) that implements the f
 *   **Store** all user-entered values in a dictionary named `inputs`.
 
 ## 2. Crew Execution
-*   **Import** the crew class: `from crewai_generated.crew import CrewaiGenerated`.
+*   **Import** the crew class: `from crewai_generated.crew import CrewaiGenerated`. (This import is safe at module load — the crew's MCP servers are lazy configs that only connect at kickoff; do not guard or defer it beyond the template's try/except.)
 *   **Initialize** the crew: `crew_instance = CrewaiGenerated().crew()`.
 *   **Button**: Create a `st.button("Run Crew")` that is only visible if the crew is not running.
 *   **On Click**:
@@ -38,8 +37,6 @@ Generate a valid, executable Python script (`streamit.py`) that implements the f
         *   **Success**: Update status to "Complete" (e.g., `status.update(label="Crew Execution Complete", state="complete")`).
         *   **Failure**: Catch exceptions, display an error message (`st.error(f"Error: {e}")`), and update status to "Error" (`status.update(label="Execution Failed", state="error")`).
     3.  **Handle Results**: Display outputs immediately after execution (see "Output Handling").
-
-    *   **Interrupt**: Add a `stop_btn = st.button("Stop Execution")` (if appropriate for the layout) that simply calls `st.stop()` or resets state to halt the process if clicked (note: valid for script re-runs, though acting on blocking calls varies). ensure the UI reflects the "Stopped" state if interrupted. It should only be visible if the crew is running.
 
 ## 3. Output Handling (CRITICAL)
 You must handle two types of outputs defined in the Project Configuration (YAML). Iterate through the `outputs` list:
@@ -91,8 +88,8 @@ import time
 try:
     from crewai_generated.crew import CrewaiGenerated
 except ImportError:
-    # Fallback for local dev
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    # Fallback for local dev: the package lives under ./src relative to this file
+    sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
     from crewai_generated.crew import CrewaiGenerated
 
 def load_inputs():

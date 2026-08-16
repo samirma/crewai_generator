@@ -1,5 +1,5 @@
 
-* **Instruction:** Only use the previouly json as a source of truth.
+* **Instruction:** Only use the previously generated JSON as a source of truth.
 * **Objective:** Your task is to select the appropriate tools for each task from the 'Canonical Tool Library'. If no suitable tool is available, you must identify that a custom tool is required.
 
 To ensure a realistic and grounded design, all tool selections must be made **exclusively** from the following canonical list of available tools. The `tool_selection_justification` field within the `tool_repository` must reference this list for its evaluation.
@@ -75,6 +75,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
           "tool_id": "mcp-search-crawl",
           "supports_embedding": false,
           "description": "A combined tool that allows both searching the web and crawling/scraping content from URLs. It provides 'perform_web_search' for finding information and 'crawl_single_url'/'crawl_webpage' for extracting content.",
+          "provided_tools": ["perform_web_search", "crawl_webpage", "crawl_single_url"],
           "serverparams": {
             "command": "python",
             "args": ["/workspace/mcp/mcp_search_crawl.py"]
@@ -84,10 +85,11 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
           "tool_name": "time-stdio",
           "tool_id": "mcp_time_adapter",
           "supports_embedding": false,
-          "description": "It should be used whenever there is a time component to the task allowing to now the current date and time. Must be used for all cases that are a time component in the task, for instance reference to 'current', days, hours, past, future dates, or all other kind of temporal references.",
+          "description": "It should be used whenever there is a time component to the task allowing to know the current date and time. Must be used for all cases that are a time component in the task, for instance reference to 'current', days, hours, past, future dates, or all other kind of temporal references.",
+          "provided_tools": ["get_current_time", "convert_time"],
           "serverparams": {
-            "command": "uvx",
-            "args": ["mcp-server-time"]
+            "command": "python",
+            "args": ["-m", "mcp_server_time"]
           }
         },
         {
@@ -105,6 +107,7 @@ To ensure a realistic and grounded design, all tool selections must be made **ex
           "tool_id": "mcp_pandoc_adapter",
           "supports_embedding": false,
           "description": "Converts a document from one format to another using Pandoc by taking a source `input_path` and a destination `output_path`, returning a string message indicating the result. The desired output format is automatically inferred from the output file's extension. Supported input formats include biblatex, bibtex, commonmark, creole, csljson, csv, docbook, docx, dokuwiki, endnotexml, epub, fb2, gfm, haddock, html, ipynb, jats, jira, json, latex, markdown, markdown_mmd, markdown_phpextra, markdown_strict, mediawiki, man, muse, native, odt, opml, org, ris, rst, rtf, t2t, textile, tikiwiki, tsv, twiki, and vimwiki. Supported output formats include asciidoc, beamer, commonmark, context, csljson, docbook, docx, dokuwiki, dzslides, epub, fb2, gfm, haddock, html, icml, ipynb, jats, jira, json, latex, man, markdown, markdown_mmd, markdown_phpextra, markdown_strict, mediawiki, ms, muse, native, odt, opml, opendocument, org, pdf, plain, pptx, revealjs, rst, rtf, s5, slidy, slideous, tei, texinfo, textile, xwiki, and zimwiki.",
+          "provided_tools": ["convert_document"],
           "serverparams": {
             "command": "python",
             "args": ["/workspace/mcp/mcp_pandadoc_converter.py"]
@@ -183,7 +186,7 @@ JSON Schema:
                 },
                 "custom_tool": {
                   "type": "object",
-                  "description": "Contains only the parameters for the tool's class constructor only if there is no tool available to perform the requirements and a custom crewai tool should be developed",
+                  "description": "Present ONLY when no canonical tool can perform the requirements and a custom CrewAI tool must be developed. Exactly one of `custom_tool` or `canonical_tool` MUST be present per tool entry — never both, never neither.",
                   "properties": {
                     "is_custom_tool": {
                       "type": "boolean",
@@ -191,21 +194,27 @@ JSON Schema:
                     },
                     "class_name": {
                       "type": "string",
-                      "description": "The exact Python class name to the custom tool that will developed"
-                    },
-                  }
-                }
+                      "description": "The exact Python class name of the custom tool that will be developed."
+                    }
+                  },
+                  "required": ["is_custom_tool", "class_name"]
+                },
                 "canonical_tool": {
                   "type": "object",
-                  "description": "Contains only the parameters for the tool's class constructor only if `is_custom_tool` is `False`. CRITICAL RULE for MCP Servers: If using an MCP Server, the `class_name` MUST be `MCPServerAdapter`. The `initialization_params` object MUST contain a single key: `serverparams`. This `serverparams` object must contain two keys: `command` (String) and `args` (Array of Strings), which define how to run the MCP server process.",
+                  "description": "Present ONLY when a tool from the 'canonical_tool_library' is selected. Exactly one of `custom_tool` or `canonical_tool` MUST be present per tool entry. CRITICAL RULE for MCP Servers: If using an MCP Server, the `class_name` MUST be the marker string `MCPServerAdapter` (it marks the entry as an MCP server; final code generation uses the modern `Agent.mcps` API). The `initialization_params` object MUST contain a single key: `serverparams`, copied verbatim from the library entry, with two keys: `command` (String) and `args` (Array of Strings).",
                   "properties": {
                     "class_name": {
                       "type": "string",
-                      "description": "The exact Python class name to instantiate."
+                      "description": "The exact Python class name to instantiate, or the marker `MCPServerAdapter` for MCP servers."
                     },
                     "initialization_params": {
                       "type": "object",
-                      "description": "Constructor parameters for the tool."
+                      "description": "Constructor parameters for the tool. For MCP servers: exactly `{\"serverparams\": {\"command\": ..., \"args\": [...]}}` copied from the library."
+                    },
+                    "mcp_tool_names": {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "description": "MCP servers only: the subset of the library entry's `provided_tools` this task actually needs. Copy the names verbatim. Omit this field entirely when the library entry has no `provided_tools`."
                     }
                   },
                   "required": ["class_name"]
@@ -223,4 +232,4 @@ JSON Schema:
 }
 ```
 
-Your entire response must be a single, valid JSON object derived from the json schema below without include the schema itself. Do not include any other text before or after the JSON.
+Your entire response must be a single, valid JSON object conforming to the JSON Schema above (do not include the schema itself). Output raw JSON only — no markdown fences, no comments, no text before or after the JSON.

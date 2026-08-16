@@ -1,5 +1,5 @@
 
-* **Instruction:** Only use the previouly generated document as a source of truth.
+* **Instruction:** Only use the previously generated document as a source of truth.
 * **Objective:** Your task is to design a high-level CrewAI configuration. This design must fully implement the goals from the 'Project Blueprint'. Your role is strictly that of an architect; you are not to write code or execute the plan.
 
 
@@ -30,26 +30,26 @@
       "properties": {
         "rationale": {
           "type": "string",
-          "description": "Justification for enablding or not the support for memory in crewai."
+          "description": "Justification for enabling or not the support for memory in crewai."
         },
         "activation": {
           "type": "boolean",
-          "description": "`True` to enable memory."
+          "description": "`True` to enable memory. Default to `False`. Memory adds per-step embedding and memory-analysis LLM calls requiring strict structured output, which small local models frequently fail — slowing every step and risking out-of-memory kills. Enable ONLY when the crew genuinely needs to recall information across separate kickoffs (e.g. a recurring job that must remember previous runs); a one-shot pipeline that passes context between tasks does NOT need memory."
         },
         "embedder_config": {
           "type": "object",
-          "description": "Required if `activation` is `True` else 'False'.",
+          "description": "Required if `activation` is `True`; omit this key entirely when `activation` is `False`.",
           "properties": {
             "provider": {
               "type": "string",
-              "description": "The name of the embedding provider (always use, \"onnx\")."
+              "description": "The name of the embedding provider (always use \"onnx\")."
             },
             "rationale": {
               "type": "string",
               "description": "Justification for the embedder choice."
             }
           },
-          "required": ["provider", "config", "rationale"]
+          "required": ["provider", "rationale"]
         }
       },
       "required": ["rationale", "activation"]
@@ -60,4 +60,4 @@
 ```
 
 
-Your entire response must be a single, valid JSON object derived from the json schema below without include the schema itself. Do not include any other text before or after the JSON.
+Your entire response must be a single, valid JSON object conforming to the JSON Schema above (do not include the schema itself). Output raw JSON only — no markdown fences, no comments, no text before or after the JSON.
