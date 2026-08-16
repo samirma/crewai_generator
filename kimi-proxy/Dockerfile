@@ -1,5 +1,5 @@
 # Minimal Node.js image for Kimi OpenAI-compatible proxy
-FROM node:20-alpine
+FROM node:24-alpine
 
 WORKDIR /app
 

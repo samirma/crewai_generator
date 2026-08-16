@@ -18,6 +18,7 @@ const defaultProps = {
     isExecutingScript: false,
     onRunPhase: mockOnRunPhase,
     duration: null,
+    tokensPerSecond: null,
     input: '',
     setInput: mockSetInput,
     output: '',

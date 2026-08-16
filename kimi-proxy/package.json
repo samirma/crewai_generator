@@ -2,11 +2,14 @@
   "name": "kimi-server",
   "version": "1.0.0",
   "description": "Kimi API proxy server",
-  "main": "kimi_server.js",
+  "main": "proxy.js",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
-    "start": "node kimi_server.js"
+    "start": "node proxy.js"
   },
   "dependencies": {
-    "dotenv": "^16.4.5"
+    "dotenv": "^17.4.2"
   }
 }

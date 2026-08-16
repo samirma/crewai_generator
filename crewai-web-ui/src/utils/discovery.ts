@@ -16,7 +16,6 @@ export async function discoverServers(timeout = 5000): Promise<DiscoveredServer[
   return new Promise((resolve) => {
     const bonjour = new Bonjour();
     const servers: DiscoveredServer[] = [];
-    let timer: NodeJS.Timeout;
 
     console.log('🔍 Searching for published servers on network...');
 
@@ -45,7 +44,7 @@ export async function discoverServers(timeout = 5000): Promise<DiscoveredServer[
     });
 
     // Set timeout to stop searching
-    timer = setTimeout(() => {
+    setTimeout(() => {
       console.log(`Discovery complete. Found ${servers.length} server(s).`);
       bonjour.destroy();
       resolve(servers);

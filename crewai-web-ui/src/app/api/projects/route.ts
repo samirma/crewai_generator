@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 import toml from '@iarna/toml';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 
 export async function GET() {
   const projectsDir = path.resolve(process.cwd(), '..', 'projects');

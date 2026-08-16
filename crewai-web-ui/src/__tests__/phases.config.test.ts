@@ -15,6 +15,7 @@ const basePhaseState: Omit<PhaseState, 'id' | 'dependencies'> = {
   output: "Test Output",
   status: 'pending',
   duration: null,
+  tokensPerSecond: null,
 
   generateInputPrompt: jest.fn(),
 };
