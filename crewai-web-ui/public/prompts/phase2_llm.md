@@ -6,21 +6,6 @@
   "llm_list": [
     {
       "design_metadata": {
-        "llm_id": "nvidia_glm_5_2",
-        "reasoner": true,
-        "multimodal_support": false,
-        "description": "Nvidia-hosted Zai GLM 5.2 (remote API). Currently UNAVAILABLE: the account has no inference access (API returns 403). Do NOT select this model for any agent; it is kept in the registry for future reactivation only."
-      },
-      "constructor_args": {
-        "model": "openai/z-ai/glm-5.2",
-        "timeout": 600,
-        "api_key": "NVIDIA_API_KEY",
-        "base_url": "https://integrate.api.nvidia.com/v1",
-        "max_tokens": 16384
-      }
-    },
-    {
-      "design_metadata": {
         "llm_id": "qwen3_8_27b_mlx",
         "reasoner": true,
         "multimodal_support": false,
